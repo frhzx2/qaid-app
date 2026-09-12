@@ -463,6 +463,8 @@
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
+        <button type="button" class="submit" id="notifToggleBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🔔 تفعيل تنبيهات المتصفح</button>
+        <div class="audit-note" id="notifStatusNote" style="margin-top:8px;"></div>
       </section>
 
       <!-- ============ REPORTS ============ -->
@@ -961,6 +963,7 @@
 
     COLLECTIONS.forEach(([name, stateKey]) => {
       const unsub = db.collection(name).onSnapshot(async (snap) => {
+        const wasLoadedBefore = loadedFlags[name];
         state[stateKey] = snap.docs.map(d => d.data());
         if(name === 'categories' && !loadedFlags[name]){
           if(snap.empty){
@@ -974,6 +977,9 @@
             runExpenseCategoryMigrationIfNeeded(state.categories);
           }
         }
+        if(wasLoadedBefore && (name === 'transactions' || name === 'settlements')){
+          notifyOnRemoteAdditions(name, snap.docChanges());
+        }
         loadedFlags[name] = true;
         checkAllLoaded();
         if(appIsReady) renderCurrentPage();
@@ -986,6 +992,62 @@
       unsubscribers.push(unsub);
     });
   }
+
+  // ---------------- Local (in-app) notifications ----------------
+  // No backend push server exists, so this only works while the app is
+  // actually open on the device — it cannot wake a fully closed app.
+
+  function notificationsEnabled(){
+    return localStorage.getItem('qayd_notif_enabled') === '1' && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+  }
+  function showLocalNotification(title, body){
+    if(!notificationsEnabled()) return;
+    try{ new Notification(title, { body, icon: 'icon-192.png' }); }catch(e){ console.error(e); }
+  }
+  function notifyOnRemoteAdditions(name, docChanges){
+    if(!notificationsEnabled()) return;
+    docChanges.filter(c => c.type === 'added').forEach(c => {
+      const rec = c.doc.data();
+      if(rec.createdBy && currentUser && rec.createdBy === currentUser.email) return; // don't notify yourself
+      if(name === 'transactions'){
+        if(rec.isReversal || rec.voided) return;
+        const title = rec.type === 'income' ? 'تم إضافة إيراد' : 'تم إضافة مصروف';
+        showLocalNotification(title, `${rec.categoryName || ''} — ${fmt(rec.amount)}${rec.createdBy ? ' · ' + nameByEmail(rec.createdBy) : ''}`);
+      } else if(name === 'settlements'){
+        showLocalNotification('تمت إضافة موازنة بنكية', `${rec.date} — مدى ${fmt(rec.mada)} / فيزا ${fmt(rec.visa)}`);
+      }
+    });
+  }
+
+  function updateNotifStatusUI(){
+    const btn = $('notifToggleBtn'); const note = $('notifStatusNote');
+    if(typeof Notification === 'undefined'){
+      note.textContent = 'متصفحك لا يدعم التنبيهات.'; btn.disabled = true; return;
+    }
+    if(Notification.permission === 'denied'){
+      note.textContent = 'تم رفض إذن التنبيهات من إعدادات المتصفح/الجهاز — فعّله يدوياً من هناك.';
+      btn.textContent = '🔕 التنبيهات مرفوضة';
+    } else if(notificationsEnabled()){
+      note.textContent = 'التنبيهات مفعّلة، وتعمل فقط أثناء فتح التطبيق على هذا الجهاز.';
+      btn.textContent = '🔔 التنبيهات مفعّلة (اضغط للإيقاف)';
+    } else {
+      note.textContent = 'التنبيهات متوقفة. تعمل فقط أثناء فتح التطبيق فعلياً — وعلى الآيفون لازم يكون مثبّتاً كتطبيق على الشاشة الرئيسية.';
+      btn.textContent = '🔔 تفعيل تنبيهات المتصفح';
+    }
+  }
+  $('notifToggleBtn').addEventListener('click', async () => {
+    if(typeof Notification === 'undefined') return;
+    if(notificationsEnabled()){
+      localStorage.setItem('qayd_notif_enabled', '0');
+      updateNotifStatusUI();
+      return;
+    }
+    try{
+      const perm = await Notification.requestPermission();
+      if(perm === 'granted') localStorage.setItem('qayd_notif_enabled', '1');
+    }catch(e){ console.error(e); }
+    updateNotifStatusUI();
+  });
 
   function authErrorMessage(err){
     const map = {
@@ -1159,6 +1221,7 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
+    if(name === 'more') updateNotifStatusUI();
     renderCurrentPage();
   }
   document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-tab'))));
