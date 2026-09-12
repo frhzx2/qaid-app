@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>قيد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --bg: #0F1320;
+    --frame: #05070C;
+    --panel: #1A2030;
+    --panel-2: #212840;
+    --border: rgba(255,255,255,0.08);
+    --ink: #F2F4F8;
+    --ink-soft: #8B93A7;
+    --accent: #22E6A0;
+    --accent-deep: #17B57F;
+    --income: #22E6A0;
+    --income-bg: rgba(34,230,160,0.12);
+    --expense: #FF5C7A;
+    --expense-bg: rgba(255,92,122,0.14);
+    --void: #5B6478;
+    --warn-bg: #3A2E12;
+    --warn-ink: #F2C572;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--frame);
+    color: var(--ink);
+    font-family: 'Cairo', Tahoma, sans-serif;
+    font-size: 15px;
+    line-height:1.55;
+    display:flex; justify-content:center;
+  }
+  h1,h2,h3{ font-family:'Cairo', sans-serif; }
+
+  .app-shell{ width:100%; max-width:460px; min-height:100vh; background: var(--bg); position:relative; padding-bottom: 96px; }
+  @media (min-width: 500px){
+    body{ padding: 24px 0; }
+    .app-shell{ min-height: calc(100vh - 48px); border-radius: 28px; overflow:hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.06); }
+  }
+
+  .topbar{ display:flex; align-items:center; gap:12px; padding: 22px 20px 4px; }
+  .topbar .back{ background:var(--panel); border:none; color:var(--ink); width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .topbar .back svg{ width:16px; height:16px; }
+  .topbar-text h2{ margin:0; font-size:19px; font-weight:800; }
+  .topbar-text .sub{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+
+  main.pages{ padding: 6px 20px 20px; }
+
+  .banner{ background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #6B5320; padding: 10px 14px; font-size: 12.5px; margin: 14px 0; border-radius:10px; display:none; }
+  .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
+
+  /* ---------- Login screen ---------- */
+  .login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-box{ width:100%; max-width:360px; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:28px 26px; }
+  .login-box .brand-row{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:22px; }
+  .login-box h2{ margin:0; font-size:19px; font-weight:800; text-align:center; }
+  .login-box .sub{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:2px; margin-bottom:20px; }
+  .login-box .field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
+  .login-box .field input{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); margin-bottom:14px; direction:ltr; text-align:right; }
+  .login-box button.submit{ width:100%; margin-top:4px; }
+  .login-toggle{ text-align:center; margin-top:14px; font-size:12.5px; color:var(--ink-soft); }
+  .login-toggle button{ background:none; border:none; color:var(--accent); cursor:pointer; font-family:'Cairo',sans-serif; font-size:12.5px; text-decoration:underline; padding:0; }
+  .login-error{ background:var(--expense-bg); color:var(--expense); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
+  .topbar-user{ display:flex; align-items:center; gap:10px; margin-inline-start:auto; }
+  .topbar-user .email{ font-size:11px; color:var(--ink-soft); direction:ltr; }
+  .logout-btn{ background:var(--panel); border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:11.5px; padding:6px 12px; border-radius:9px; cursor:pointer; }
+  .logout-btn:hover{ border-color:var(--expense); color:var(--expense); }
+  .err{ color: var(--expense); }
+
+  /* ---------- Balance hero (home) ---------- */
+  .hero-card{
+    background: linear-gradient(135deg, #17301F, #0F1320 70%);
+    border:1px solid var(--border);
+    border-radius:22px; padding: 22px 22px 20px; margin: 14px 0 18px;
+    position:relative; overflow:hidden;
+  }
+  .hero-card::after{ content:''; position:absolute; top:-60px; left:-40px; width:200px; height:200px; background: radial-gradient(circle, rgba(34,230,160,0.18), transparent 70%); }
+  .hero-card .label{ font-size:12.5px; color:var(--ink-soft); position:relative; z-index:1; }
+  .hero-card .big{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; direction:ltr; text-align:right; margin:8px 0 16px; position:relative; z-index:1; }
+  .hero-mini{ display:flex; gap:10px; position:relative; z-index:1; }
+  .hero-mini .chip{ flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .hero-mini .chip .k{ font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; }
+  .hero-mini .chip .v{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:600; direction:ltr; text-align:right; margin-top:3px; }
+  .hero-mini .chip.income .v{ color: var(--income); }
+  .hero-mini .chip.expense .v{ color: var(--expense); }
+
+  /* ---------- Filter pills ---------- */
+  .filterbar{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .pill{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
+  .pill.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
+  .filter-dates{ display:flex; gap:8px; margin-bottom:12px; }
+  .filter-dates input[type=date]{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 9px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); direction:ltr; }
+
+  section.block{ margin-bottom: 24px; }
+  h3.block-title{ font-size:14.5px; font-weight:700; margin:0 0 10px; display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  h3.block-title .hint{ font-weight:400; font-size:11.5px; color:var(--ink-soft); }
+
+  .chart-panel{ background: var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px 14px 10px; }
+  .chart-scroll{ overflow-x:auto; direction:ltr; }
+  .legend{ display:flex; gap:16px; font-size:11.5px; color:var(--ink-soft); margin-bottom:8px; direction:ltr; justify-content:flex-end; }
+  .legend .sw{ display:inline-block; width:9px; height:9px; margin-inline-end:5px; border-radius:2px; vertical-align:middle; }
+  .legend .sw.income{ background:var(--income); }
+  .legend .sw.expense{ background:var(--expense); }
+
+  /* ---------- Stat row (income/expense pages) ---------- */
+  .stat-row{ display:flex; gap:10px; margin-bottom:18px; }
+  .stat-card{ flex:1; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:13px 14px; }
+  .stat-card .label{ font-size:11px; color:var(--ink-soft); margin-bottom:5px; }
+  .stat-card .value{ font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:700; direction:ltr; text-align:right; }
+  .stat-card .value.small-txt{ font-family:'Cairo',sans-serif; direction:rtl; text-align:right; font-size:13px; }
+
+  .breakdown{ background: var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px 16px; }
+  .bd-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+  .bd-row:last-child{ border-bottom:none; }
+  .bd-name{ width:120px; flex-shrink:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bd-bar-track{ flex:1; background:rgba(255,255,255,0.06); border-radius:3px; height:8px; overflow:hidden; }
+  .bd-bar-fill{ height:100%; border-radius:3px; }
+  .bd-bar-fill.income{ background:var(--income); }
+  .bd-bar-fill.expense{ background:var(--expense); }
+  .bd-amt{ width:100px; flex-shrink:0; text-align:left; direction:ltr; font-family:'IBM Plex Mono',monospace; font-size:12px; }
+
+  /* ---------- Transaction cards ---------- */
+  .txn-card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:13px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px; }
+  .txn-card.void-card{ opacity:0.55; }
+  .txn-thumb{ width:40px; height:40px; border-radius:10px; background:var(--panel-2) center/cover no-repeat; flex-shrink:0; border:none; cursor:pointer; }
+  .txn-main{ flex:1; min-width:0; }
+  .txn-main .desc{ font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .txn-card.void-card .desc{ text-decoration:line-through; }
+  .txn-main .meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .txn-side{ text-align:left; flex-shrink:0; }
+  .txn-amt{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:700; direction:ltr; }
+  .txn-amt.income{ color:var(--income); }
+  .txn-amt.expense{ color:var(--expense); }
+  .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:10.5px; padding:3px 9px; border-radius:8px; cursor:pointer; }
+  .txn-void-btn:hover{ border-color:var(--expense); color:var(--expense); }
+  .txn-tag{ font-size:10px; color:var(--void); border:1px solid var(--border); padding:2px 7px; border-radius:8px; }
+  .empty{ padding:40px 10px; text-align:center; color:var(--ink-soft); font-size:13px; font-style:italic; }
+
+  /* ---------- New entry form ---------- */
+  .type-toggle{ display:flex; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:4px; margin-bottom:18px; }
+  .type-toggle button{ flex:1; font-family:'Cairo',sans-serif; font-size:13.5px; padding:9px; background:transparent; border:none; color:var(--ink-soft); border-radius:10px; cursor:pointer; font-weight:600; }
+  .type-toggle button.active.income{ background:var(--income-bg); color:var(--income); }
+  .type-toggle button.active.expense{ background:var(--expense-bg); color:var(--expense); }
+
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
+  .field input, .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); }
+  .field input[type=number]{ font-family:'IBM Plex Mono',monospace; text-align:right; direction:ltr; }
+  .field input[type=date]{ direction:ltr; text-align:right; }
+  .field input::placeholder{ color:var(--ink-soft); }
+  .row2{ display:flex; gap:12px; }
+  .row2 .field{ flex:1; }
+  .cat-field-row{ display:flex; align-items:center; gap:10px; }
+  .cat-field-row select{ flex:1; }
+  .manage-cat-link{ font-family:'Cairo',sans-serif; font-size:11.5px; color:var(--accent); background:none; border:none; cursor:pointer; white-space:nowrap; }
+  .receipt-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .receipt-row input[type=file]{ font-family:'Cairo',sans-serif; font-size:12px; color:var(--ink-soft); }
+  #receiptPreview{ display:flex; align-items:center; gap:8px; }
+  #receiptPreview img{ height:44px; border-radius:10px; border:1px solid var(--border); }
+  #receiptClear{ font-family:'Cairo',sans-serif; font-size:11px; border:1px solid var(--border); background:var(--panel); color:var(--ink-soft); padding:3px 9px; border-radius:8px; cursor:pointer; }
+  .receipt-status{ font-size:11.5px; color:var(--ink-soft); }
+  button.submit{ width:100%; font-family:'Cairo',sans-serif; font-size:15px; font-weight:700; padding:13px; background:var(--accent); color:#05130D; border:none; cursor:pointer; border-radius:14px; margin-top:4px; }
+  button.submit:disabled{ background:var(--panel-2); color:var(--ink-soft); cursor:not-allowed; }
+  .confirm-msg{ font-size:12.5px; color:var(--income); margin-top:10px; text-align:center; display:none; font-weight:600; }
+
+  /* ---------- More list / categories / audit ---------- */
+  .list-menu{ background:var(--panel); border:1px solid var(--border); border-radius:16px; overflow:hidden; }
+  .list-row{ display:flex; align-items:center; justify-content:space-between; padding:16px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+  .list-row:last-child{ border-bottom:none; }
+  .list-row .lr-label{ font-size:14.5px; font-weight:600; display:flex; align-items:center; gap:12px; }
+  .list-row .lr-label svg{ width:19px; height:19px; color:var(--accent); }
+  .list-row .chev{ color:var(--ink-soft); }
+
+  .cat-list{ background:var(--panel); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:12px; }
+  .cat-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--border); font-size:13.5px; }
+  .cat-row:last-child{ border-bottom:none; }
+  .cat-row .name{ font-weight:600; }
+  .cat-row .meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
+  .cat-row .del-btn{ border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); border-radius:8px; padding:5px 11px; font-size:11.5px; cursor:pointer; font-family:'Cairo', sans-serif; }
+  .cat-row .del-btn:hover{ border-color:var(--expense); color:var(--expense); }
+  .cat-empty{ padding:16px; text-align:center; color:var(--ink-soft); font-size:12.5px; font-style:italic; }
+  .add-cat-row{ display:flex; gap:8px; margin-bottom:20px; }
+  .add-cat-row input{ flex:1; font-family:'Cairo',sans-serif; font-size:13px; padding:10px 11px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); }
+  .add-cat-row button{ font-family:'Cairo',sans-serif; font-size:12.5px; padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font-weight:700; }
+  .add-cat-row button.income{ background:var(--income); color:#05130D; }
+  .add-cat-row button.expense{ background:var(--expense); color:#2A0A10; }
+
+  .audit-note{ font-size:12.5px; color:var(--ink-soft); margin: 0 0 14px; }
+  .confirm-btn{ flex:0 0 auto; font-family:'Cairo',sans-serif; font-size:12.5px; font-weight:700; padding:10px 16px; background:var(--accent); color:#05130D; border:none; border-radius:10px; cursor:pointer; white-space:nowrap; }
+  .confirm-btn:hover{ background:var(--accent-deep); }
+  .edit-received-btn{ margin-top:8px; font-family:'Cairo',sans-serif; font-size:11.5px; background:none; border:1px solid var(--border); color:var(--ink-soft); padding:5px 12px; border-radius:8px; cursor:pointer; }
+  .edit-received-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .cancel-edit-btn{ margin-top:6px; font-family:'Cairo',sans-serif; font-size:11px; background:none; border:none; color:var(--ink-soft); cursor:pointer; text-decoration:underline; padding:0; }
+  input[data-received-input]{ font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 11px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
+  input[data-received-input]::placeholder{ color:var(--ink-soft); direction:rtl; }
+  .audit-card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:11px 13px; margin-bottom:8px; font-size:12.5px; }
+  .audit-card .arow{ display:flex; justify-content:space-between; margin-top:4px; }
+  .audit-card .arow .acc{ color:var(--ink-soft); }
+  .audit-card .arow .amt{ font-family:'IBM Plex Mono',monospace; direction:ltr; }
+  .checksum{ display:flex; justify-content:space-between; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-top:14px; font-size:12.5px; font-weight:700; flex-wrap:wrap; gap:6px; }
+  .checksum .figures{ font-family:'IBM Plex Mono',monospace; direction:ltr; font-weight:500; color:var(--ink-soft); }
+  .checksum.balanced .verdict{ color:var(--income); }
+  .checksum.unbalanced .verdict{ color:var(--expense); }
+
+  /* ---------- Bottom nav ---------- */
+  .bottom-nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:460px; background: rgba(26,32,48,0.92); backdrop-filter: blur(10px);
+    border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-around;
+    padding: 8px 6px calc(10px + env(safe-area-inset-bottom)); z-index:40;
+  }
+  @media (min-width:500px){ .bottom-nav{ max-width:460px; } }
+  .nav-btn{ background:none; border:none; display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:10px; cursor:pointer; padding:4px 6px; flex:1; }
+  .nav-btn svg{ width:21px; height:21px; }
+  .nav-btn.active{ color: var(--accent); }
+  .nav-fab{ position:absolute; top:-40px; left:50%; transform:translateX(-50%); background:var(--accent); color:#05130D; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(34,230,160,0.4); border:4px solid var(--bg); cursor:pointer; padding:0; line-height:0; z-index:2; }
+  .nav-fab svg{ width:22px; height:22px; display:block; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:60; padding:24px; }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{ background:var(--panel); padding:10px; max-width:92vw; max-height:85vh; border-radius:14px; border:1px solid var(--border); }
+  .modal-box img{ max-width:86vw; max-height:72vh; display:block; border-radius:8px; }
+  .modal-close{ text-align:left; margin-bottom:8px; }
+  .modal-close button{ font-family:'Cairo',sans-serif; font-size:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); padding:5px 12px; cursor:pointer; border-radius:8px; }
+
+  table{ display:none; } /* not used in this layout, kept out of the cascade */
+</style>
+</head>
+<body>
+
+<div id="authChecking" class="loading" style="min-height:100vh; display:flex; align-items:center; justify-content:center;">جارٍ التحقق من الحساب…</div>
+
+<div id="loginScreen" class="login-wrap" style="display:none;">
+  <div class="login-box">
+    <div class="brand-row">
+      <svg viewBox="0 0 200 170" width="34" height="29" xmlns="http://www.w3.org/2000/svg">
+        <path d="M34,30 L23,144" stroke="#EDE6D3" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M166,30 L177,144" stroke="#EDE6D3" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M100,42 L44,26 L32,146 C54,140 76,148 98,134 L100,124 Z" fill="none" stroke="#EDE6D3" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M100,42 L156,26 L168,146 C146,140 124,148 102,134 L100,124 Z" fill="none" stroke="#EDE6D3" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+        <rect x="52" y="58" width="20" height="84" rx="4" fill="#C9A227"/>
+        <rect x="128" y="58" width="20" height="84" rx="4" fill="#C9A227"/>
+      </svg>
+      <h2>قيد</h2>
+    </div>
+    <div class="sub">البرنامج المحاسبي الخاص بالهزاع</div>
+
+    <div class="login-error" id="loginError"></div>
+
+    <form id="loginForm">
+      <div class="field"><label for="login-email">البريد الإلكتروني</label><input type="email" id="login-email" required></div>
+      <div class="field"><label for="login-password">كلمة المرور</label><input type="password" id="login-password" required minlength="6"></div>
+      <button type="submit" class="submit" id="loginSubmitBtn">تسجيل الدخول</button>
+    </form>
+    <div class="login-toggle">
+      <span id="loginToggleText">ما عندك حساب؟</span>
+      <button type="button" id="loginToggleBtn">إنشاء حساب جديد</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell" id="appShell" style="display:none;">
+
+  <div class="topbar" id="topbar">
+    <svg class="brand-logo" viewBox="0 0 200 170" width="40" height="34" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <path d="M34,30 L23,144" stroke="#EDE6D3" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M166,30 L177,144" stroke="#EDE6D3" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M100,42 L44,26 L32,146 C54,140 76,148 98,134 L100,124 Z" fill="none" stroke="#EDE6D3" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M100,42 L156,26 L168,146 C146,140 124,148 102,134 L100,124 Z" fill="none" stroke="#EDE6D3" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="52" y="58" width="20" height="84" rx="4" fill="#C9A227"/>
+      <rect x="75" y="88" width="18" height="54" rx="4" fill="#D9D2BE"/>
+      <rect x="107" y="88" width="18" height="54" rx="4" fill="#D9D2BE"/>
+      <rect x="128" y="58" width="20" height="84" rx="4" fill="#C9A227"/>
+      <g stroke="#2B2F38" stroke-width="3">
+        <line x1="52" y1="78" x2="72" y2="78"/>
+        <line x1="52" y1="98" x2="72" y2="98"/>
+        <line x1="52" y1="118" x2="72" y2="118"/>
+        <line x1="75" y1="103" x2="93" y2="103"/>
+        <line x1="75" y1="123" x2="93" y2="123"/>
+        <line x1="107" y1="103" x2="125" y2="103"/>
+        <line x1="107" y1="123" x2="125" y2="123"/>
+        <line x1="128" y1="78" x2="148" y2="78"/>
+        <line x1="128" y1="98" x2="148" y2="98"/>
+        <line x1="128" y1="118" x2="148" y2="118"/>
+      </g>
+    </svg>
+    <div class="topbar-text">
+      <h2 id="topTitle">قيد</h2>
+      <div class="sub" id="topSub">البرنامج المحاسبي الخاص بالهزاع</div>
+    </div>
+    <div class="topbar-user">
+      <span class="email" id="currentUserEmail"></span>
+      <button type="button" class="logout-btn" id="logoutBtn">خروج</button>
+    </div>
+  </div>
+
+  <main class="pages">
+    <div id="loadingMsg" class="loading">جارٍ فتح الدفتر…</div>
+    <div id="errMsg" class="err" style="display:none;"></div>
+
+    <div id="app" style="display:none;">
+      <div id="storageBanner" class="banner"></div>
+
+      <!-- ============ HOME / DASHBOARD ============ -->
+      <section id="page-home">
+        <div class="hero-card">
+          <div class="label">الرصيد ضمن الفترة</div>
+          <div class="big" id="heroBalance">0.00 ر.س</div>
+          <div class="hero-mini">
+            <div class="chip income"><div class="k">↑ الإيرادات</div><div class="v" id="heroIncome">0.00</div></div>
+            <div class="chip expense"><div class="k">↓ المصروفات</div><div class="v" id="heroExpense">0.00</div></div>
+          </div>
+        </div>
+
+        <div class="filterbar" id="filterPills">
+          <button type="button" class="pill" data-preset="today">اليوم</button>
+          <button type="button" class="pill" data-preset="7d">آخر ٧ أيام</button>
+          <button type="button" class="pill" data-preset="month">الشهر الحالي</button>
+          <button type="button" class="pill" data-preset="all">كل الفترة</button>
+        </div>
+        <div class="filter-dates">
+          <input type="date" id="dateFrom">
+          <input type="date" id="dateTo">
+        </div>
+
+        <section class="block">
+          <h3 class="block-title">الرسم البياني <span class="hint" id="chartRangeHint"></span></h3>
+          <div class="chart-panel">
+            <div class="legend"><span><span class="sw income"></span>إيراد</span><span><span class="sw expense"></span>مصروف</span></div>
+            <div class="chart-scroll" id="chartHolder"></div>
+          </div>
+        </section>
+      </section>
+
+      <!-- ============ INCOME ============ -->
+      <section id="page-income" hidden>
+        <div class="stat-row" id="incomeCards"></div>
+        <section class="block"><h3 class="block-title">التوزيع حسب الفئة</h3><div class="breakdown" id="incomeBreakdown"></div></section>
+        <section class="block">
+          <h3 class="block-title">القيود</h3>
+          <div id="incomeList"></div>
+          <div id="incomeEmpty" class="empty" style="display:none;">لا توجد قيود إيرادات ضمن الفترة المحددة.</div>
+        </section>
+      </section>
+
+      <!-- ============ EXPENSES ============ -->
+      <section id="page-expenses" hidden>
+        <div class="stat-row" id="expenseCards"></div>
+        <section class="block"><h3 class="block-title">التوزيع حسب الفئة</h3><div class="breakdown" id="expenseBreakdown"></div></section>
+        <section class="block">
+          <h3 class="block-title">القيود</h3>
+          <div id="expenseList"></div>
+          <div id="expenseEmpty" class="empty" style="display:none;">لا توجد قيود مصروفات ضمن الفترة المحددة.</div>
+        </section>
+      </section>
+
+      <!-- ============ NEW ENTRY ============ -->
+      <section id="page-new" hidden>
+        <div class="type-toggle">
+          <button type="button" id="typeIncomeBtn" class="income">إيراد</button>
+          <button type="button" id="typeExpenseBtn" class="expense">مصروف</button>
+        </div>
+        <form id="entryForm">
+          <div class="row2">
+            <div class="field"><label for="f-date">التاريخ</label><input type="date" id="f-date" required></div>
+            <div class="field"><label for="f-amt">المبلغ (ر.س)</label><input type="number" id="f-amt" step="0.01" min="0.01" placeholder="0.00" required></div>
+          </div>
+          <div class="field"><label for="f-desc">الوصف</label><input type="text" id="f-desc" placeholder="مثال: فاتورة رقم ١١٤" required></div>
+          <div class="field">
+            <label for="f-cat">الفئة</label>
+            <div class="cat-field-row">
+              <select id="f-cat" required></select>
+              <button type="button" class="manage-cat-link" id="manageCatLink">إدارة التصنيفات</button>
+            </div>
+          </div>
+          <div class="field receipt-row">
+            <div><label for="f-receipt">صورة الفاتورة (اختياري)</label><input type="file" accept="image/*" capture="environment" id="f-receipt"></div>
+            <span class="receipt-status" id="receiptStatus"></span>
+            <div id="receiptPreview"></div>
+          </div>
+          <button type="submit" class="submit" id="submitBtn">تسجيل القيد</button>
+          <div class="confirm-msg" id="confirmMsg">تم تسجيل القيد ✓</div>
+        </form>
+      </section>
+
+      <!-- ============ MORE ============ -->
+      <section id="page-more" hidden>
+        <div class="list-menu">
+          <div class="list-row" data-goto="categories">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l8-8h7a2 2 0 012 2v7l-8 8a2 2 0 01-3 0l-6-6a2 2 0 010-3z"/><circle cx="15" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg> التصنيفات</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="audit">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M8 8h8M8 12h8M8 16h5"/></svg> سجل المراجعة</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="suppliers">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg> قائمة الموردين</span>
+            <span class="chev">‹</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ CATEGORIES ============ -->
+      <section id="page-categories" hidden>
+        <h3 class="block-title">فئات الإيرادات</h3>
+        <div id="catListIncome" class="cat-list"></div>
+        <div class="add-cat-row">
+          <input type="text" id="newCatIncomeName" placeholder="اسم فئة جديدة…">
+          <button type="button" class="add-cat-btn income" data-addtype="income">إضافة</button>
+        </div>
+        <h3 class="block-title">فئات المصروفات</h3>
+        <div id="catListExpense" class="cat-list"></div>
+        <div class="add-cat-row">
+          <input type="text" id="newCatExpenseName" placeholder="اسم فئة جديدة…">
+          <button type="button" class="add-cat-btn expense" data-addtype="expense">إضافة</button>
+        </div>
+      </section>
+
+      <!-- ============ AUDIT ============ -->
+      <section id="page-audit" hidden>
+        <p class="audit-note">كل قيد هو حركتان: مدين لحساب وائتمان مساوٍ له لحساب آخر. إذا كان الدفتر صحيحاً يتساوى إجمالي المدين مع الدائن دائماً.</p>
+        <div id="auditList"></div>
+        <div class="checksum" id="auditChecksum"></div>
+      </section>
+
+      <!-- ============ BANK ACCOUNT ============ -->
+      <section id="page-bank" hidden>
+        <div class="banner" id="bankReviewBanner" style="display:none;"></div>
+
+        <h3 class="block-title" style="margin-top:4px;">إضافة موازنة يومية</h3>
+        <form id="settleForm" style="margin-bottom:20px;">
+          <div class="row2">
+            <div class="field"><label for="s-date">التاريخ</label><input type="date" id="s-date" required></div>
+            <div class="field"><label for="s-status">حالة المجاميع</label>
+              <select id="s-status">
+                <option value="matched">متوافقة</option>
+                <option value="unmatched">غير متوافقة</option>
+              </select>
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="s-mada">عمليات مدى (ر.س)</label><input type="number" id="s-mada" step="0.01" min="0" placeholder="0.00"></div>
+            <div class="field"><label for="s-visa">عمليات فيزا (ر.س)</label><input type="number" id="s-visa" step="0.01" min="0" placeholder="0.00"></div>
+          </div>
+          <button type="submit" class="submit" id="settleSubmitBtn">إضافة الموازنة</button>
+          <div class="confirm-msg" id="settleErrorMsg" style="color:var(--expense);">عبّئ عمليات مدى أو فيزا على الأقل.</div>
+        </form>
+
+        <h3 class="block-title">الموازنات</h3>
+        <div id="settleList"></div>
+        <div id="settleEmpty" class="empty" style="display:none;">لا توجد موازنات مسجّلة بعد.</div>
+      </section>
+
+      <!-- ============ SUPPLIERS LIST ============ -->
+      <section id="page-suppliers" hidden>
+        <div class="stat-row" style="margin-bottom:16px;">
+          <div class="stat-card">
+            <div class="label">مجموع المبالغ المستحقة لجميع الموردين</div>
+            <div class="value expense" id="suppliersTotalWeOwe">0.00 ر.س</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">مجموع المبالغ المستحقة لنا لدى الموردين</div>
+            <div class="value income" id="suppliersTotalOwedToUs">0.00 ر.س</div>
+          </div>
+        </div>
+
+        <button type="button" class="submit" id="toggleAddSupplierBtn" style="margin-bottom:14px;">+ إضافة مورد</button>
+
+        <form id="supplierForm" style="display:none; margin-bottom:20px;">
+          <div class="field"><label for="sup-name">اسم المورد *</label><input type="text" id="sup-name" placeholder="اسم المورد" required></div>
+          <div class="field"><label for="sup-phone">رقم المورد *</label><input type="tel" id="sup-phone" placeholder="05xxxxxxxx" required></div>
+          <div class="field"><label for="sup-address">العنوان (اختياري)</label><input type="text" id="sup-address" placeholder="العنوان"></div>
+          <button type="submit" class="submit" id="supplierSubmitBtn">حفظ المورد</button>
+        </form>
+
+        <div id="suppliersList"></div>
+        <div id="suppliersEmpty" class="empty" style="display:none;">لا يوجد موردون بعد.</div>
+      </section>
+
+      <!-- ============ SUPPLIER DETAIL ============ -->
+      <section id="page-supplier-detail" hidden>
+        <button type="button" class="manage-cat-link" id="backToSuppliersBtn" style="margin-bottom:10px; display:block;">‹ قائمة الموردين</button>
+
+        <div class="audit-card" id="supplierInfoCard" style="margin-bottom:16px;"></div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">إجمالي المسدد</div><div class="value income" id="supPaidTotal">0.00</div></div>
+          <div class="stat-card"><div class="label">المبلغ المستحق</div><div class="value expense" id="supDueTotal">0.00</div></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+          <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px;" id="toggleAddInvoiceBtn">+ إضافة فاتورة</button>
+          <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px; background:var(--expense); color:#2A0A10;" id="toggleAddReceiptBtn">+ إضافة إيصال سداد</button>
+          <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px; background:#D9A227; color:#2A1E05;" id="toggleAddReturnBtn">+ إضافة فاتورة مرتجع</button>
+        </div>
+
+        <form id="invoiceForm" style="display:none; margin-bottom:20px;">
+          <h3 class="block-title">فاتورة جديدة</h3>
+          <div class="row2">
+            <div class="field"><label for="inv-number">رقم الفاتورة *</label><input type="text" id="inv-number" required></div>
+            <div class="field"><label for="inv-date">التاريخ *</label><input type="date" id="inv-date" required></div>
+          </div>
+          <div class="field"><label for="inv-amount">المبلغ (ر.س) *</label><input type="number" id="inv-amount" step="0.01" min="0.01" required></div>
+          <div class="field"><label for="inv-file">صورة أو ملف الفاتورة *</label><input type="file" accept="image/*,application/pdf" id="inv-file" required></div>
+          <span class="receipt-status" id="invFileStatus"></span>
+          <button type="submit" class="submit" id="invoiceSubmitBtn">حفظ الفاتورة</button>
+        </form>
+
+        <form id="receiptForm" style="display:none; margin-bottom:20px;">
+          <h3 class="block-title">إيصال سداد جديد</h3>
+          <div class="row2">
+            <div class="field"><label for="rcpt-date">تاريخ السداد *</label><input type="date" id="rcpt-date" required></div>
+            <div class="field"><label for="rcpt-method">طريقة السداد *</label>
+              <select id="rcpt-method">
+                <option value="transfer">تحويل</option>
+                <option value="cash">نقد</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="rcpt-amount">مبلغ السداد (ر.س) *</label><input type="number" id="rcpt-amount" step="0.01" min="0.01" required></div>
+          <div class="field"><label for="rcpt-file">صورة أو ملف إيصال السداد *</label><input type="file" accept="image/*,application/pdf" id="rcpt-file" required></div>
+          <span class="receipt-status" id="rcptFileStatus"></span>
+          <button type="submit" class="submit" id="receiptSubmitBtn" style="background:var(--expense); color:#2A0A10;">حفظ الإيصال</button>
+        </form>
+
+        <form id="returnForm" style="display:none; margin-bottom:20px;">
+          <h3 class="block-title">فاتورة مرتجع جديدة</h3>
+          <div class="row2">
+            <div class="field"><label for="ret-amount">قيمة المسترجع (ر.س) *</label><input type="number" id="ret-amount" step="0.01" min="0.01" required></div>
+            <div class="field"><label for="ret-invoice-number">رقم الفاتورة الأساسية *</label><input type="text" id="ret-invoice-number" required></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="ret-reason">سبب الإرجاع (اختياري)</label><input type="text" id="ret-reason"></div>
+            <div class="field"><label for="ret-doc-number">رقم مستند الإرجاع (اختياري)</label><input type="text" id="ret-doc-number"></div>
+          </div>
+          <div class="field"><label for="ret-delivered">هل تم تسليم القطعة للمورد؟</label>
+            <select id="ret-delivered">
+              <option value="no">لا</option>
+              <option value="yes">نعم</option>
+            </select>
+          </div>
+          <div class="field"><label for="ret-notes">ملاحظات (إن وجد)</label><input type="text" id="ret-notes"></div>
+          <button type="submit" class="submit" id="returnSubmitBtn" style="background:#D9A227; color:#2A1E05;">حفظ المرتجع</button>
+        </form>
+
+        <h3 class="block-title">الفواتير</h3>
+        <div id="supplierInvoiceList"></div>
+        <div id="supplierInvoiceEmpty" class="empty" style="display:none;">لا توجد فواتير بعد.</div>
+
+        <h3 class="block-title" style="margin-top:20px;">إيصالات السداد</h3>
+        <div id="supplierReceiptList"></div>
+        <div id="supplierReceiptEmpty" class="empty" style="display:none;">لا توجد إيصالات سداد بعد.</div>
+
+        <h3 class="block-title" style="margin-top:20px;">المرتجعات</h3>
+        <div id="supplierReturnList"></div>
+        <div id="supplierReturnEmpty" class="empty" style="display:none;">لا توجد مرتجعات بعد.</div>
+      </section>
+
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button type="button" class="nav-btn" data-tab="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h5v-5h2v5h5v-9"/></svg>
+      الرئيسية
+    </button>
+    <button type="button" class="nav-btn" data-tab="income">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+      الإيرادات
+    </button>
+    <button type="button" class="nav-fab" data-tab="new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button type="button" class="nav-btn" data-tab="expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
+      المصروفات
+    </button>
+    <button type="button" class="nav-btn" data-tab="bank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 19h18"/></svg>
+      الحساب البنكي
+    </button>
+    <button type="button" class="nav-btn" data-tab="more">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
+      المزيد
+    </button>
+  </nav>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-close"><button type="button" id="modalCloseBtn">إغلاق ✕</button></div>
+    <img id="modalImg" src="" alt="صورة الفاتورة">
+  </div>
+</div>
+
+<script>
+(function(){
+  const DEFAULT_CATEGORIES = [
+    { id: 'inc_sales', name: 'إيراد المبيعات والخدمات', type: 'income' },
+    { id: 'inc_other', name: 'إيراد آخر', type: 'income' },
+    { id: 'exp_supplies', name: 'لوازم مكتبية', type: 'expense' },
+    { id: 'exp_software', name: 'برمجيات وأدوات', type: 'expense' },
+    { id: 'exp_travel', name: 'سفر', type: 'expense' },
+    { id: 'exp_meals', name: 'وجبات', type: 'expense' },
+    { id: 'exp_fees', name: 'أتعاب مهنية', type: 'expense' },
+    { id: 'exp_tax', name: 'ضرائب', type: 'expense' },
+    { id: 'exp_other', name: 'مصروفات أخرى', type: 'expense' },
+  ];
+  const ARABIC_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  // page -> [title, subtitle, parent-for-back-button-or-null]
+  const PAGES = {
+    home: ['قيد', 'البرنامج المحاسبي الخاص بالهزاع', null],
+    income: ['الإيرادات', 'كل قيود الدخل على حدة', null],
+    expenses: ['المصروفات', 'كل قيود المصروفات على حدة', null],
+    new: ['عملية جديدة', 'تسجيل إيراد أو مصروف', null],
+    more: ['المزيد', 'إعدادات ونظرة إضافية', null],
+    bank: ['الحساب البنكي', 'موازنة عمليات نقاط البيع اليومية', null],
+    categories: ['التصنيفات', 'أضف أو احذف تصنيفات', 'more'],
+    audit: ['سجل المراجعة', 'التحقق من توازن الدفتر', 'more'],
+    suppliers: ['قائمة الموردين', 'إدارة الموردين والمدفوعات', 'more'],
+    'supplier-detail': ['المورد', '', 'suppliers'],
+  };
+
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], currentType: 'income', pendingReceipt: null };
+  let currentPage = 'home';
+  let currentSupplierId = null;
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => {
+    const v = Number(n) || 0;
+    const sign = v < 0 ? '-' : '';
+    return sign + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ر.س';
+  };
+  const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  function showBanner(msg){ const b = $('storageBanner'); b.textContent = msg; b.style.display = 'block'; }
+
+  // ============================================================
+  // FIREBASE SETUP — replace the values below with YOUR project's
+  // web app config from: Firebase Console › Project settings › General
+  // ============================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNrggVCEwqUdlI0u_f339RZ2xmMhOtbsA",
+    authDomain: "qaid-app.firebaseapp.com",
+    projectId: "qaid-app",
+    storageBucket: "qaid-app.firebasestorage.app",
+    messagingSenderId: "1010712799512",
+    appId: "1:1010712799512:web:fb6d5f00d5ece0b49c166d",
+  };
+
+  let db = null, auth = null, currentUser = null;
+  let unsubscribers = [];
+  let appIsReady = false;
+
+  function firebaseConfigured(){
+    return firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PASTE_');
+  }
+
+  const COLLECTIONS = [
+    ['categories', 'categories'],
+    ['transactions', 'transactions'],
+    ['settlements', 'settlements'],
+    ['suppliers', 'suppliers'],
+    ['supplierInvoices', 'supplierInvoices'],
+    ['supplierReceipts', 'supplierReceipts'],
+    ['supplierReturns', 'supplierReturns'],
+  ];
+  let loadedFlags = {};
+
+  async function persistTransaction(txn){
+    try{ await db.collection('transactions').doc(txn.id).set(txn); }
+    catch(e){ console.error(e); showBanner('تعذّر حفظ آخر قيد على الخادم: ' + e.message); }
+  }
+  async function persistCategory(cat){
+    try{ await db.collection('categories').doc(cat.id).set(cat); }
+    catch(e){ console.error(e); showBanner('تعذّر حفظ الفئة على الخادم: ' + e.message); }
+  }
+  async function deleteCategoryDoc(id){
+    try{ await db.collection('categories').doc(id).delete(); }
+    catch(e){ console.error(e); showBanner('تعذّر حذف الفئة: ' + e.message); }
+  }
+  async function persistSettlement(s){
+    try{ await db.collection('settlements').doc(s.id).set(s); }
+    catch(e){ console.error(e); showBanner('تعذّر حفظ الموازنة على الخادم: ' + e.message); }
+  }
+  async function persistRecord(collectionName, record){
+    try{ await db.collection(collectionName).doc(record.id).set(record); }
+    catch(e){ console.error(e); showBanner('تعذّر الحفظ على الخادم: ' + e.message); }
+  }
+  const persistSupplier = (s) => persistRecord('suppliers', s);
+  const persistSupplierInvoice = (i) => persistRecord('supplierInvoices', i);
+  const persistSupplierReceipt = (r) => persistRecord('supplierReceipts', r);
+  const persistSupplierReturn = (r) => persistRecord('supplierReturns', r);
+
+  function checkAllLoaded(){
+    if(appIsReady) return;
+    if(COLLECTIONS.every(([name]) => loadedFlags[name])){
+      appIsReady = true;
+      setDefaultDateRange();
+      $('loadingMsg').style.display = 'none';
+      $('app').style.display = 'block';
+      renderCurrentPage();
+    }
+  }
+
+  function subscribeAll(){
+    unsubscribers.forEach(u => u());
+    unsubscribers = [];
+    loadedFlags = {};
+    appIsReady = false;
+    COLLECTIONS.forEach(([name]) => { loadedFlags[name] = false; });
+
+    COLLECTIONS.forEach(([name, stateKey]) => {
+      const unsub = db.collection(name).onSnapshot(async (snap) => {
+        state[stateKey] = snap.docs.map(d => d.data());
+        if(name === 'categories' && !loadedFlags[name] && snap.empty){
+          // Seed default categories once, the very first time this account has none.
+          try{
+            const batch = db.batch();
+            DEFAULT_CATEGORIES.forEach(cat => batch.set(db.collection('categories').doc(cat.id), cat));
+            await batch.commit();
+          }catch(e){ console.error(e); }
+        }
+        loadedFlags[name] = true;
+        checkAllLoaded();
+        if(appIsReady) renderCurrentPage();
+      }, (err) => {
+        console.error(err);
+        showBanner('تعذّر الاتصال بقاعدة البيانات (' + name + '): ' + err.message);
+        loadedFlags[name] = true;
+        checkAllLoaded();
+      });
+      unsubscribers.push(unsub);
+    });
+  }
+
+  function authErrorMessage(err){
+    const map = {
+      'auth/invalid-email': 'البريد الإلكتروني غير صحيح.',
+      'auth/user-not-found': 'لا يوجد حساب بهذا البريد.',
+      'auth/wrong-password': 'كلمة المرور غير صحيحة.',
+      'auth/invalid-credential': 'بيانات الدخول غير صحيحة.',
+      'auth/email-already-in-use': 'هذا البريد مسجّل مسبقاً — سجّل الدخول بدلاً من إنشاء حساب.',
+      'auth/weak-password': 'كلمة المرور ضعيفة، استخدم ٦ أحرف على الأقل.',
+      'auth/network-request-failed': 'تعذّر الاتصال بالخادم، تحقق من الإنترنت.',
+      'auth/configuration-not-found': 'تسجيل الدخول بالبريد وكلمة المرور غير مُفعّل في مشروع Firebase — فعّله من Authentication › Sign-in method.',
+    };
+    return map[err.code] || ('حدث خطأ: ' + err.message);
+  }
+
+  let isSignUpMode = false;
+  function setAuthMode(signUp){
+    isSignUpMode = signUp;
+    $('loginSubmitBtn').textContent = signUp ? 'إنشاء الحساب' : 'تسجيل الدخول';
+    $('loginToggleText').textContent = signUp ? 'عندك حساب؟' : 'ما عندك حساب؟';
+    $('loginToggleBtn').textContent = signUp ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
+    $('loginError').style.display = 'none';
+  }
+  $('loginToggleBtn').addEventListener('click', () => setAuthMode(!isSignUpMode));
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('login-email').value.trim();
+    const password = $('login-password').value;
+    $('loginError').style.display = 'none';
+    $('loginSubmitBtn').disabled = true;
+    try{
+      if(isSignUpMode) await auth.createUserWithEmailAndPassword(email, password);
+      else await auth.signInWithEmailAndPassword(email, password);
+    }catch(err){
+      $('loginError').textContent = authErrorMessage(err);
+      $('loginError').style.display = 'block';
+    } finally {
+      $('loginSubmitBtn').disabled = false;
+    }
+  });
+  $('logoutBtn').addEventListener('click', () => { if(auth) auth.signOut(); });
+
+  function loadState(){
+    if(!firebaseConfigured()){
+      $('authChecking').style.display = 'none';
+      $('appShell').style.display = 'block';
+      $('loadingMsg').style.display = 'none';
+      $('app').style.display = 'block';
+      $('errMsg').style.display = 'block';
+      $('errMsg').textContent = 'لم يتم إعداد Firebase بعد — افتح كود الصفحة وضع بيانات مشروعك (firebaseConfig) في أعلى ملف JavaScript.';
+      return;
+    }
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+
+    auth.onAuthStateChanged((user) => {
+      $('authChecking').style.display = 'none';
+      if(user){
+        currentUser = user;
+        $('currentUserEmail').textContent = user.email;
+        $('loginScreen').style.display = 'none';
+        $('appShell').style.display = 'block';
+        $('loadingMsg').style.display = 'block';
+        $('app').style.display = 'none';
+        subscribeAll();
+      } else {
+        currentUser = null;
+        unsubscribers.forEach(u => u()); unsubscribers = [];
+        $('appShell').style.display = 'none';
+        $('loginScreen').style.display = 'flex';
+        $('login-password').value = '';
+      }
+    }, (err) => {
+      $('authChecking').style.display = 'none';
+      $('errMsg').style.display = 'block';
+      $('errMsg').textContent = 'تعذّر تهيئة تسجيل الدخول: ' + err.message;
+    });
+  }
+
+  // ---------------- Routing ----------------
+
+  function showPage(name){
+    currentPage = name;
+    Object.keys(PAGES).forEach(p => { $('page-' + p).hidden = (p !== name); });
+    const meta = PAGES[name];
+    if(name === 'supplier-detail'){
+      const sup = state.suppliers.find(s => s.id === currentSupplierId);
+      $('topTitle').textContent = sup ? sup.name : 'المورد';
+      $('topSub').textContent = 'الفواتير وإيصالات السداد';
+    } else {
+      $('topTitle').textContent = meta[0];
+      $('topSub').textContent = meta[1];
+    }
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
+    // highlight "more" tab when on any of its sub-pages
+    if(['categories','audit','suppliers','supplier-detail','more'].includes(name)){
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
+    }
+    window.scrollTo(0,0);
+    renderCurrentPage();
+  }
+  document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-tab'))));
+  document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => showPage(el.getAttribute('data-goto'))));
+  $('manageCatLink').addEventListener('click', () => showPage('categories'));
+  $('backToSuppliersBtn').addEventListener('click', () => showPage('suppliers'));
+
+  function renderCurrentPage(){
+    const list = filteredTransactions();
+    if(currentPage === 'home') renderHome(list);
+    else if(currentPage === 'income') renderTypePage('income', list);
+    else if(currentPage === 'expenses') renderTypePage('expense', list);
+    else if(currentPage === 'audit') renderAudit(list);
+    else if(currentPage === 'new') populateCategorySelect();
+    else if(currentPage === 'categories') renderCategoriesPage();
+    else if(currentPage === 'bank') renderBankPage();
+    else if(currentPage === 'suppliers') renderSuppliersPage();
+    else if(currentPage === 'supplier-detail') renderSupplierDetail();
+  }
+
+  // ---------------- Date range filter ----------------
+
+  function setDefaultDateRange(){
+    const now = new Date();
+    $('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+    $('dateTo').value = todayStr();
+    highlightPreset('month');
+  }
+  function highlightPreset(name){ document.querySelectorAll('.pill').forEach(b => b.classList.toggle('active', b.getAttribute('data-preset') === name)); }
+  document.querySelectorAll('.pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.getAttribute('data-preset'); const now = new Date();
+      if(p === 'today'){ $('dateFrom').value = todayStr(); $('dateTo').value = todayStr(); }
+      else if(p === '7d'){ const d = new Date(); d.setDate(d.getDate() - 6); $('dateFrom').value = d.toISOString().slice(0,10); $('dateTo').value = todayStr(); }
+      else if(p === 'month'){ $('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10); $('dateTo').value = todayStr(); }
+      else if(p === 'all'){ $('dateFrom').value = ''; $('dateTo').value = ''; }
+      highlightPreset(p); renderCurrentPage();
+    });
+  });
+  $('dateFrom').addEventListener('change', () => { highlightPreset('custom'); renderCurrentPage(); });
+  $('dateTo').addEventListener('change', () => { highlightPreset('custom'); renderCurrentPage(); });
+
+  function inRange(t){ const from = $('dateFrom').value, to = $('dateTo').value; if(from && t.date < from) return false; if(to && t.date > to) return false; return true; }
+  function filteredTransactions(){ return state.transactions.filter(inRange); }
+
+  // ---------------- Categories ----------------
+
+  function populateCategorySelect(){
+    const sel = $('f-cat');
+    const opts = state.categories.filter(c => c.type === state.currentType);
+    sel.innerHTML = opts.length ? opts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') : `<option value="">لا توجد تصنيفات — أضف واحدة</option>`;
+  }
+  function setType(type){
+    state.currentType = type;
+    $('typeIncomeBtn').classList.toggle('active', type === 'income');
+    $('typeExpenseBtn').classList.toggle('active', type === 'expense');
+    populateCategorySelect();
+  }
+  function usageCount(catId){ return state.transactions.filter(t => t.categoryId === catId && !t.voided).length; }
+
+  function renderCategoriesPage(){
+    const inc = state.categories.filter(c => c.type === 'income');
+    const exp = state.categories.filter(c => c.type === 'expense');
+    $('catListIncome').innerHTML = inc.length ? inc.map(catRowHtml).join('') : '<div class="cat-empty">لا توجد فئات إيرادات بعد.</div>';
+    $('catListExpense').innerHTML = exp.length ? exp.map(catRowHtml).join('') : '<div class="cat-empty">لا توجد فئات مصروفات بعد.</div>';
+    document.querySelectorAll('[data-delcat]').forEach(btn => btn.addEventListener('click', () => deleteCategory(btn.getAttribute('data-delcat'))));
+  }
+  function catRowHtml(c){
+    const n = usageCount(c.id);
+    return `<div class="cat-row"><div><div class="name">${escapeHtml(c.name)}</div><div class="meta">${n} قيد نشط</div></div><button type="button" class="del-btn" data-delcat="${c.id}">حذف</button></div>`;
+  }
+  async function deleteCategory(id){
+    const cat = state.categories.find(c => c.id === id);
+    if(!cat) return;
+    const n = usageCount(id);
+    const msg = n > 0
+      ? `توجد ${n} قيود تستخدم "${cat.name}". سيبقى اسمها محفوظاً في هذه القيود القديمة، لكنها لن تكون متاحة لقيود جديدة. هل تريد حذفها؟`
+      : `حذف فئة "${cat.name}"؟`;
+    if(!confirm(msg)) return;
+    await deleteCategoryDoc(id);
+  }
+  document.querySelectorAll('.add-cat-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const type = btn.getAttribute('data-addtype');
+      const inputId = type === 'income' ? 'newCatIncomeName' : 'newCatExpenseName';
+      const input = $(inputId); const name = input.value.trim(); if(!name) return;
+      const cat = { id: uid(), name, type };
+      input.value = '';
+      await persistCategory(cat);
+    });
+  });
+
+  function rowCatLabel(t){
+    const live = state.categories.find(c => c.id === t.categoryId);
+    if(live) return live.name;
+    if(t.categoryName) return t.categoryName;
+    return '(فئة محذوفة)';
+  }
+
+  // ---------------- Bank account (POS settlement reconciliation) ----------------
+
+  let editingReceivedIds = new Set();
+
+  function renderBankPage(){
+    const rows = [...state.settlements].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const shortfalls = rows.filter(s => s.bankReceived != null && s.bankReceived < (s.mada + s.visa));
+
+    const bannerEl = $('bankReviewBanner');
+    if(shortfalls.length){
+      bannerEl.style.display = 'block';
+      bannerEl.innerHTML = `⚠ يوجد ${shortfalls.length} ${shortfalls.length === 1 ? 'موازنة' : 'موازنات'} وصل لها مبلغ أقل من المتوقع — أدخل المبلغ الصحيح بعد وصوله لإزالة التنبيه.`;
+    } else {
+      bannerEl.style.display = 'none';
+    }
+
+    const listEl = $('settleList');
+    if(!rows.length){ listEl.innerHTML = ''; $('settleEmpty').style.display = 'block'; return; }
+    $('settleEmpty').style.display = 'none';
+
+    listEl.innerHTML = rows.map(s => {
+      const expected = s.mada + s.visa;
+      const statusTag = s.status === 'matched'
+        ? `<span class="txn-tag" style="border-color:var(--income); color:var(--income);">متوافقة</span>`
+        : `<span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">غير متوافقة</span>`;
+
+      const isEditing = editingReceivedIds.has(s.id);
+      let receivedBlock;
+      if(s.bankReceived == null || isEditing){
+        const prefill = isEditing ? s.bankReceived : '';
+        receivedBlock = `
+          <div style="display:flex; gap:8px; margin-top:10px; align-items:center;">
+            <input type="number" step="0.01" min="0" value="${prefill}" placeholder="المبلغ الذي وصل للحساب" data-received-input="${s.id}" style="flex:1;">
+            <button type="button" class="confirm-btn" data-confirm-received="${s.id}">تأكيد الاستلام</button>
+          </div>
+          ${isEditing ? `<button type="button" class="cancel-edit-btn" data-cancel-edit="${s.id}">إلغاء التعديل</button>` : ''}`;
+      } else {
+        const diff = s.bankReceived - expected;
+        const diffText = Math.abs(diff) < 0.005
+          ? '<span style="color:var(--income);">مطابق تماماً</span>'
+          : diff < 0
+            ? `<span style="color:var(--expense);">أقل بمقدار ${fmt(Math.abs(diff))}</span>`
+            : `<span style="color:var(--income);">أكثر بمقدار ${fmt(diff)}</span>`;
+        receivedBlock = `
+          <div class="arow" style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border);">
+            <span class="acc">المبلغ المستلم بالحساب</span><span class="amt">${fmt(s.bankReceived)}</span>
+          </div>
+          <div class="arow"><span class="acc">الفرق</span><span class="amt">${diffText}</span></div>
+          <button type="button" class="edit-received-btn" data-edit-received="${s.id}">تعديل المبلغ المستلم</button>`;
+      }
+
+      return `
+        <div class="audit-card">
+          <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${s.date}</span>${statusTag}</div>
+          <div class="arow"><span class="acc">عمليات مدى</span><span class="amt">${fmt(s.mada)}</span></div>
+          <div class="arow"><span class="acc">عمليات فيزا</span><span class="amt">${fmt(s.visa)}</span></div>
+          <div class="arow"><span class="acc">الإجمالي المتوقع</span><span class="amt">${fmt(expected)}</span></div>
+          ${receivedBlock}
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('[data-confirm-received]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-confirm-received');
+        const input = listEl.querySelector(`[data-received-input="${id}"]`);
+        const val = parseFloat(input.value);
+        if(!val && val !== 0){ return; }
+        const s = state.settlements.find(s => s.id === id);
+        if(!s) return;
+        s.bankReceived = Math.round(val * 100) / 100;
+        editingReceivedIds.delete(id);
+        renderBankPage();
+        persistSettlement(s);
+      });
+    });
+    listEl.querySelectorAll('[data-edit-received]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingReceivedIds.add(btn.getAttribute('data-edit-received'));
+        renderBankPage();
+      });
+    });
+    listEl.querySelectorAll('[data-cancel-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingReceivedIds.delete(btn.getAttribute('data-cancel-edit'));
+        renderBankPage();
+      });
+    });
+  }
+
+  $('settleForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('settleSubmitBtn'); btn.disabled = true;
+    try{
+      const date = $('s-date').value || todayStr();
+      const mada = parseFloat($('s-mada').value) || 0;
+      const visa = parseFloat($('s-visa').value) || 0;
+      if(mada <= 0 && visa <= 0){
+        $('settleErrorMsg').style.display = 'block';
+        return;
+      }
+      $('settleErrorMsg').style.display = 'none';
+      const status = $('s-status').value;
+      const s = {
+        id: uid(), date, mada: Math.round(mada*100)/100, visa: Math.round(visa*100)/100,
+        status, bankReceived: null, createdAt: new Date().toISOString(),
+      };
+      state.settlements.push(s);
+      $('s-mada').value = ''; $('s-visa').value = ''; $('s-date').value = todayStr(); $('s-status').value = 'matched';
+      renderBankPage();
+      persistSettlement(s);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ---------------- Suppliers ----------------
+
+  function supplierTotals(supplierId){
+    const invoices = state.supplierInvoices.filter(i => i.supplierId === supplierId);
+    const receipts = state.supplierReceipts.filter(r => r.supplierId === supplierId);
+    const returns = state.supplierReturns.filter(r => r.supplierId === supplierId);
+    const totalInvoiced = invoices.reduce((s,i) => s + i.amount, 0);
+    const totalPaid = receipts.reduce((s,r) => s + r.amount, 0);
+    const totalReturned = returns.reduce((s,r) => s + r.amount, 0);
+    const due = totalInvoiced - totalPaid - totalReturned;
+    return { totalInvoiced, totalPaid, totalReturned, due };
+  }
+
+  function renderSuppliersPage(){
+    const rows = [...state.suppliers].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    let totalWeOwe = 0, totalOwedToUs = 0;
+    rows.forEach(sup => {
+      const due = supplierTotals(sup.id).due;
+      if(due > 0) totalWeOwe += due;
+      else totalOwedToUs += Math.abs(due);
+    });
+    $('suppliersTotalWeOwe').textContent = fmt(totalWeOwe);
+    $('suppliersTotalOwedToUs').textContent = fmt(totalOwedToUs);
+    const listEl = $('suppliersList');
+    if(!rows.length){ listEl.innerHTML = ''; $('suppliersEmpty').style.display = 'block'; return; }
+    $('suppliersEmpty').style.display = 'none';
+    listEl.innerHTML = rows.map(s => {
+      const { due } = supplierTotals(s.id);
+      return `
+        <div class="txn-card" data-open-supplier="${s.id}" style="cursor:pointer;">
+          <div class="txn-main">
+            <div class="desc">${escapeHtml(s.name)}</div>
+            <div class="meta">${escapeHtml(s.phone)}${s.address ? ' · ' + escapeHtml(s.address) : ''}</div>
+          </div>
+          <div class="txn-side">
+            <div class="txn-amt ${due > 0 ? 'expense' : 'income'}">${fmt(due)}</div>
+            <span class="txn-tag">مستحق</span>
+          </div>
+        </div>`;
+    }).join('');
+    listEl.querySelectorAll('[data-open-supplier]').forEach(el => {
+      el.addEventListener('click', () => {
+        currentSupplierId = el.getAttribute('data-open-supplier');
+        showPage('supplier-detail');
+      });
+    });
+  }
+
+  $('toggleAddSupplierBtn').addEventListener('click', () => {
+    const form = $('supplierForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  });
+  $('supplierForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('sup-name').value.trim();
+    const phone = $('sup-phone').value.trim();
+    const address = $('sup-address').value.trim();
+    if(!name || !phone) return;
+    const s = { id: uid(), name, phone, address, createdAt: new Date().toISOString() };
+    state.suppliers.push(s);
+    $('sup-name').value = ''; $('sup-phone').value = ''; $('sup-address').value = '';
+    $('supplierForm').style.display = 'none';
+    renderSuppliersPage();
+    persistSupplier(s);
+  });
+
+  function attachmentPreviewHtml(att, idAttr){
+    if(!att) return '';
+    if(att.isImage){
+      return `<button type="button" class="thumb-btn" style="background-image:url('${att.dataUrl}')" data-view-att="${idAttr}" title="عرض المرفق"></button>`;
+    }
+    return `<a href="${att.dataUrl}" target="_blank" rel="noopener" style="font-size:11px; color:var(--accent); text-decoration:underline;">${escapeHtml(att.fileName || 'عرض الملف')}</a>`;
+  }
+
+  function renderSupplierDetail(){
+    const sup = state.suppliers.find(s => s.id === currentSupplierId);
+    if(!sup){ showPage('suppliers'); return; }
+    const { totalInvoiced, totalPaid, due } = supplierTotals(sup.id);
+
+    $('supplierInfoCard').innerHTML = `
+      <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${escapeHtml(sup.name)}</span></div>
+      <div class="arow"><span class="acc">الهاتف</span><span class="amt" style="direction:rtl;">${escapeHtml(sup.phone)}</span></div>
+      ${sup.address ? `<div class="arow"><span class="acc">العنوان</span><span class="amt" style="direction:rtl;">${escapeHtml(sup.address)}</span></div>` : ''}
+    `;
+    $('supPaidTotal').textContent = fmt(totalPaid);
+    $('supDueTotal').textContent = fmt(due);
+    $('supDueTotal').className = 'value ' + (due > 0 ? 'expense' : 'income');
+
+    const invoices = state.supplierInvoices.filter(i => i.supplierId === sup.id).sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const invListEl = $('supplierInvoiceList');
+    if(!invoices.length){ invListEl.innerHTML = ''; $('supplierInvoiceEmpty').style.display = 'block'; }
+    else{
+      $('supplierInvoiceEmpty').style.display = 'none';
+      invListEl.innerHTML = invoices.map(i => `
+        <div class="txn-card">
+          ${attachmentPreviewHtml(i.attachment, i.id)}
+          <div class="txn-main">
+            <div class="desc">فاتورة رقم ${escapeHtml(i.invoiceNumber)}</div>
+            <div class="meta">${i.date}</div>
+          </div>
+          <div class="txn-side"><div class="txn-amt expense">${fmt(i.amount)}</div></div>
+        </div>`).join('');
+      wireAttachmentViewers(invListEl, invoices);
+    }
+
+    const receipts = state.supplierReceipts.filter(r => r.supplierId === sup.id).sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const rcptListEl = $('supplierReceiptList');
+    if(!receipts.length){ rcptListEl.innerHTML = ''; $('supplierReceiptEmpty').style.display = 'block'; }
+    else{
+      $('supplierReceiptEmpty').style.display = 'none';
+      rcptListEl.innerHTML = receipts.map(r => `
+        <div class="txn-card">
+          ${attachmentPreviewHtml(r.attachment, r.id)}
+          <div class="txn-main">
+            <div class="desc">سداد ${r.method === 'transfer' ? 'تحويل' : 'نقد'}</div>
+            <div class="meta">${r.date}</div>
+          </div>
+          <div class="txn-side"><div class="txn-amt income">${fmt(r.amount)}</div></div>
+        </div>`).join('');
+      wireAttachmentViewers(rcptListEl, receipts);
+    }
+
+    const returns = state.supplierReturns.filter(r => r.supplierId === sup.id).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    const retListEl = $('supplierReturnList');
+    if(!returns.length){ retListEl.innerHTML = ''; $('supplierReturnEmpty').style.display = 'block'; }
+    else{
+      $('supplierReturnEmpty').style.display = 'none';
+      retListEl.innerHTML = returns.map(r => `
+        <div class="txn-card">
+          <div class="txn-main">
+            <div class="desc">مرتجع لفاتورة رقم ${escapeHtml(r.originalInvoiceNumber)}</div>
+            <div class="meta">
+              ${r.createdAt.slice(0,10)} · ${r.delivered === 'yes' ? 'تم تسليم القطعة' : 'لم تُسلّم القطعة بعد'}
+              ${r.reason ? ' · ' + escapeHtml(r.reason) : ''}
+              ${r.documentNumber ? ' · مستند رقم ' + escapeHtml(r.documentNumber) : ''}
+              ${r.notes ? '<br>' + escapeHtml(r.notes) : ''}
+            </div>
+          </div>
+          <div class="txn-side"><div class="txn-amt" style="color:#D9A227;">${fmt(r.amount)}</div></div>
+        </div>`).join('');
+    }
+  }
+
+  function wireAttachmentViewers(container, records){
+    container.querySelectorAll('[data-view-att]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rec = records.find(r => r.id === btn.getAttribute('data-view-att'));
+        if(rec && rec.attachment) openModal(rec.attachment.dataUrl);
+      });
+    });
+  }
+
+  function readAttachment(file){
+    return new Promise((resolve, reject) => {
+      if(file.type.startsWith('image/')){
+        compressImage(file).then(dataUrl => resolve({ dataUrl, isImage: true, fileName: file.name })).catch(reject);
+      } else {
+        if(file.size > 4 * 1024 * 1024){ reject(new Error('too-large')); return; }
+        const reader = new FileReader();
+        reader.onload = (e) => resolve({ dataUrl: e.target.result, isImage: false, fileName: file.name });
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+
+  $('toggleAddInvoiceBtn').addEventListener('click', () => {
+    $('receiptForm').style.display = 'none';
+    $('returnForm').style.display = 'none';
+    const f = $('invoiceForm');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  $('toggleAddReceiptBtn').addEventListener('click', () => {
+    $('invoiceForm').style.display = 'none';
+    $('returnForm').style.display = 'none';
+    const f = $('receiptForm');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+  $('toggleAddReturnBtn').addEventListener('click', () => {
+    $('invoiceForm').style.display = 'none';
+    $('receiptForm').style.display = 'none';
+    const f = $('returnForm');
+    f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  });
+
+  $('invoiceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('invoiceSubmitBtn'); btn.disabled = true;
+    try{
+      const file = $('inv-file').files[0];
+      const invoiceNumber = $('inv-number').value.trim();
+      const date = $('inv-date').value || todayStr();
+      const amount = parseFloat($('inv-amount').value) || 0;
+      if(!invoiceNumber || !amount || !file) return;
+      $('invFileStatus').textContent = 'جارٍ معالجة الملف…';
+      let attachment;
+      try{ attachment = await readAttachment(file); }
+      catch(err){ $('invFileStatus').textContent = 'الملف كبير جداً أو تعذّرت معالجته.'; return; }
+      $('invFileStatus').textContent = '';
+      const inv = {
+        id: uid(), supplierId: currentSupplierId, invoiceNumber, date,
+        amount: Math.round(amount*100)/100, attachment, createdAt: new Date().toISOString(),
+      };
+      state.supplierInvoices.push(inv);
+      $('inv-number').value = ''; $('inv-amount').value = ''; $('inv-date').value = todayStr(); $('inv-file').value = '';
+      $('invoiceForm').style.display = 'none';
+      renderSupplierDetail();
+      persistSupplierInvoice(inv);
+    } finally { btn.disabled = false; }
+  });
+
+  $('receiptForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('receiptSubmitBtn'); btn.disabled = true;
+    try{
+      const file = $('rcpt-file').files[0];
+      const date = $('rcpt-date').value || todayStr();
+      const method = $('rcpt-method').value;
+      const amount = parseFloat($('rcpt-amount').value) || 0;
+      if(!amount || !file) return;
+      $('rcptFileStatus').textContent = 'جارٍ معالجة الملف…';
+      let attachment;
+      try{ attachment = await readAttachment(file); }
+      catch(err){ $('rcptFileStatus').textContent = 'الملف كبير جداً أو تعذّرت معالجته.'; return; }
+      $('rcptFileStatus').textContent = '';
+      const r = {
+        id: uid(), supplierId: currentSupplierId, date, method,
+        amount: Math.round(amount*100)/100, attachment, createdAt: new Date().toISOString(),
+      };
+      state.supplierReceipts.push(r);
+      $('rcpt-amount').value = ''; $('rcpt-date').value = todayStr(); $('rcpt-file').value = '';
+      $('receiptForm').style.display = 'none';
+      renderSupplierDetail();
+      persistSupplierReceipt(r);
+    } finally { btn.disabled = false; }
+  });
+
+  $('returnForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('returnSubmitBtn'); btn.disabled = true;
+    try{
+      const amount = parseFloat($('ret-amount').value) || 0;
+      const originalInvoiceNumber = $('ret-invoice-number').value.trim();
+      if(!amount || !originalInvoiceNumber) return;
+      const ret = {
+        id: uid(), supplierId: currentSupplierId,
+        amount: Math.round(amount*100)/100,
+        originalInvoiceNumber,
+        reason: $('ret-reason').value.trim(),
+        documentNumber: $('ret-doc-number').value.trim(),
+        delivered: $('ret-delivered').value,
+        notes: $('ret-notes').value.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      state.supplierReturns.push(ret);
+      $('ret-amount').value = ''; $('ret-invoice-number').value = ''; $('ret-reason').value = '';
+      $('ret-doc-number').value = ''; $('ret-delivered').value = 'no'; $('ret-notes').value = '';
+      $('returnForm').style.display = 'none';
+      renderSupplierDetail();
+      persistSupplierReturn(ret);
+    } finally { btn.disabled = false; }
+  });
+
+  // ---------------- Accounting math ----------------
+
+  function cashBalance(list){ let cash = 0; for(const t of list){ if(t.voided) continue; cash += t.type === 'income' ? t.amount : -t.amount; } return cash; }
+  function totals(list){ let income = 0, expense = 0; for(const t of list){ if(t.voided) continue; if(t.type === 'income') income += t.amount; else expense += t.amount; } return { income, expense }; }
+
+  // ---------------- Home ----------------
+
+  function renderHome(list){
+    const cash = cashBalance(list);
+    const { income, expense } = totals(list);
+    $('heroBalance').textContent = fmt(cash);
+    $('heroIncome').textContent = fmt(income);
+    $('heroExpense').textContent = fmt(expense);
+    renderChart(list);
+  }
+
+  function renderChart(list){
+    const holder = $('chartHolder'); const hint = $('chartRangeHint');
+    const active = list.filter(t => !t.voided);
+    if(!active.length){ holder.innerHTML = '<div class="empty">لا توجد بيانات ضمن الفترة المحددة.</div>'; hint.textContent = ''; return; }
+    const dates = active.map(t => t.date).sort();
+    const minDate = dates[0], maxDate = dates[dates.length - 1];
+    const dayCount = Math.round((new Date(maxDate) - new Date(minDate)) / 86400000) + 1;
+    const byDay = dayCount <= 31;
+    const buckets = {}; const order = [];
+    if(byDay){
+      let d = new Date(minDate); const end = new Date(maxDate);
+      while(d <= end){
+        const key = d.toISOString().slice(0,10);
+        buckets[key] = { income: 0, expense: 0, label: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') };
+        order.push(key); d.setDate(d.getDate() + 1);
+      }
+    } else {
+      let d = new Date(minDate.slice(0,7) + '-01'); const end = new Date(maxDate.slice(0,7) + '-01');
+      while(d <= end){
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        buckets[key] = { income: 0, expense: 0, label: ARABIC_MONTHS[d.getMonth()].slice(0,3) };
+        order.push(key); d.setMonth(d.getMonth() + 1);
+      }
+    }
+    for(const t of active){
+      const key = byDay ? t.date : t.date.slice(0,7);
+      if(!buckets[key]) continue;
+      if(t.type === 'income') buckets[key].income += t.amount; else buckets[key].expense += t.amount;
+    }
+    hint.textContent = byDay ? '(يومي)' : '(شهري)';
+    const maxVal = Math.max(1, ...order.map(k => Math.max(buckets[k].income, buckets[k].expense)));
+    const barW = 12, groupGap = byDay ? 20 : 40, chartH = 160, padTop = 10, padBottom = 22, padLeft = 46;
+    const groupW = barW * 2 + 5;
+    const totalW = padLeft + order.length * (groupW + groupGap);
+    const svgH = chartH + padTop + padBottom;
+    let bars = '';
+    order.forEach((key, i) => {
+      const b = buckets[key]; const x0 = padLeft + i * (groupW + groupGap);
+      const incH = (b.income / maxVal) * chartH; const expH = (b.expense / maxVal) * chartH;
+      bars += `<rect x="${x0}" y="${padTop + chartH - incH}" width="${barW}" height="${incH}" fill="var(--income)" rx="2"><title>${escapeHtml(b.label)} — إيراد: ${fmt(b.income)}</title></rect>`;
+      bars += `<rect x="${x0 + barW + 3}" y="${padTop + chartH - expH}" width="${barW}" height="${expH}" fill="var(--expense)" rx="2"><title>${escapeHtml(b.label)} — مصروف: ${fmt(b.expense)}</title></rect>`;
+      bars += `<text x="${x0 + groupW/2}" y="${padTop + chartH + 15}" font-size="9" fill="#8B93A7" text-anchor="middle" font-family="IBM Plex Mono, monospace">${escapeHtml(b.label)}</text>`;
+    });
+    let grid = '';
+    for(let g = 0; g <= 3; g++){
+      const y = padTop + chartH - (g/3)*chartH; const val = (g/3)*maxVal;
+      grid += `<line x1="${padLeft-6}" y1="${y}" x2="${totalW}" y2="${y}" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>`;
+      grid += `<text x="${padLeft-10}" y="${y+3}" font-size="9" fill="#8B93A7" text-anchor="end" font-family="IBM Plex Mono, monospace">${Math.round(val)}</text>`;
+    }
+    holder.innerHTML = `<svg width="${Math.max(totalW, 260)}" height="${svgH}" viewBox="0 0 ${Math.max(totalW,260)} ${svgH}" xmlns="http://www.w3.org/2000/svg">${grid}${bars}</svg>`;
+  }
+
+  // ---------------- Income / Expense pages ----------------
+
+  function renderTypePage(type, list){
+    const isIncome = type === 'income';
+    const cardsId = isIncome ? 'incomeCards' : 'expenseCards';
+    const bdId = isIncome ? 'incomeBreakdown' : 'expenseBreakdown';
+    const listId = isIncome ? 'incomeList' : 'expenseList';
+    const emptyId = isIncome ? 'incomeEmpty' : 'expenseEmpty';
+    const colorClass = isIncome ? 'income' : 'expense';
+
+    const own = list.filter(t => t.type === type && !t.voided);
+    const total = own.reduce((s,t) => s + t.amount, 0);
+    const count = own.length;
+
+    const byCat = {};
+    for(const t of own){
+      if(!byCat[t.categoryId]) byCat[t.categoryId] = { total: 0, name: rowCatLabel(t) };
+      byCat[t.categoryId].total += t.amount;
+    }
+    const ranked = Object.values(byCat).sort((a,b) => b.total - a.total);
+    const topCat = ranked.length ? ranked[0].name : '—';
+
+    $(cardsId).innerHTML = `
+      <div class="stat-card"><div class="label">${isIncome ? 'إجمالي الإيرادات' : 'إجمالي المصروفات'}</div><div class="value ${colorClass}">${fmt(total)}</div></div>
+      <div class="stat-card"><div class="label">عدد القيود</div><div class="value">${count}</div></div>
+      <div class="stat-card"><div class="label">أكبر فئة</div><div class="value small-txt">${escapeHtml(topCat)}</div></div>
+    `;
+
+    const maxCat = ranked.length ? ranked[0].total : 1;
+    $(bdId).innerHTML = ranked.length ? ranked.map(r => `
+      <div class="bd-row">
+        <div class="bd-name">${escapeHtml(r.name)}</div>
+        <div class="bd-bar-track"><div class="bd-bar-fill ${colorClass}" style="width:${Math.max(3, (r.total/maxCat)*100)}%"></div></div>
+        <div class="bd-amt">${fmt(r.total)}</div>
+      </div>`).join('') : '<div class="empty">لا توجد بيانات ضمن الفترة المحددة.</div>';
+
+    let rows = list.filter(t => t.type === type).sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const listEl = $(listId);
+    if(!rows.length){ listEl.innerHTML = ''; $(emptyId).style.display = 'block'; return; }
+    $(emptyId).style.display = 'none';
+    listEl.innerHTML = rows.map(t => {
+      const voidClass = t.voided ? ' void-card' : '';
+      const sign = t.type === 'income' ? '+' : '\u2212';
+      const amtClass = t.type === 'income' ? 'income' : 'expense';
+      const canVoid = !t.voided && !t.isReversal;
+      const thumb = t.receipt ? `<button type="button" class="txn-thumb" style="background-image:url('${t.receipt}')" data-view="${t.id}" title="عرض صورة الفاتورة"></button>` : '<div class="txn-thumb" style="opacity:0.25;"></div>';
+      return `
+        <div class="txn-card${voidClass}">
+          ${thumb}
+          <div class="txn-main">
+            <div class="desc">${escapeHtml(t.description)}</div>
+            <div class="meta">${t.date} · ${escapeHtml(rowCatLabel(t))}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}</div>
+          </div>
+          <div class="txn-side">
+            <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
+            ${canVoid ? `<button class="txn-void-btn" data-void="${t.id}">إلغاء</button>` : (t.voided ? `<span class="txn-tag">ملغى</span>` : `<span class="txn-tag">عكسي</span>`)}
+          </div>
+        </div>`;
+    }).join('');
+    listEl.querySelectorAll('[data-void]').forEach(btn => btn.addEventListener('click', () => voidTransaction(btn.getAttribute('data-void'))));
+    listEl.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => {
+      const t = state.transactions.find(t => t.id === btn.getAttribute('data-view'));
+      if(t && t.receipt) openModal(t.receipt);
+    }));
+  }
+
+  // ---------------- Audit ----------------
+
+  function renderAudit(list){
+    let rows = []; let totalDebit = 0, totalCredit = 0;
+    for(const t of list){
+      const catName = rowCatLabel(t);
+      if(t.type === 'income'){ rows.push({ txn:t, account:'الصندوق', debit:t.amount, credit:0 }); rows.push({ txn:t, account:catName, debit:0, credit:t.amount }); }
+      else { rows.push({ txn:t, account:catName, debit:t.amount, credit:0 }); rows.push({ txn:t, account:'الصندوق', debit:0, credit:t.amount }); }
+      totalDebit += t.amount; totalCredit += t.amount;
+    }
+    rows.sort((a,b) => (b.txn.date + b.txn.createdAt).localeCompare(a.txn.date + a.txn.createdAt));
+    $('auditList').innerHTML = rows.length ? rows.map(r => `
+      <div class="audit-card">
+        <div style="color:var(--ink-soft); font-size:11px;">${r.txn.date} — ${escapeHtml(r.txn.description)}</div>
+        <div class="arow"><span class="acc">${escapeHtml(r.account)}</span><span class="amt">${r.debit ? 'مدين ' + fmt(r.debit) : 'دائن ' + fmt(r.credit)}</span></div>
+      </div>`).join('') : '<div class="empty">لا توجد قيود ضمن الفترة.</div>';
+    const balanced = Math.abs(totalDebit - totalCredit) < 0.005;
+    $('auditChecksum').className = 'checksum ' + (balanced ? 'balanced' : 'unbalanced');
+    $('auditChecksum').innerHTML = `<span class="figures">مدين ${fmt(totalDebit)} / دائن ${fmt(totalCredit)}</span><span class="verdict">${balanced ? 'متوازن ✓' : 'غير متوازن'}</span>`;
+  }
+
+  // ---------------- Void / reversal ----------------
+
+  async function voidTransaction(id){
+    const original = state.transactions.find(t => t.id === id);
+    if(!original || original.voided) return;
+    const reversal = {
+      id: uid(), date: todayStr(), description: 'قيد عكسي لـ: ' + original.description,
+      categoryId: original.categoryId, categoryName: original.categoryName || rowCatLabel(original), amount: original.amount,
+      type: original.type === 'income' ? 'expense' : 'income',
+      createdAt: new Date().toISOString(),
+      isReversal: true, reversesId: original.id, voided: false, receipt: null,
+    };
+    original.voided = true; original.voidedAt = new Date().toISOString(); original.reversedById = reversal.id;
+    state.transactions.push(reversal);
+    renderCurrentPage();
+    persistTransaction(original);
+    persistTransaction(reversal);
+  }
+
+  // ---------------- Receipt attachment ----------------
+
+  function compressImage(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1000; let { width, height } = img;
+          if(width > maxDim || height > maxDim){
+            if(width >= height){ height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.62));
+        };
+        img.onerror = reject; img.src = e.target.result;
+      };
+      reader.onerror = reject; reader.readAsDataURL(file);
+    });
+  }
+  $('f-receipt').addEventListener('change', async () => {
+    const file = $('f-receipt').files[0]; if(!file) return;
+    $('receiptStatus').textContent = 'جارٍ المعالجة…';
+    try{
+      const dataUrl = await compressImage(file);
+      state.pendingReceipt = dataUrl;
+      $('receiptStatus').textContent = '';
+      $('receiptPreview').innerHTML = `<img src="${dataUrl}" alt="معاينة الفاتورة"><button type="button" id="receiptClear">إزالة</button>`;
+      $('receiptClear').addEventListener('click', () => { state.pendingReceipt = null; $('f-receipt').value = ''; $('receiptPreview').innerHTML = ''; });
+    }catch(e){ $('receiptStatus').textContent = 'تعذّرت المعالجة، حاول صورة أخرى.'; }
+  });
+
+  function openModal(src){ $('modalImg').src = src; $('modalOverlay').classList.add('open'); }
+  function closeModal(){ $('modalOverlay').classList.remove('open'); $('modalImg').src = ''; }
+  $('modalCloseBtn').addEventListener('click', closeModal);
+  $('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
+
+  // ---------------- Event wiring ----------------
+
+  $('typeIncomeBtn').addEventListener('click', () => setType('income'));
+  $('typeExpenseBtn').addEventListener('click', () => setType('expense'));
+
+  $('entryForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('submitBtn'); btn.disabled = true;
+    try{
+      const date = $('f-date').value || todayStr();
+      const description = $('f-desc').value.trim();
+      const categoryId = $('f-cat').value;
+      const amount = parseFloat($('f-amt').value);
+      if(!description || !categoryId || !amount || amount <= 0){ return; }
+      const catObj = state.categories.find(c => c.id === categoryId);
+      const txn = {
+        id: uid(), date, description, categoryId, categoryName: catObj ? catObj.name : '',
+        amount: Math.round(amount * 100) / 100,
+        type: state.currentType, createdAt: new Date().toISOString(),
+        createdBy: currentUser ? currentUser.email : '',
+        isReversal: false, voided: false, receipt: state.pendingReceipt || null,
+      };
+      state.transactions.push(txn);
+
+      $('f-desc').value = ''; $('f-amt').value = ''; $('f-date').value = todayStr();
+      $('f-receipt').value = ''; $('receiptPreview').innerHTML = ''; state.pendingReceipt = null;
+      $('confirmMsg').style.display = 'block';
+      setTimeout(() => { $('confirmMsg').style.display = 'none'; }, 2000);
+
+      persistTransaction(txn);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('f-date').value = todayStr();
+  $('s-date').value = todayStr();
+  $('inv-date').value = todayStr();
+  $('rcpt-date').value = todayStr();
+  setType('income');
+  showPage('home');
+  loadState();
+})();
+</script>
+</body>
+</html>
