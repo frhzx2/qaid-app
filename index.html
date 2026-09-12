@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>قيد</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F1320">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="قيد">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -312,13 +319,12 @@
 
       <!-- ============ HOME / DASHBOARD ============ -->
       <section id="page-home">
-        <div class="hero-card">
-          <div class="label">الرصيد ضمن الفترة</div>
-          <div class="big" id="heroBalance">0.00 ر.س</div>
-          <div class="hero-mini">
-            <div class="chip income"><div class="k">↑ الإيرادات</div><div class="v" id="heroIncome">0.00</div></div>
-            <div class="chip expense"><div class="k">↓ المصروفات</div><div class="v" id="heroExpense">0.00</div></div>
-          </div>
+        <div id="reminderAlertBox"></div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
+          <div class="stat-card"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
+          <div class="stat-card"><div class="label">صافي الفترة</div><div class="value" id="dashNetTotal">0.00</div></div>
         </div>
 
         <div class="filterbar" id="filterPills">
@@ -332,7 +338,16 @@
           <input type="date" id="dateTo">
         </div>
 
-        <section class="block">
+        <h3 class="block-title" id="dashActivityToggle" style="margin-top:4px; cursor:pointer; user-select:none;">
+          النشاط ضمن الفترة
+          <span id="dashActivityChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <div id="dashActivityWrap" style="display:none;">
+          <div id="dashActivityList"></div>
+          <div id="dashActivityEmpty" class="empty" style="display:none;">لا يوجد نشاط ضمن الفترة المحددة.</div>
+        </div>
+
+        <section class="block" style="margin-top:20px;">
           <h3 class="block-title">الرسم البياني <span class="hint" id="chartRangeHint"></span></h3>
           <div class="chart-panel">
             <div class="legend"><span><span class="sw income"></span>إيراد</span><span><span class="sw expense"></span>مصروف</span></div>
@@ -374,7 +389,7 @@
             <div class="field"><label for="f-date">التاريخ</label><input type="date" id="f-date" required></div>
             <div class="field"><label for="f-amt">المبلغ (ر.س)</label><input type="number" id="f-amt" step="0.01" min="0.01" placeholder="0.00" required></div>
           </div>
-          <div class="field"><label for="f-desc">الوصف</label><input type="text" id="f-desc" placeholder="مثال: فاتورة رقم ١١٤" required></div>
+          <div class="field"><label for="f-desc">الوصف (اختياري)</label><input type="text" id="f-desc" placeholder="مثال: فاتورة رقم ١١٤"></div>
           <div class="field">
             <label for="f-cat">الفئة</label>
             <div class="cat-field-row">
@@ -407,7 +422,48 @@
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h11v8H3z"/><path d="M14 10h4l3 3v2h-7z"/><circle cx="7.5" cy="18" r="1.6"/><circle cx="17.5" cy="18" r="1.6"/></svg> قائمة الموردين</span>
             <span class="chev">‹</span>
           </div>
+          <div class="list-row" data-goto="search">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> بحث شامل</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="reminders">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2z"/><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16z"/></svg> التذكيرات</span>
+            <span class="chev">‹</span>
+          </div>
         </div>
+
+        <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
+      </section>
+
+      <!-- ============ REMINDERS ============ -->
+      <section id="page-reminders" hidden>
+        <form id="reminderForm" style="margin-bottom:20px;">
+          <div class="field"><label for="rem-title">عنوان التذكير *</label><input type="text" id="rem-title" placeholder="مثال: رخصة البلدية" required></div>
+          <div class="row2">
+            <div class="field"><label for="rem-date">تاريخ الاستحقاق *</label><input type="date" id="rem-date" required></div>
+            <div class="field"><label for="rem-notify">نبّهني قبل</label>
+              <select id="rem-notify">
+                <option value="1">يوم واحد</option>
+                <option value="3">٣ أيام</option>
+                <option value="7" selected>أسبوع</option>
+                <option value="14">أسبوعين</option>
+                <option value="30">شهر</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="rem-notes">ملاحظات (اختياري)</label><input type="text" id="rem-notes"></div>
+          <button type="submit" class="submit" id="reminderSubmitBtn">حفظ التذكير</button>
+        </form>
+
+        <div id="reminderList"></div>
+        <div id="reminderEmpty" class="empty" style="display:none;">لا توجد تذكيرات مضافة بعد.</div>
+      </section>
+
+      <!-- ============ GLOBAL SEARCH ============ -->
+      <section id="page-search" hidden>
+        <input type="text" id="globalSearchInput" placeholder="ابحث في الإيرادات، المصروفات، الموردين…" style="width:100%; font-family:'Cairo',sans-serif; font-size:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:16px;">
+        <div id="globalSearchResults"></div>
+        <div id="globalSearchEmpty" class="empty" style="display:none;">اكتب شيئاً للبحث عنه.</div>
       </section>
 
       <!-- ============ CATEGORIES ============ -->
@@ -457,6 +513,7 @@
         </form>
 
         <h3 class="block-title">الموازنات</h3>
+        <input type="text" id="bankSearchInput" placeholder="ابحث بالتاريخ أو المبلغ…" style="width:100%; font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:14px;">
         <div id="settleList"></div>
         <div id="settleEmpty" class="empty" style="display:none;">لا توجد موازنات مسجّلة بعد.</div>
       </section>
@@ -606,13 +663,23 @@
   const DEFAULT_CATEGORIES = [
     { id: 'inc_sales', name: 'إيراد المبيعات والخدمات', type: 'income' },
     { id: 'inc_other', name: 'إيراد آخر', type: 'income' },
-    { id: 'exp_supplies', name: 'لوازم مكتبية', type: 'expense' },
-    { id: 'exp_software', name: 'برمجيات وأدوات', type: 'expense' },
-    { id: 'exp_travel', name: 'سفر', type: 'expense' },
-    { id: 'exp_meals', name: 'وجبات', type: 'expense' },
-    { id: 'exp_fees', name: 'أتعاب مهنية', type: 'expense' },
-    { id: 'exp_tax', name: 'ضرائب', type: 'expense' },
-    { id: 'exp_other', name: 'مصروفات أخرى', type: 'expense' },
+    { id: 'exp_salaries', name: 'رواتب', type: 'expense' },
+    { id: 'exp_commissions', name: 'نسب', type: 'expense' },
+    { id: 'exp_rent', name: 'إيجار المحل', type: 'expense' },
+    { id: 'exp_electricity', name: 'فاتورة كهرباء', type: 'expense' },
+    { id: 'exp_maintenance', name: 'صيانات', type: 'expense' },
+    { id: 'exp_marketing', name: 'تسويق وإعلان', type: 'expense' },
+    { id: 'exp_workshop_purchases', name: 'مشتريات للورشة', type: 'expense' },
+    { id: 'exp_residency_fees', name: 'رسوم اقامات', type: 'expense' },
+    { id: 'exp_water', name: 'فاتورة ماء', type: 'expense' },
+    { id: 'exp_municipality_license', name: 'رخصة بلدية', type: 'expense' },
+    { id: 'exp_parts_purchases', name: 'مشتريات قطع غيار', type: 'expense' },
+    { id: 'exp_gov_subscriptions', name: 'اشتراكات مواقع حكومية', type: 'expense' },
+    { id: 'exp_operational_supplies', name: 'مستلزمات تشغيلية', type: 'expense' },
+    { id: 'exp_other_gov_fees', name: 'رسوم حكومية أخرى', type: 'expense' },
+    { id: 'exp_social_insurance', name: 'تأمينات اجتماعية', type: 'expense' },
+    { id: 'exp_admin_other', name: 'مصاريف إدارية أخرى', type: 'expense' },
+    { id: 'exp_zakat_income', name: 'الزكاة والدخل', type: 'expense' },
   ];
   const ARABIC_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
   // page -> [title, subtitle, parent-for-back-button-or-null]
@@ -627,9 +694,11 @@
     audit: ['سجل المراجعة', 'التحقق من توازن الدفتر', 'more'],
     suppliers: ['قائمة الموردين', 'إدارة الموردين والمدفوعات', 'more'],
     'supplier-detail': ['المورد', '', 'suppliers'],
+    search: ['بحث شامل', 'دوّر في كل بيانات التطبيق', 'more'],
+    reminders: ['التذكيرات', 'تذكيرات الاستحقاقات والرسوم', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -674,6 +743,7 @@
     ['supplierInvoices', 'supplierInvoices'],
     ['supplierReceipts', 'supplierReceipts'],
     ['supplierReturns', 'supplierReturns'],
+    ['reminders', 'reminders'],
   ];
   let loadedFlags = {};
 
@@ -701,6 +771,11 @@
   const persistSupplierInvoice = (i) => persistRecord('supplierInvoices', i);
   const persistSupplierReceipt = (r) => persistRecord('supplierReceipts', r);
   const persistSupplierReturn = (r) => persistRecord('supplierReturns', r);
+  const persistReminder = (r) => persistRecord('reminders', r);
+  async function deleteReminder(id){
+    try{ await db.collection('reminders').doc(id).delete(); }
+    catch(e){ console.error(e); showBanner('تعذّر حذف التذكير: ' + e.message); }
+  }
 
   function checkAllLoaded(){
     if(appIsReady) return;
@@ -713,6 +788,27 @@
     }
   }
 
+  let expenseMigrationAttempted = false;
+  async function runExpenseCategoryMigrationIfNeeded(currentCategories){
+    if(expenseMigrationAttempted) return;
+    expenseMigrationAttempted = true;
+    try{
+      const flagRef = db.collection('meta').doc('expenseCategoryMigrationV2');
+      const flagSnap = await flagRef.get();
+      if(flagSnap.exists) return;
+
+      const batch = db.batch();
+      currentCategories.filter(c => c.type === 'expense').forEach(c => {
+        batch.delete(db.collection('categories').doc(c.id));
+      });
+      DEFAULT_CATEGORIES.filter(c => c.type === 'expense').forEach(c => {
+        batch.set(db.collection('categories').doc(c.id), c);
+      });
+      batch.set(flagRef, { done: true, at: new Date().toISOString() });
+      await batch.commit();
+    }catch(e){ console.error('expense category migration failed', e); }
+  }
+
   function subscribeAll(){
     unsubscribers.forEach(u => u());
     unsubscribers = [];
@@ -723,13 +819,17 @@
     COLLECTIONS.forEach(([name, stateKey]) => {
       const unsub = db.collection(name).onSnapshot(async (snap) => {
         state[stateKey] = snap.docs.map(d => d.data());
-        if(name === 'categories' && !loadedFlags[name] && snap.empty){
-          // Seed default categories once, the very first time this account has none.
-          try{
-            const batch = db.batch();
-            DEFAULT_CATEGORIES.forEach(cat => batch.set(db.collection('categories').doc(cat.id), cat));
-            await batch.commit();
-          }catch(e){ console.error(e); }
+        if(name === 'categories' && !loadedFlags[name]){
+          if(snap.empty){
+            // Seed default categories once, the very first time this account has none.
+            try{
+              const batch = db.batch();
+              DEFAULT_CATEGORIES.forEach(cat => batch.set(db.collection('categories').doc(cat.id), cat));
+              await batch.commit();
+            }catch(e){ console.error(e); }
+          } else {
+            runExpenseCategoryMigrationIfNeeded(state.categories);
+          }
         }
         loadedFlags[name] = true;
         checkAllLoaded();
@@ -840,7 +940,7 @@
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
-    if(['categories','audit','suppliers','supplier-detail','more'].includes(name)){
+    if(['categories','audit','suppliers','supplier-detail','search','reminders','more'].includes(name)){
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
@@ -862,6 +962,8 @@
     else if(currentPage === 'bank') renderBankPage();
     else if(currentPage === 'suppliers') renderSuppliersPage();
     else if(currentPage === 'supplier-detail') renderSupplierDetail();
+    else if(currentPage === 'search') renderGlobalSearch();
+    else if(currentPage === 'reminders') renderRemindersPage();
   }
 
   // ---------------- Date range filter ----------------
@@ -888,6 +990,7 @@
 
   function inRange(t){ const from = $('dateFrom').value, to = $('dateTo').value; if(from && t.date < from) return false; if(to && t.date > to) return false; return true; }
   function filteredTransactions(){ return state.transactions.filter(inRange); }
+  function filteredSettlements(){ return state.settlements.filter(inRange); }
 
   // ---------------- Categories ----------------
 
@@ -947,9 +1050,25 @@
 
   let editingReceivedIds = new Set();
 
+  function computeVisaFee(visaAmount){
+    if(!visaAmount) return { fee: 0, net: 0 };
+    const feeRaw = visaAmount * 0.025 * 1.15;
+    const fee = Math.round(feeRaw * 100) / 100;
+    const net = Math.round((visaAmount - fee) * 100) / 100;
+    return { fee, net };
+  }
+  function settlementVisaFigures(s){
+    if(s.visaFee != null && s.visaNet != null) return { fee: s.visaFee, net: s.visaNet };
+    return computeVisaFee(s.visa);
+  }
+
   function renderBankPage(){
-    const rows = [...state.settlements].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
-    const shortfalls = rows.filter(s => s.bankReceived != null && s.bankReceived < (s.mada + s.visa));
+    const query = $('bankSearchInput').value.trim().toLowerCase();
+    let rows = [...state.settlements].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const shortfalls = rows.filter(s => {
+      const { net } = settlementVisaFigures(s);
+      return s.bankReceived != null && s.bankReceived < (s.mada + net);
+    });
 
     const bannerEl = $('bankReviewBanner');
     if(shortfalls.length){
@@ -959,12 +1078,29 @@
       bannerEl.style.display = 'none';
     }
 
+    if(query){
+      rows = rows.filter(s => {
+        const { net } = settlementVisaFigures(s);
+        const expected = s.mada + net;
+        const haystack = [s.date, s.mada, s.visa, expected, s.bankReceived]
+          .filter(v => v !== null && v !== undefined)
+          .map(String).join(' ').toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
     const listEl = $('settleList');
-    if(!rows.length){ listEl.innerHTML = ''; $('settleEmpty').style.display = 'block'; return; }
+    if(!rows.length){
+      listEl.innerHTML = '';
+      $('settleEmpty').style.display = 'block';
+      $('settleEmpty').textContent = query ? 'لا توجد موازنات مطابقة لبحثك.' : 'لا توجد موازنات مسجّلة بعد.';
+      return;
+    }
     $('settleEmpty').style.display = 'none';
 
     listEl.innerHTML = rows.map(s => {
-      const expected = s.mada + s.visa;
+      const { fee: visaFee, net: visaNet } = settlementVisaFigures(s);
+      const expected = s.mada + visaNet;
       const statusTag = s.status === 'matched'
         ? `<span class="txn-tag" style="border-color:var(--income); color:var(--income);">متوافقة</span>`
         : `<span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">غير متوافقة</span>`;
@@ -994,11 +1130,16 @@
           <button type="button" class="edit-received-btn" data-edit-received="${s.id}">تعديل المبلغ المستلم</button>`;
       }
 
+      const visaLines = s.visa > 0 ? `
+          <div class="arow"><span class="acc">رسوم العملية</span><span class="amt" style="color:var(--expense);">${fmt(visaFee)}</span></div>
+          <div class="arow"><span class="acc">المبلغ المودع (فيزا)</span><span class="amt">${fmt(visaNet)}</span></div>` : '';
+
       return `
         <div class="audit-card">
           <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${s.date}</span>${statusTag}</div>
           <div class="arow"><span class="acc">عمليات مدى</span><span class="amt">${fmt(s.mada)}</span></div>
           <div class="arow"><span class="acc">عمليات فيزا</span><span class="amt">${fmt(s.visa)}</span></div>
+          ${visaLines}
           <div class="arow"><span class="acc">الإجمالي المتوقع</span><span class="amt">${fmt(expected)}</span></div>
           ${receivedBlock}
         </div>`;
@@ -1032,6 +1173,8 @@
     });
   }
 
+  $('bankSearchInput').addEventListener('input', () => { if(currentPage === 'bank') renderBankPage(); });
+
   $('settleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = $('settleSubmitBtn'); btn.disabled = true;
@@ -1045,8 +1188,10 @@
       }
       $('settleErrorMsg').style.display = 'none';
       const status = $('s-status').value;
+      const { fee: visaFee, net: visaNet } = computeVisaFee(Math.round(visa*100)/100);
       const s = {
         id: uid(), date, mada: Math.round(mada*100)/100, visa: Math.round(visa*100)/100,
+        visaFee, visaNet,
         status, bankReceived: null, createdAt: new Date().toISOString(),
       };
       state.settlements.push(s);
@@ -1210,6 +1355,165 @@
     });
   }
 
+  // ---------------- Reminders ----------------
+
+  function daysUntil(dateStr){
+    const today = new Date(todayStr());
+    const due = new Date(dateStr);
+    return Math.round((due - today) / 86400000);
+  }
+
+  function renderRemindersPage(){
+    const rows = [...state.reminders].sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+    const listEl = $('reminderList');
+    if(!rows.length){ listEl.innerHTML = ''; $('reminderEmpty').style.display = 'block'; return; }
+    $('reminderEmpty').style.display = 'none';
+    listEl.innerHTML = rows.map(r => {
+      const d = daysUntil(r.dueDate);
+      let statusHtml;
+      if(d < 0) statusHtml = `<span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">منتهي منذ ${Math.abs(d)} يوم</span>`;
+      else if(d <= r.notifyDaysBefore) statusHtml = `<span class="txn-tag" style="border-color:#D9A227; color:#D9A227;">باقي ${d} يوم</span>`;
+      else statusHtml = `<span class="txn-tag">باقي ${d} يوم</span>`;
+      return `
+        <div class="txn-card">
+          <div class="txn-main">
+            <div class="desc">${escapeHtml(r.title)}</div>
+            <div class="meta">استحقاق ${r.dueDate}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
+          </div>
+          <div class="txn-side">${statusHtml}<button type="button" class="txn-void-btn" style="margin-top:6px;" data-del-reminder="${r.id}">حذف</button></div>
+        </div>`;
+    }).join('');
+    listEl.querySelectorAll('[data-del-reminder]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(confirm('حذف هذا التذكير؟')) deleteReminder(btn.getAttribute('data-del-reminder'));
+      });
+    });
+  }
+
+  $('reminderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('reminderSubmitBtn'); btn.disabled = true;
+    try{
+      const title = $('rem-title').value.trim();
+      const dueDate = $('rem-date').value;
+      if(!title || !dueDate) return;
+      const r = {
+        id: uid(), title, dueDate,
+        notifyDaysBefore: parseInt($('rem-notify').value, 10),
+        notes: $('rem-notes').value.trim(),
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser ? currentUser.email : '',
+      };
+      state.reminders.push(r);
+      $('rem-title').value = ''; $('rem-date').value = ''; $('rem-notes').value = ''; $('rem-notify').value = '7';
+      renderRemindersPage();
+      persistReminder(r);
+    } finally { btn.disabled = false; }
+  });
+
+  function renderReminderAlerts(){
+    const box = $('reminderAlertBox');
+    const due = state.reminders.filter(r => daysUntil(r.dueDate) <= r.notifyDaysBefore);
+    if(!due.length){ box.innerHTML = ''; return; }
+    due.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+    box.innerHTML = `<div class="banner" style="display:block; margin-bottom:16px;">` +
+      due.map(r => {
+        const d = daysUntil(r.dueDate);
+        const status = d < 0 ? `منتهي منذ ${Math.abs(d)} يوم` : (d === 0 ? 'مستحق اليوم' : `باقي ${d} يوم`);
+        return `⚠ ${escapeHtml(r.title)} — ${status}`;
+      }).join('<br>') +
+      `</div>`;
+  }
+
+  // ---------------- Global search ----------------
+
+  function renderGlobalSearch(){
+    const query = $('globalSearchInput').value.trim().toLowerCase();
+    const resultsEl = $('globalSearchResults');
+    if(!query){
+      resultsEl.innerHTML = '';
+      $('globalSearchEmpty').style.display = 'block';
+      $('globalSearchEmpty').textContent = 'اكتب شيئاً للبحث عنه.';
+      return;
+    }
+
+    const results = [];
+
+    state.transactions.filter(t => !t.voided).forEach(t => {
+      const hay = [t.description, rowCatLabel(t), t.date, t.amount].filter(v => v !== null && v !== undefined && v !== '').join(' ').toLowerCase();
+      if(hay.includes(query)){
+        results.push({
+          kind: t.type,
+          title: t.description || rowCatLabel(t),
+          meta: (t.type === 'income' ? 'إيراد' : 'مصروف') + ' · ' + t.date + ' · ' + rowCatLabel(t),
+          amount: t.amount,
+        });
+      }
+    });
+
+    state.suppliers.forEach(s => {
+      const hay = [s.name, s.phone, s.address].filter(Boolean).join(' ').toLowerCase();
+      if(hay.includes(query)){
+        results.push({ kind: 'supplier', title: s.name, meta: 'مورد · ' + s.phone, supplierId: s.id });
+      }
+    });
+
+    state.settlements.forEach(s => {
+      const { net } = settlementVisaFigures(s);
+      const hay = [s.date, s.mada, s.visa].filter(v => v !== null && v !== undefined).join(' ').toLowerCase();
+      if(hay.includes(query)){
+        results.push({ kind: 'settle', title: 'موازنة نقاط بيع', meta: s.date + ' · مدى وفيزا', amount: s.mada + net });
+      }
+    });
+
+    if(!results.length){
+      resultsEl.innerHTML = '';
+      $('globalSearchEmpty').style.display = 'block';
+      $('globalSearchEmpty').textContent = 'لا توجد نتائج مطابقة.';
+      return;
+    }
+    $('globalSearchEmpty').style.display = 'none';
+
+    resultsEl.innerHTML = results.map(r => {
+      const amtClass = r.kind === 'income' ? 'income' : (r.kind === 'expense' ? 'expense' : '');
+      const amtHtml = r.amount != null ? `<div class="txn-side"><div class="txn-amt ${amtClass}">${fmt(r.amount)}</div></div>` : '';
+      const clickAttr = r.kind === 'supplier' ? ` data-goto-supplier="${r.supplierId}" style="cursor:pointer;"` : '';
+      return `<div class="txn-card"${clickAttr}><div class="txn-main"><div class="desc">${escapeHtml(r.title)}</div><div class="meta">${escapeHtml(r.meta)}</div></div>${amtHtml}</div>`;
+    }).join('');
+
+    resultsEl.querySelectorAll('[data-goto-supplier]').forEach(el => {
+      el.addEventListener('click', () => {
+        currentSupplierId = el.getAttribute('data-goto-supplier');
+        showPage('supplier-detail');
+      });
+    });
+  }
+  $('globalSearchInput').addEventListener('input', () => { if(currentPage === 'search') renderGlobalSearch(); });
+
+  // ---------------- Full JSON backup export ----------------
+
+  $('exportBackupBtn').addEventListener('click', () => {
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      categories: state.categories,
+      transactions: state.transactions,
+      settlements: state.settlements,
+      suppliers: state.suppliers,
+      supplierInvoices: state.supplierInvoices,
+      supplierReceipts: state.supplierReceipts,
+      supplierReturns: state.supplierReturns,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qayd-backup-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
   function readAttachment(file){
     return new Promise((resolve, reject) => {
       if(file.type.startsWith('image/')){
@@ -1329,12 +1633,62 @@
   // ---------------- Home ----------------
 
   function renderHome(list){
+    renderReminderAlerts();
     const cash = cashBalance(list);
     const { income, expense } = totals(list);
-    $('heroBalance').textContent = fmt(cash);
-    $('heroIncome').textContent = fmt(income);
-    $('heroExpense').textContent = fmt(expense);
+    $('dashIncomeTotal').textContent = fmt(income);
+    $('dashExpenseTotal').textContent = fmt(expense);
+    $('dashNetTotal').textContent = fmt(cash);
+    $('dashNetTotal').style.color = cash >= 0 ? 'var(--income)' : 'var(--expense)';
     renderChart(list);
+    renderDashboardActivity(list);
+  }
+
+  let dashActivityOpen = false;
+  $('dashActivityToggle').addEventListener('click', () => {
+    dashActivityOpen = !dashActivityOpen;
+    $('dashActivityWrap').style.display = dashActivityOpen ? 'block' : 'none';
+    $('dashActivityChevron').style.transform = dashActivityOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+  });
+
+  function renderDashboardActivity(list){
+    const txnItems = list.filter(t => !t.voided).map(t => ({
+      kind: t.type,
+      label: t.description || rowCatLabel(t),
+      meta: rowCatLabel(t) + (t.isReversal ? ' · قيد عكسي' : ''),
+      amount: t.amount,
+      sortKey: t.date + '_' + (t.createdAt || ''),
+    }));
+    const settleItems = filteredSettlements().map(s => {
+      const { net } = settlementVisaFigures(s);
+      return {
+        kind: 'settle',
+        label: 'موازنة نقاط بيع',
+        meta: s.date + ' · مدى وفيزا',
+        amount: s.mada + net,
+        sortKey: s.date + '_' + (s.createdAt || ''),
+      };
+    });
+    const all = [...txnItems, ...settleItems].sort((a, b) => b.sortKey.localeCompare(a.sortKey));
+
+    const holder = $('dashActivityList');
+    if(!all.length){ holder.innerHTML = ''; $('dashActivityEmpty').style.display = 'block'; return; }
+    $('dashActivityEmpty').style.display = 'none';
+    holder.innerHTML = all.map(item => {
+      const isIncome = item.kind === 'income';
+      const isSettle = item.kind === 'settle';
+      const sign = isSettle ? '' : (isIncome ? '+ ' : '\u2212 ');
+      const colorClass = isSettle ? '' : (isIncome ? 'income' : 'expense');
+      const style = isSettle ? 'color:var(--accent);' : '';
+      return `
+        <div class="txn-card">
+          <div class="txn-main">
+            <div class="desc">${escapeHtml(item.label)}</div>
+            <div class="meta">${escapeHtml(item.meta)}</div>
+          </div>
+          <div class="txn-side"><div class="txn-amt ${colorClass}" style="${style}">${sign}${fmt(item.amount)}</div></div>
+        </div>`;
+    }).join('');
   }
 
   function renderChart(list){
@@ -1439,8 +1793,8 @@
         <div class="txn-card${voidClass}">
           ${thumb}
           <div class="txn-main">
-            <div class="desc">${escapeHtml(t.description)}</div>
-            <div class="meta">${t.date} · ${escapeHtml(rowCatLabel(t))}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}</div>
+            <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
+            <div class="meta">${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}</div>
           </div>
           <div class="txn-side">
             <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
@@ -1482,7 +1836,7 @@
     const original = state.transactions.find(t => t.id === id);
     if(!original || original.voided) return;
     const reversal = {
-      id: uid(), date: todayStr(), description: 'قيد عكسي لـ: ' + original.description,
+      id: uid(), date: todayStr(), description: 'قيد عكسي لـ: ' + (original.description || rowCatLabel(original)),
       categoryId: original.categoryId, categoryName: original.categoryName || rowCatLabel(original), amount: original.amount,
       type: original.type === 'income' ? 'expense' : 'income',
       createdAt: new Date().toISOString(),
@@ -1547,7 +1901,7 @@
       const description = $('f-desc').value.trim();
       const categoryId = $('f-cat').value;
       const amount = parseFloat($('f-amt').value);
-      if(!description || !categoryId || !amount || amount <= 0){ return; }
+      if(!categoryId || !amount || amount <= 0){ return; }
       const catObj = state.categories.find(c => c.id === categoryId);
       const txn = {
         id: uid(), date, description, categoryId, categoryName: catObj ? catObj.name : '',
@@ -1576,6 +1930,12 @@
   setType('income');
   showPage('home');
   loadState();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.error('SW registration failed', err));
+    });
+  }
 })();
 </script>
 </body>
