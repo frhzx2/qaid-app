@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>قيد</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1320">
@@ -65,14 +65,17 @@
   .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
 
   /* ---------- Login screen ---------- */
-  .login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
-  .login-box{ width:100%; max-width:360px; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:28px 26px; }
-  .login-box .brand-row{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:22px; }
-  .login-box h2{ margin:0; font-size:19px; font-weight:800; text-align:center; }
-  .login-box .sub{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:2px; margin-bottom:20px; }
-  .login-box .field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
-  .login-box .field input{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); margin-bottom:14px; direction:ltr; text-align:right; }
-  .login-box button.submit{ width:100%; margin-top:4px; }
+  .login-wrap{ min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); }
+  .login-box{ width:100%; max-width:440px; background:var(--panel); border:1px solid var(--border); border-radius:24px; padding:40px 30px; }
+  .login-box .brand-row{ display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:26px; }
+  .login-box .brand-row svg{ width:48px; height:41px; }
+  .login-box h2{ margin:0; font-size:24px; font-weight:800; text-align:center; }
+  .login-box .sub{ font-size:13.5px; color:var(--ink-soft); text-align:center; margin-top:4px; margin-bottom:28px; }
+  .login-box .field{ margin-bottom:18px; }
+  .login-box .field label{ display:block; font-size:13.5px; color:var(--ink-soft); margin-bottom:8px; }
+  .login-box .field input, .login-box .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:16px; padding:15px 14px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
+  .login-box .field select{ direction:rtl; text-align:right; }
+  .login-box button.submit{ width:100%; margin-top:8px; padding:16px; font-size:16.5px; border-radius:14px; }
   .login-toggle{ text-align:center; margin-top:14px; font-size:12.5px; color:var(--ink-soft); }
   .login-toggle button{ background:none; border:none; color:var(--accent); cursor:pointer; font-family:'Cairo',sans-serif; font-size:12.5px; text-decoration:underline; padding:0; }
   .login-error{ background:var(--expense-bg); color:var(--expense); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
@@ -264,14 +267,14 @@
     <div class="login-error" id="loginError"></div>
 
     <form id="loginForm">
-      <div class="field"><label for="login-email">البريد الإلكتروني</label><input type="email" id="login-email" required></div>
+      <div class="field"><label for="login-user-select">أنا:</label>
+        <select id="login-user-select" required>
+          <option value="">اختر اسمك…</option>
+        </select>
+      </div>
       <div class="field"><label for="login-password">كلمة المرور</label><input type="password" id="login-password" required minlength="6"></div>
       <button type="submit" class="submit" id="loginSubmitBtn">تسجيل الدخول</button>
     </form>
-    <div class="login-toggle">
-      <span id="loginToggleText">ما عندك حساب؟</span>
-      <button type="button" id="loginToggleBtn">إنشاء حساب جديد</button>
-    </div>
   </div>
 </div>
 
@@ -430,9 +433,34 @@
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2z"/><path d="M18 16v-5a6 6 0 10-12 0v5l-2 2h16z"/></svg> التذكيرات</span>
             <span class="chev">‹</span>
           </div>
+          <div class="list-row" data-goto="users">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.6"/><path d="M15.5 14.2c2.6.4 4.5 2.6 4.5 5.3"/></svg> المستخدمون</span>
+            <span class="chev">‹</span>
+          </div>
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
+      </section>
+
+      <!-- ============ USERS ============ -->
+      <section id="page-users" hidden>
+        <div id="usersOwnerOnlyNote" class="empty" style="display:none;">إضافة مستخدمين جديدين متاحة فقط لصاحب الحساب الرئيسي.</div>
+
+        <form id="userForm" style="display:none; margin-bottom:20px;">
+          <div class="field"><label for="user-name">الاسم *</label><input type="text" id="user-name" placeholder="مثال: أحمد المحاسب" required></div>
+          <div class="field"><label for="user-email">البريد الإلكتروني *</label><input type="email" id="user-email" required></div>
+          <div class="field"><label for="user-password">كلمة المرور المبدئية *</label><input type="password" id="user-password" minlength="6" required></div>
+          <div class="field"><label for="user-role">الصلاحية</label>
+            <select id="user-role">
+              <option value="accountant">محاسب</option>
+              <option value="owner">مالك (صلاحية كاملة)</option>
+            </select>
+          </div>
+          <button type="submit" class="submit" id="userSubmitBtn">إضافة المستخدم</button>
+          <div class="confirm-msg" id="userErrorMsg" style="color:var(--expense);"></div>
+        </form>
+
+        <div id="usersList"></div>
       </section>
 
       <!-- ============ REMINDERS ============ -->
@@ -696,9 +724,10 @@
     'supplier-detail': ['المورد', '', 'suppliers'],
     search: ['بحث شامل', 'دوّر في كل بيانات التطبيق', 'more'],
     reminders: ['التذكيرات', 'تذكيرات الاستحقاقات والرسوم', 'more'],
+    users: ['المستخدمون', 'إدارة حسابات الدخول والصلاحيات', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -744,6 +773,7 @@
     ['supplierReceipts', 'supplierReceipts'],
     ['supplierReturns', 'supplierReturns'],
     ['reminders', 'reminders'],
+    ['users', 'users'],
   ];
   let loadedFlags = {};
 
@@ -847,10 +877,10 @@
   function authErrorMessage(err){
     const map = {
       'auth/invalid-email': 'البريد الإلكتروني غير صحيح.',
-      'auth/user-not-found': 'لا يوجد حساب بهذا البريد.',
+      'auth/user-not-found': 'لا يوجد حساب مطابق.',
       'auth/wrong-password': 'كلمة المرور غير صحيحة.',
-      'auth/invalid-credential': 'بيانات الدخول غير صحيحة.',
-      'auth/email-already-in-use': 'هذا البريد مسجّل مسبقاً — سجّل الدخول بدلاً من إنشاء حساب.',
+      'auth/invalid-credential': 'كلمة المرور غير صحيحة.',
+      'auth/email-already-in-use': 'هذا البريد مسجّل مسبقاً.',
       'auth/weak-password': 'كلمة المرور ضعيفة، استخدم ٦ أحرف على الأقل.',
       'auth/network-request-failed': 'تعذّر الاتصال بالخادم، تحقق من الإنترنت.',
       'auth/configuration-not-found': 'تسجيل الدخول بالبريد وكلمة المرور غير مُفعّل في مشروع Firebase — فعّله من Authentication › Sign-in method.',
@@ -858,25 +888,71 @@
     return map[err.code] || ('حدث خطأ: ' + err.message);
   }
 
-  let isSignUpMode = false;
-  function setAuthMode(signUp){
-    isSignUpMode = signUp;
-    $('loginSubmitBtn').textContent = signUp ? 'إنشاء الحساب' : 'تسجيل الدخول';
-    $('loginToggleText').textContent = signUp ? 'عندك حساب؟' : 'ما عندك حساب؟';
-    $('loginToggleBtn').textContent = signUp ? 'تسجيل الدخول' : 'إنشاء حساب جديد';
-    $('loginError').style.display = 'none';
+  // A secondary, independent Firebase app instance used only for creating
+  // new user accounts. This lets the owner add a teammate's login without
+  // being signed out of their own session (createUserWithEmailAndPassword
+  // on the *primary* app would otherwise switch the active session to the
+  // brand-new account).
+  function getSecondaryAuth(){
+    let secondaryApp;
+    try{ secondaryApp = firebase.app('Secondary'); }
+    catch(e){ secondaryApp = firebase.initializeApp(firebaseConfig, 'Secondary'); }
+    return secondaryApp.auth();
   }
-  $('loginToggleBtn').addEventListener('click', () => setAuthMode(!isSignUpMode));
+
+  async function adminCreateUser(name, email, password, role){
+    const secAuth = getSecondaryAuth();
+    const cred = await secAuth.createUserWithEmailAndPassword(email, password);
+    const newUid = cred.user.uid;
+    try{ await cred.user.updateProfile({ displayName: name }); }catch(e){}
+    await secAuth.signOut();
+    const userDoc = { uid: newUid, name, email, role, createdAt: new Date().toISOString() };
+    await db.collection('users').doc(newUid).set(userDoc);
+    return userDoc;
+  }
+
+  async function ensureOwnerUserDoc(){
+    if(!currentUser) return;
+    try{
+      const docSnap = await db.collection('users').doc(currentUser.uid).get();
+      if(!docSnap.exists){
+        await db.collection('users').doc(currentUser.uid).set({
+          uid: currentUser.uid,
+          name: currentUser.email.split('@')[0],
+          email: currentUser.email,
+          role: 'owner',
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }catch(e){ console.error('ensureOwnerUserDoc failed', e); }
+  }
+
+  async function populateLoginDropdown(){
+    const sel = $('login-user-select');
+    try{
+      const snap = await db.collection('users').orderBy('name').get();
+      const users = snap.docs.map(d => d.data());
+      sel.innerHTML = '<option value="">اختر اسمك…</option>' +
+        users.map(u => `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)}</option>`).join('');
+    }catch(e){
+      console.error('populateLoginDropdown failed', e);
+      sel.innerHTML = '<option value="">تعذّر تحميل قائمة الأسماء</option>';
+    }
+  }
 
   $('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = $('login-email').value.trim();
+    const email = $('login-user-select').value;
     const password = $('login-password').value;
     $('loginError').style.display = 'none';
+    if(!email){
+      $('loginError').textContent = 'اختر اسمك من القائمة أولاً.';
+      $('loginError').style.display = 'block';
+      return;
+    }
     $('loginSubmitBtn').disabled = true;
     try{
-      if(isSignUpMode) await auth.createUserWithEmailAndPassword(email, password);
-      else await auth.signInWithEmailAndPassword(email, password);
+      await auth.signInWithEmailAndPassword(email, password);
     }catch(err){
       $('loginError').textContent = authErrorMessage(err);
       $('loginError').style.display = 'block';
@@ -899,8 +975,9 @@
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
     auth = firebase.auth();
+    populateLoginDropdown();
 
-    auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged(async (user) => {
       $('authChecking').style.display = 'none';
       if(user){
         currentUser = user;
@@ -909,6 +986,7 @@
         $('appShell').style.display = 'block';
         $('loadingMsg').style.display = 'block';
         $('app').style.display = 'none';
+        await ensureOwnerUserDoc();
         subscribeAll();
       } else {
         currentUser = null;
@@ -916,6 +994,7 @@
         $('appShell').style.display = 'none';
         $('loginScreen').style.display = 'flex';
         $('login-password').value = '';
+        populateLoginDropdown();
       }
     }, (err) => {
       $('authChecking').style.display = 'none';
@@ -940,7 +1019,7 @@
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
-    if(['categories','audit','suppliers','supplier-detail','search','reminders','more'].includes(name)){
+    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','more'].includes(name)){
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
@@ -964,6 +1043,7 @@
     else if(currentPage === 'supplier-detail') renderSupplierDetail();
     else if(currentPage === 'search') renderGlobalSearch();
     else if(currentPage === 'reminders') renderRemindersPage();
+    else if(currentPage === 'users') renderUsersPage();
   }
 
   // ---------------- Date range filter ----------------
@@ -1362,6 +1442,56 @@
     const due = new Date(dateStr);
     return Math.round((due - today) / 86400000);
   }
+
+  // ---------------- Users & roles ----------------
+
+  function myRole(){
+    if(!currentUser) return 'accountant';
+    const u = state.users.find(u => u.uid === currentUser.uid);
+    return u ? u.role : 'owner';
+  }
+
+  function renderUsersPage(){
+    const isOwner = myRole() === 'owner';
+    $('userForm').style.display = isOwner ? 'block' : 'none';
+    $('usersOwnerOnlyNote').style.display = isOwner ? 'none' : 'block';
+
+    const rows = [...state.users].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    $('usersList').innerHTML = rows.map(u => {
+      const roleLabel = u.role === 'owner' ? 'مالك' : 'محاسب';
+      const isMe = currentUser && u.uid === currentUser.uid;
+      return `
+        <div class="txn-card">
+          <div class="txn-main">
+            <div class="desc">${escapeHtml(u.name)}${isMe ? ' (أنت)' : ''}</div>
+            <div class="meta">${escapeHtml(u.email)}</div>
+          </div>
+          <div class="txn-side"><span class="txn-tag" style="${u.role === 'owner' ? 'border-color:#D9A227; color:#D9A227;' : ''}">${roleLabel}</span></div>
+        </div>`;
+    }).join('');
+  }
+
+  $('userForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(myRole() !== 'owner') return;
+    const btn = $('userSubmitBtn'); btn.disabled = true;
+    $('userErrorMsg').style.display = 'none';
+    try{
+      const name = $('user-name').value.trim();
+      const email = $('user-email').value.trim();
+      const password = $('user-password').value;
+      const role = $('user-role').value;
+      if(!name || !email || !password) return;
+      await adminCreateUser(name, email, password, role);
+      $('user-name').value = ''; $('user-email').value = ''; $('user-password').value = ''; $('user-role').value = 'accountant';
+      renderUsersPage();
+    }catch(err){
+      $('userErrorMsg').textContent = authErrorMessage(err);
+      $('userErrorMsg').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   function renderRemindersPage(){
     const rows = [...state.reminders].sort((a,b) => a.dueDate.localeCompare(b.dueDate));
