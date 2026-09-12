@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>قيد</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1320">
@@ -16,6 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root{
     --bg: #0F1320;
@@ -65,17 +66,17 @@
   .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
 
   /* ---------- Login screen ---------- */
-  .login-wrap{ min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom)); }
-  .login-box{ width:100%; max-width:440px; background:var(--panel); border:1px solid var(--border); border-radius:24px; padding:40px 30px; }
-  .login-box .brand-row{ display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:26px; }
-  .login-box .brand-row svg{ width:48px; height:41px; }
-  .login-box h2{ margin:0; font-size:24px; font-weight:800; text-align:center; }
-  .login-box .sub{ font-size:13.5px; color:var(--ink-soft); text-align:center; margin-top:4px; margin-bottom:28px; }
-  .login-box .field{ margin-bottom:18px; }
-  .login-box .field label{ display:block; font-size:13.5px; color:var(--ink-soft); margin-bottom:8px; }
-  .login-box .field input, .login-box .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:16px; padding:15px 14px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
-  .login-box .field select{ direction:rtl; text-align:right; }
-  .login-box button.submit{ width:100%; margin-top:8px; padding:16px; font-size:16.5px; border-radius:14px; }
+  .login-wrap{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-box{ width:100%; max-width:360px; background:var(--panel); border:1px solid var(--border); border-radius:18px; padding:28px 26px; }
+  .login-box .brand-row{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:22px; }
+  .login-box .brand-row svg{ width:34px; height:29px; }
+  .login-box h2{ margin:0; font-size:19px; font-weight:800; text-align:center; }
+  .login-box .sub{ font-size:12px; color:var(--ink-soft); text-align:center; margin-top:2px; margin-bottom:20px; }
+  .login-box .field{ margin-bottom:14px; }
+  .login-box .field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
+  .login-box .field input, .login-box .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
+  .login-box .field select{ direction:rtl; }
+  .login-box button.submit{ width:100%; margin-top:4px; }
   .login-toggle{ text-align:center; margin-top:14px; font-size:12.5px; color:var(--ink-soft); }
   .login-toggle button{ background:none; border:none; color:var(--accent); cursor:pointer; font-family:'Cairo',sans-serif; font-size:12.5px; text-decoration:underline; padding:0; }
   .login-error{ background:var(--expense-bg); color:var(--expense); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
@@ -242,7 +243,13 @@
   .modal-close{ text-align:left; margin-bottom:8px; }
   .modal-close button{ font-family:'Cairo',sans-serif; font-size:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); padding:5px 12px; cursor:pointer; border-radius:8px; }
 
-  table{ display:none; } /* not used in this layout, kept out of the cascade */
+  @media print{
+    #authChecking, #loginScreen, .app-shell, .modal-overlay{ display:none !important; }
+    #printableReport{ display:block !important; padding:20px; }
+    #printableReport table{ width:100%; border-collapse:collapse; font-size:12px; }
+    #printableReport th, #printableReport td{ border:1px solid #999; padding:5px 8px; text-align:right; }
+    #printableReport th{ background:#eee; }
+  }
 </style>
 </head>
 <body>
@@ -437,12 +444,98 @@
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="8" r="2.6"/><path d="M15.5 14.2c2.6.4 4.5 2.6 4.5 5.3"/></svg> المستخدمون</span>
             <span class="chev">‹</span>
           </div>
+          <div class="list-row" data-goto="vat">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9.5 10a.5.5 0 100-1 .5.5 0 000 1zM14.5 15a.5.5 0 100-1 .5.5 0 000 1z"/></svg> ضريبة القيمة المضافة</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="compare">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="4" height="10"/><rect x="10" y="5" width="4" height="15"/><rect x="16" y="13" width="4" height="7"/></svg> مقارنة الأشهر</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="activitylog">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> سجل النشاط الكامل</span>
+            <span class="chev">‹</span>
+          </div>
+          <div class="list-row" data-goto="reports">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16.5h5"/></svg> التقارير</span>
+            <span class="chev">‹</span>
+          </div>
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
       </section>
 
-      <!-- ============ USERS ============ -->
+      <!-- ============ REPORTS ============ -->
+      <section id="page-reports" hidden>
+        <div class="presets" style="margin-bottom:16px;">
+          <button type="button" class="pill" id="repThisMonthBtn">الشهر الحالي</button>
+          <button type="button" class="pill" id="repLastMonthBtn">الشهر السابق</button>
+          <button type="button" class="pill" id="repThisYearBtn">السنة الحالية</button>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="rep-from">من تاريخ</label><input type="date" id="rep-from"></div>
+          <div class="field"><label for="rep-to">إلى تاريخ</label><input type="date" id="rep-to"></div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">إجمالي الإيرادات</div><div class="value income" id="repIncomeTotal">0.00</div></div>
+          <div class="stat-card"><div class="label">إجمالي المصروفات</div><div class="value expense" id="repExpenseTotal">0.00</div></div>
+          <div class="stat-card"><div class="label">الصافي</div><div class="value" id="repNetTotal">0.00</div></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <button type="button" class="submit" style="flex:1; padding:12px;" id="exportExcelBtn">⬇ تصدير Excel</button>
+          <button type="button" class="submit" style="flex:1; padding:12px; background:#D9A227; color:#2A1E05;" id="printReportBtn">🖨 طباعة / حفظ PDF</button>
+        </div>
+
+        <div id="repRowCount" class="audit-note"></div>
+      </section>
+
+      <!-- ============ FULL ACTIVITY LOG ============ -->
+      <section id="page-activitylog" hidden>
+        <input type="text" id="activityLogSearch" placeholder="ابحث بالإجراء أو الشخص…" style="width:100%; font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:14px;">
+        <div id="activityLogList"></div>
+        <div id="activityLogEmpty" class="empty" style="display:none;">لا يوجد نشاط مسجّل بعد.</div>
+      </section>
+
+      <!-- ============ MONTH COMPARISON ============ -->
+      <section id="page-compare" hidden>
+        <div class="presets" style="margin-bottom:16px;">
+          <button type="button" class="pill" id="cmpPrevMonthBtn">الشهر الحالي مقابل السابق</button>
+          <button type="button" class="pill" id="cmpLastYearBtn">نفس الشهر السنة الماضية</button>
+        </div>
+        <div class="row2">
+          <div class="field"><label for="cmp-month-a">الشهر الأول</label><input type="month" id="cmp-month-a"></div>
+          <div class="field"><label for="cmp-month-b">الشهر الثاني</label><input type="month" id="cmp-month-b"></div>
+        </div>
+
+        <div class="chart-panel" style="margin-bottom:16px;">
+          <div class="legend"><span><span class="sw income"></span>إيراد</span><span><span class="sw expense"></span>مصروف</span></div>
+          <div class="chart-scroll" id="cmpChartHolder"></div>
+        </div>
+        <div id="cmpTable"></div>
+      </section>
+
+      <!-- ============ VAT ============ -->
+      <section id="page-vat" hidden>
+        <div class="row2">
+          <div class="field"><label for="vat-from">من تاريخ</label><input type="date" id="vat-from"></div>
+          <div class="field"><label for="vat-to">إلى تاريخ</label><input type="date" id="vat-to"></div>
+        </div>
+
+        <h3 class="block-title">فئات الإيرادات (ضريبة المخرجات)</h3>
+        <div id="vatIncomeCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-bottom:18px;"></div>
+
+        <h3 class="block-title">فئات المصروفات (ضريبة المدخلات)</h3>
+        <div id="vatExpenseCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-bottom:20px;"></div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">ضريبة المخرجات (إيرادات)</div><div class="value income" id="vatOutput">0.00</div></div>
+          <div class="stat-card"><div class="label">ضريبة المدخلات (مصروفات)</div><div class="value expense" id="vatInput">0.00</div></div>
+          <div class="stat-card"><div class="label">صافي الضريبة المستحقة</div><div class="value" id="vatNet">0.00</div></div>
+        </div>
+        <p class="audit-note">الحساب مبني على أن المبالغ المُدخلة بالتطبيق شاملة الضريبة (١٥٪) أصلاً — يُستخرج مقدار الضريبة من داخل كل مبلغ ولا يُضاف عليه.</p>
+      </section>
       <section id="page-users" hidden>
         <div id="usersOwnerOnlyNote" class="empty" style="display:none;">إضافة مستخدمين جديدين متاحة فقط لصاحب الحساب الرئيسي.</div>
 
@@ -455,6 +548,10 @@
               <option value="accountant">محاسب</option>
               <option value="owner">مالك (صلاحية كاملة)</option>
             </select>
+          </div>
+          <div class="field" id="newUserPermsWrap">
+            <label>صلاحيات محددة (للمحاسب)</label>
+            <div id="newUserPermsBox" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px;"></div>
           </div>
           <button type="submit" class="submit" id="userSubmitBtn">إضافة المستخدم</button>
           <div class="confirm-msg" id="userErrorMsg" style="color:var(--expense);"></div>
@@ -710,6 +807,17 @@
     { id: 'exp_zakat_income', name: 'الزكاة والدخل', type: 'expense' },
   ];
   const ARABIC_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const PERMISSIONS = [
+    { key: 'add_income', label: 'إضافة إيراد' },
+    { key: 'add_expense', label: 'إضافة مصروف' },
+    { key: 'void_entries', label: 'إلغاء القيود' },
+    { key: 'manage_categories', label: 'إدارة التصنيفات' },
+    { key: 'add_settlement', label: 'إضافة موازنة بنكية' },
+    { key: 'confirm_settlement', label: 'تأكيد استلام الموازنة' },
+    { key: 'manage_suppliers', label: 'إدارة الموردين' },
+    { key: 'manage_reminders', label: 'إدارة التذكيرات' },
+    { key: 'export_backup', label: 'تصدير نسخة احتياطية' },
+  ];
   // page -> [title, subtitle, parent-for-back-button-or-null]
   const PAGES = {
     home: ['قيد', 'البرنامج المحاسبي الخاص بالهزاع', null],
@@ -725,9 +833,13 @@
     search: ['بحث شامل', 'دوّر في كل بيانات التطبيق', 'more'],
     reminders: ['التذكيرات', 'تذكيرات الاستحقاقات والرسوم', 'more'],
     users: ['المستخدمون', 'إدارة حسابات الدخول والصلاحيات', 'more'],
+    vat: ['ضريبة القيمة المضافة', 'احسب الضريبة لفترة وفئات محددة', 'more'],
+    compare: ['مقارنة الأشهر', 'قارن أداء شهرين ببعض', 'more'],
+    activitylog: ['سجل النشاط الكامل', 'كل إجراء بالتطبيق، من ومتى', 'more'],
+    reports: ['التقارير', 'تصدير تقرير Excel أو PDF لفترة محددة', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -774,6 +886,7 @@
     ['supplierReturns', 'supplierReturns'],
     ['reminders', 'reminders'],
     ['users', 'users'],
+    ['activityLog', 'activityLog'],
   ];
   let loadedFlags = {};
 
@@ -900,31 +1013,48 @@
     return secondaryApp.auth();
   }
 
-  async function adminCreateUser(name, email, password, role){
+  async function adminCreateUser(name, email, password, role, permissions){
     const secAuth = getSecondaryAuth();
     const cred = await secAuth.createUserWithEmailAndPassword(email, password);
     const newUid = cred.user.uid;
     try{ await cred.user.updateProfile({ displayName: name }); }catch(e){}
     await secAuth.signOut();
-    const userDoc = { uid: newUid, name, email, role, createdAt: new Date().toISOString() };
+    const userDoc = { uid: newUid, name, email, role, permissions: permissions || {}, createdAt: new Date().toISOString() };
     await db.collection('users').doc(newUid).set(userDoc);
     return userDoc;
   }
 
   async function ensureOwnerUserDoc(){
-    if(!currentUser) return;
+    if(!currentUser) return 'ok';
     try{
       const docSnap = await db.collection('users').doc(currentUser.uid).get();
-      if(!docSnap.exists){
+      if(docSnap.exists) return 'ok';
+      // No profile for this account. Only auto-bootstrap as owner if this is
+      // truly the very first login ever (empty users collection) — otherwise
+      // this account's access was removed by an owner, and it must NOT
+      // silently regain owner rights just because its Firestore doc is gone.
+      const anySnap = await db.collection('users').limit(1).get();
+      if(anySnap.empty){
         await db.collection('users').doc(currentUser.uid).set({
           uid: currentUser.uid,
           name: currentUser.email.split('@')[0],
           email: currentUser.email,
           role: 'owner',
+          permissions: {},
           createdAt: new Date().toISOString(),
         });
+        return 'ok';
       }
-    }catch(e){ console.error('ensureOwnerUserDoc failed', e); }
+      return 'revoked';
+    }catch(e){ console.error('ensureOwnerUserDoc failed', e); return 'ok'; }
+  }
+
+  function hasPermission(key){
+    if(!currentUser) return false;
+    const u = state.users.find(u => u.uid === currentUser.uid);
+    if(!u) return false;
+    if(u.role === 'owner') return true;
+    return !!(u.permissions && u.permissions[key]);
   }
 
   async function populateLoginDropdown(){
@@ -986,7 +1116,13 @@
         $('appShell').style.display = 'block';
         $('loadingMsg').style.display = 'block';
         $('app').style.display = 'none';
-        await ensureOwnerUserDoc();
+        const status = await ensureOwnerUserDoc();
+        if(status === 'revoked'){
+          await auth.signOut();
+          $('loginError').textContent = 'تم إلغاء صلاحية دخولك لهذا التطبيق. تواصل مع صاحب الحساب.';
+          $('loginError').style.display = 'block';
+          return;
+        }
         subscribeAll();
       } else {
         currentUser = null;
@@ -1019,7 +1155,7 @@
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
-    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','more'].includes(name)){
+    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','vat','compare','activitylog','reports','more'].includes(name)){
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
@@ -1044,6 +1180,10 @@
     else if(currentPage === 'search') renderGlobalSearch();
     else if(currentPage === 'reminders') renderRemindersPage();
     else if(currentPage === 'users') renderUsersPage();
+    else if(currentPage === 'vat') renderVatPage();
+    else if(currentPage === 'compare') renderComparePage();
+    else if(currentPage === 'activitylog') renderActivityLogPage();
+    else if(currentPage === 'reports') renderReportsPage();
   }
 
   // ---------------- Date range filter ----------------
@@ -1099,6 +1239,7 @@
     return `<div class="cat-row"><div><div class="name">${escapeHtml(c.name)}</div><div class="meta">${n} قيد نشط</div></div><button type="button" class="del-btn" data-delcat="${c.id}">حذف</button></div>`;
   }
   async function deleteCategory(id){
+    if(!hasPermission('manage_categories')){ alert('ليست لديك صلاحية إدارة التصنيفات.'); return; }
     const cat = state.categories.find(c => c.id === id);
     if(!cat) return;
     const n = usageCount(id);
@@ -1107,15 +1248,18 @@
       : `حذف فئة "${cat.name}"؟`;
     if(!confirm(msg)) return;
     await deleteCategoryDoc(id);
+    logActivity('delete_category', `حذف فئة "${cat.name}"`);
   }
   document.querySelectorAll('.add-cat-btn').forEach(btn => {
     btn.addEventListener('click', async () => {
+      if(!hasPermission('manage_categories')){ alert('ليست لديك صلاحية إدارة التصنيفات.'); return; }
       const type = btn.getAttribute('data-addtype');
       const inputId = type === 'income' ? 'newCatIncomeName' : 'newCatExpenseName';
       const input = $(inputId); const name = input.value.trim(); if(!name) return;
       const cat = { id: uid(), name, type };
       input.value = '';
       await persistCategory(cat);
+      logActivity('add_category', `أضاف فئة ${type === 'income' ? 'إيراد' : 'مصروف'} "${name}"`);
     });
   });
 
@@ -1124,6 +1268,28 @@
     if(live) return live.name;
     if(t.categoryName) return t.categoryName;
     return '(فئة محذوفة)';
+  }
+
+  function nameByEmail(email){
+    if(!email) return '';
+    const u = state.users.find(u => u.email === email);
+    return u ? u.name : email;
+  }
+  async function logActivity(action, description){
+    try{
+      await db.collection('activityLog').add({
+        action, description,
+        performedBy: currentUser ? currentUser.email : '',
+        performedByName: nameByEmail(currentUser ? currentUser.email : ''),
+        timestamp: new Date().toISOString(),
+      });
+    }catch(e){ console.error('logActivity failed', e); }
+  }
+
+  function creatorName(t){
+    if(!t.createdBy) return '';
+    const u = state.users.find(u => u.email === t.createdBy);
+    return u ? u.name : t.createdBy;
   }
 
   // ---------------- Bank account (POS settlement reconciliation) ----------------
@@ -1227,6 +1393,7 @@
 
     listEl.querySelectorAll('[data-confirm-received]').forEach(btn => {
       btn.addEventListener('click', async () => {
+        if(!hasPermission('confirm_settlement')){ alert('ليست لديك صلاحية تأكيد استلام الموازنة.'); return; }
         const id = btn.getAttribute('data-confirm-received');
         const input = listEl.querySelector(`[data-received-input="${id}"]`);
         const val = parseFloat(input.value);
@@ -1237,6 +1404,7 @@
         editingReceivedIds.delete(id);
         renderBankPage();
         persistSettlement(s);
+        logActivity('confirm_settlement', `أكّد استلام موازنة بتاريخ ${s.date} بمبلغ ${fmt(s.bankReceived)}`);
       });
     });
     listEl.querySelectorAll('[data-edit-received]').forEach(btn => {
@@ -1257,6 +1425,7 @@
 
   $('settleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('add_settlement')){ alert('ليست لديك صلاحية إضافة موازنة بنكية.'); return; }
     const btn = $('settleSubmitBtn'); btn.disabled = true;
     try{
       const date = $('s-date').value || todayStr();
@@ -1278,6 +1447,7 @@
       $('s-mada').value = ''; $('s-visa').value = ''; $('s-date').value = todayStr(); $('s-status').value = 'matched';
       renderBankPage();
       persistSettlement(s);
+      logActivity('add_settlement', `أضاف موازنة بنكية بتاريخ ${s.date} (مدى ${fmt(s.mada)} + فيزا ${fmt(s.visa)})`);
     } finally {
       btn.disabled = false;
     }
@@ -1337,6 +1507,7 @@
   });
   $('supplierForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
     const name = $('sup-name').value.trim();
     const phone = $('sup-phone').value.trim();
     const address = $('sup-address').value.trim();
@@ -1347,6 +1518,7 @@
     $('supplierForm').style.display = 'none';
     renderSuppliersPage();
     persistSupplier(s);
+    logActivity('add_supplier', `أضاف مورداً جديداً: "${s.name}"`);
   });
 
   function attachmentPreviewHtml(att, idAttr){
@@ -1451,24 +1623,116 @@
     return u ? u.role : 'owner';
   }
 
+  function permissionCheckboxesHtml(idPrefix, perms){
+    perms = perms || {};
+    return PERMISSIONS.map(p => `
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; cursor:pointer;">
+        <input type="checkbox" id="${idPrefix}-${p.key}" ${perms[p.key] ? 'checked' : ''}>
+        ${escapeHtml(p.label)}
+      </label>`).join('');
+  }
+  function readPermissionCheckboxes(idPrefix){
+    const perms = {};
+    PERMISSIONS.forEach(p => { perms[p.key] = !!($(`${idPrefix}-${p.key}`) && $(`${idPrefix}-${p.key}`).checked); });
+    return perms;
+  }
+
+  $('newUserPermsBox').innerHTML = permissionCheckboxesHtml('newuserperm', {});
+  function updateNewUserPermsVisibility(){
+    $('newUserPermsWrap').style.display = $('user-role').value === 'owner' ? 'none' : 'block';
+  }
+  $('user-role').addEventListener('change', updateNewUserPermsVisibility);
+
+  let editingUserId = null;
+
   function renderUsersPage(){
     const isOwner = myRole() === 'owner';
     $('userForm').style.display = isOwner ? 'block' : 'none';
     $('usersOwnerOnlyNote').style.display = isOwner ? 'none' : 'block';
+    if(isOwner) updateNewUserPermsVisibility();
 
     const rows = [...state.users].sort((a,b) => a.name.localeCompare(b.name, 'ar'));
     $('usersList').innerHTML = rows.map(u => {
       const roleLabel = u.role === 'owner' ? 'مالك' : 'محاسب';
       const isMe = currentUser && u.uid === currentUser.uid;
+
+      if(isOwner && editingUserId === u.uid){
+        return `
+          <div class="txn-card" style="flex-direction:column; align-items:stretch;">
+            <div class="field" style="margin-bottom:10px;"><label>الاسم</label><input type="text" id="edituser-name-${u.uid}" value="${escapeHtml(u.name)}"></div>
+            <div class="field" style="margin-bottom:10px;"><label>الصلاحية</label>
+              <select id="edituser-role-${u.uid}">
+                <option value="accountant" ${u.role==='accountant'?'selected':''}>محاسب</option>
+                <option value="owner" ${u.role==='owner'?'selected':''}>مالك (صلاحية كاملة)</option>
+              </select>
+            </div>
+            <div class="field" id="edituser-permswrap-${u.uid}" style="margin-bottom:10px; display:${u.role==='owner'?'none':'block'};">
+              <label>صلاحيات محددة</label>
+              <div style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px;">
+                ${permissionCheckboxesHtml('edituserperm-' + u.uid, u.permissions)}
+              </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="submit" style="flex:1; padding:10px;" data-save-user="${u.uid}">حفظ</button>
+              <button type="button" class="cancel-edit-btn" data-cancel-user="${u.uid}">إلغاء</button>
+            </div>
+          </div>`;
+      }
+
       return `
         <div class="txn-card">
           <div class="txn-main">
             <div class="desc">${escapeHtml(u.name)}${isMe ? ' (أنت)' : ''}</div>
             <div class="meta">${escapeHtml(u.email)}</div>
           </div>
-          <div class="txn-side"><span class="txn-tag" style="${u.role === 'owner' ? 'border-color:#D9A227; color:#D9A227;' : ''}">${roleLabel}</span></div>
+          <div class="txn-side">
+            <span class="txn-tag" style="${u.role === 'owner' ? 'border-color:#D9A227; color:#D9A227;' : ''}">${roleLabel}</span>
+            ${isOwner ? `<button type="button" class="edit-received-btn" data-edit-user="${u.uid}">تعديل</button>` : ''}
+            ${isOwner && !isMe ? `<button type="button" class="txn-void-btn" style="margin-top:4px;" data-del-user="${u.uid}">حذف</button>` : ''}
+          </div>
         </div>`;
     }).join('');
+
+    if(!isOwner) return;
+    $('usersList').querySelectorAll('[data-edit-user]').forEach(btn => {
+      btn.addEventListener('click', () => { editingUserId = btn.getAttribute('data-edit-user'); renderUsersPage(); });
+    });
+    $('usersList').querySelectorAll('[data-cancel-user]').forEach(btn => {
+      btn.addEventListener('click', () => { editingUserId = null; renderUsersPage(); });
+    });
+    rows.forEach(u => {
+      const roleSel = $(`edituser-role-${u.uid}`);
+      if(roleSel){
+        roleSel.addEventListener('change', () => {
+          const wrap = $(`edituser-permswrap-${u.uid}`);
+          if(wrap) wrap.style.display = roleSel.value === 'owner' ? 'none' : 'block';
+        });
+      }
+    });
+    $('usersList').querySelectorAll('[data-save-user]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uid = btn.getAttribute('data-save-user');
+        const name = $(`edituser-name-${uid}`).value.trim();
+        const role = $(`edituser-role-${uid}`).value;
+        if(!name) return;
+        const permissions = role === 'owner' ? {} : readPermissionCheckboxes('edituserperm-' + uid);
+        try{
+          await db.collection('users').doc(uid).update({ name, role, permissions });
+          editingUserId = null;
+          logActivity('edit_user', `عدّل بيانات المستخدم "${name}"`);
+        }catch(e){ console.error(e); showBanner('تعذّر حفظ تعديلات المستخدم: ' + e.message); }
+      });
+    });
+    $('usersList').querySelectorAll('[data-del-user]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const uid = btn.getAttribute('data-del-user');
+        const u = state.users.find(u => u.uid === uid);
+        if(!u) return;
+        if(!confirm(`حذف "${u.name}"؟ لن يعد بإمكانه تسجيل الدخول للتطبيق.`)) return;
+        try{ await db.collection('users').doc(uid).delete(); logActivity('delete_user', `حذف المستخدم "${u.name}"`); }
+        catch(e){ console.error(e); showBanner('تعذّر حذف المستخدم: ' + e.message); }
+      });
+    });
   }
 
   $('userForm').addEventListener('submit', async (e) => {
@@ -1482,8 +1746,12 @@
       const password = $('user-password').value;
       const role = $('user-role').value;
       if(!name || !email || !password) return;
-      await adminCreateUser(name, email, password, role);
+      const permissions = role === 'owner' ? {} : readPermissionCheckboxes('newuserperm');
+      await adminCreateUser(name, email, password, role, permissions);
+      logActivity('add_user', `أضاف مستخدماً جديداً: "${name}" (${role === 'owner' ? 'مالك' : 'محاسب'})`);
       $('user-name').value = ''; $('user-email').value = ''; $('user-password').value = ''; $('user-role').value = 'accountant';
+      $('newUserPermsBox').innerHTML = permissionCheckboxesHtml('newuserperm', {});
+      updateNewUserPermsVisibility();
       renderUsersPage();
     }catch(err){
       $('userErrorMsg').textContent = authErrorMessage(err);
@@ -1492,6 +1760,299 @@
       btn.disabled = false;
     }
   });
+
+  // ---------------- VAT (15%, amounts are VAT-inclusive) ----------------
+
+  function vatOf(amount){
+    // Amount already includes 15% VAT; extract the tax portion from within it.
+    return Math.round((amount * 0.15 / 1.15) * 100) / 100;
+  }
+
+  let vatSelectedIncome = new Set();
+  let vatSelectedExpense = new Set();
+  let vatInited = false;
+
+  function vatCatRowHtml(c, checked){
+    return `<label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:7px 0; cursor:pointer; border-bottom:1px solid var(--border);">
+      <input type="checkbox" data-vat-cat="${c.id}" data-vat-type="${c.type}" ${checked ? 'checked' : ''}>
+      ${escapeHtml(c.name)}
+    </label>`;
+  }
+
+  // ---------------- Month-over-month comparison ----------------
+
+  let cmpInited = false;
+
+  function monthRange(ym){
+    const [y, m] = ym.split('-').map(Number);
+    const from = `${ym}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    const to = `${ym}-${String(lastDay).padStart(2,'0')}`;
+    return { from, to };
+  }
+  function monthTotals(ym){
+    if(!ym) return { income: 0, expense: 0 };
+    const { from, to } = monthRange(ym);
+    let income = 0, expense = 0;
+    state.transactions.forEach(t => {
+      if(t.voided) return;
+      if(t.date < from || t.date > to) return;
+      if(t.type === 'income') income += t.amount; else expense += t.amount;
+    });
+    return { income, expense };
+  }
+  function monthLabel(ym){
+    if(!ym) return '—';
+    const [y, m] = ym.split('-').map(Number);
+    return ARABIC_MONTHS[m-1] + ' ' + y;
+  }
+  function pctChange(a, b){
+    if(a === 0) return b === 0 ? 0 : 100;
+    return ((b - a) / Math.abs(a)) * 100;
+  }
+
+  // ---------------- Full activity log ----------------
+
+  // ---------------- Reports (Excel / PDF) ----------------
+
+  let repInited = false;
+
+  function reportRows(){
+    const from = $('rep-from').value, to = $('rep-to').value;
+    return state.transactions
+      .filter(t => !t.voided && (!from || t.date >= from) && (!to || t.date <= to))
+      .sort((a,b) => a.date.localeCompare(b.date));
+  }
+
+  function renderReportsPage(){
+    if(!repInited){
+      const now = new Date();
+      $('rep-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      $('rep-to').value = todayStr();
+      repInited = true;
+    }
+    const rows = reportRows();
+    let income = 0, expense = 0;
+    rows.forEach(t => { if(t.type === 'income') income += t.amount; else expense += t.amount; });
+    $('repIncomeTotal').textContent = fmt(income);
+    $('repExpenseTotal').textContent = fmt(expense);
+    const net = income - expense;
+    $('repNetTotal').textContent = fmt(net);
+    $('repNetTotal').className = 'value ' + (net >= 0 ? 'income' : 'expense');
+    $('repRowCount').textContent = `${rows.length} قيد ضمن الفترة المحددة.`;
+  }
+  $('rep-from').addEventListener('change', renderReportsPage);
+  $('rep-to').addEventListener('change', renderReportsPage);
+  $('repThisMonthBtn').addEventListener('click', () => {
+    const now = new Date();
+    $('rep-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+    $('rep-to').value = todayStr();
+    renderReportsPage();
+  });
+  $('repLastMonthBtn').addEventListener('click', () => {
+    const now = new Date();
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    $('rep-from').value = prevStart.toISOString().slice(0,10);
+    $('rep-to').value = prevEnd.toISOString().slice(0,10);
+    renderReportsPage();
+  });
+  $('repThisYearBtn').addEventListener('click', () => {
+    const now = new Date();
+    $('rep-from').value = `${now.getFullYear()}-01-01`;
+    $('rep-to').value = todayStr();
+    renderReportsPage();
+  });
+
+  $('exportExcelBtn').addEventListener('click', () => {
+    const rows = reportRows();
+    if(!rows.length){ alert('لا توجد قيود ضمن الفترة المحددة.'); return; }
+    const data = rows.map(t => ({
+      'التاريخ': t.date,
+      'النوع': t.type === 'income' ? 'إيراد' : 'مصروف',
+      'الفئة': rowCatLabel(t),
+      'الوصف': t.description || '',
+      'المبلغ (شامل الضريبة)': t.amount,
+      'ضريبة القيمة المضافة': vatOf(t.amount),
+      'أضافه': creatorName(t) || '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
+    XLSX.writeFile(wb, `تقرير_قيد_${$('rep-from').value}_إلى_${$('rep-to').value}.xlsx`);
+  });
+
+  $('printReportBtn').addEventListener('click', () => {
+    const rows = reportRows();
+    let income = 0, expense = 0;
+    rows.forEach(t => { if(t.type === 'income') income += t.amount; else expense += t.amount; });
+    const tableRows = rows.map(t => `
+      <tr>
+        <td>${t.date}</td>
+        <td>${t.type === 'income' ? 'إيراد' : 'مصروف'}</td>
+        <td>${escapeHtml(rowCatLabel(t))}</td>
+        <td>${escapeHtml(t.description || '')}</td>
+        <td>${fmt(t.amount)}</td>
+        <td>${fmt(vatOf(t.amount))}</td>
+        <td>${escapeHtml(creatorName(t) || '')}</td>
+      </tr>`).join('');
+    $('printableReport').innerHTML = `
+      <div dir="rtl" style="font-family:Cairo,sans-serif;">
+        <h2 style="margin-bottom:2px;">قيد — تقرير مالي</h2>
+        <div style="color:#555; margin-bottom:14px;">الفترة: ${$('rep-from').value} إلى ${$('rep-to').value}</div>
+        <table style="margin-bottom:16px;">
+          <tr><th>إجمالي الإيرادات</th><td>${fmt(income)}</td></tr>
+          <tr><th>إجمالي المصروفات</th><td>${fmt(expense)}</td></tr>
+          <tr><th>الصافي</th><td>${fmt(income - expense)}</td></tr>
+        </table>
+        <table>
+          <thead><tr><th>التاريخ</th><th>النوع</th><th>الفئة</th><th>الوصف</th><th>المبلغ</th><th>ض.ق.م</th><th>أضافه</th></tr></thead>
+          <tbody>${tableRows || '<tr><td colspan="7">لا توجد قيود ضمن الفترة.</td></tr>'}</tbody>
+        </table>
+      </div>`;
+    window.print();
+  });
+
+  function renderActivityLogPage(){
+    const query = $('activityLogSearch').value.trim().toLowerCase();
+    let rows = [...state.activityLog].sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+    if(query){
+      rows = rows.filter(r => [r.description, r.performedByName, r.action].filter(Boolean).join(' ').toLowerCase().includes(query));
+    }
+    if(!rows.length){
+      $('activityLogList').innerHTML = '';
+      $('activityLogEmpty').style.display = 'block';
+      $('activityLogEmpty').textContent = query ? 'لا توجد نتائج مطابقة.' : 'لا يوجد نشاط مسجّل بعد.';
+      return;
+    }
+    $('activityLogEmpty').style.display = 'none';
+    $('activityLogList').innerHTML = rows.slice(0, 300).map(r => `
+      <div class="audit-card">
+        <div style="color:var(--ink-soft); font-size:11px;">${new Date(r.timestamp).toLocaleString('ar-SA')}</div>
+        <div class="arow" style="margin-top:4px;"><span>${escapeHtml(r.description)}</span></div>
+        <div class="arow"><span class="acc">بواسطة</span><span class="amt" style="direction:rtl;">${escapeHtml(r.performedByName || '—')}</span></div>
+      </div>`).join('');
+  }
+  $('activityLogSearch').addEventListener('input', () => { if(currentPage === 'activitylog') renderActivityLogPage(); });
+
+  function renderComparePage(){
+    if(!cmpInited){
+      const now = new Date();
+      const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      $('cmp-month-a').value = `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;
+      $('cmp-month-b').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      cmpInited = true;
+    }
+
+    const a = $('cmp-month-a').value, b = $('cmp-month-b').value;
+    const ta = monthTotals(a), tb = monthTotals(b);
+    const maxVal = Math.max(1, ta.income, ta.expense, tb.income, tb.expense);
+
+    const barW = 32, groupGap = 60, chartH = 180, padTop = 14, padBottom = 30, padLeft = 46;
+    const groupW = barW*2 + 8;
+    const totalW = padLeft + groupW*2 + groupGap;
+    const svgH = chartH + padTop + padBottom;
+    const x0a = padLeft, x0b = padLeft + groupW + groupGap;
+    const bar = (x, val, color, label) => {
+      const h = (val/maxVal)*chartH;
+      return `<rect x="${x}" y="${padTop+chartH-h}" width="${barW}" height="${h}" fill="${color}" rx="3"><title>${label}: ${fmt(val)}</title></rect>`;
+    };
+    let bars = '';
+    bars += bar(x0a, ta.income, 'var(--income)', monthLabel(a) + ' — إيراد');
+    bars += bar(x0a + barW + 4, ta.expense, 'var(--expense)', monthLabel(a) + ' — مصروف');
+    bars += bar(x0b, tb.income, 'var(--income)', monthLabel(b) + ' — إيراد');
+    bars += bar(x0b + barW + 4, tb.expense, 'var(--expense)', monthLabel(b) + ' — مصروف');
+    let labels = '';
+    labels += `<text x="${x0a+groupW/2}" y="${padTop+chartH+20}" font-size="11" fill="var(--ink-soft)" text-anchor="middle" font-family="Cairo,sans-serif">${escapeHtml(monthLabel(a))}</text>`;
+    labels += `<text x="${x0b+groupW/2}" y="${padTop+chartH+20}" font-size="11" fill="var(--ink-soft)" text-anchor="middle" font-family="Cairo,sans-serif">${escapeHtml(monthLabel(b))}</text>`;
+    let grid = '';
+    for(let g=0; g<=3; g++){
+      const y = padTop + chartH - (g/3)*chartH; const val = (g/3)*maxVal;
+      grid += `<line x1="${padLeft-6}" y1="${y}" x2="${totalW}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+      grid += `<text x="${padLeft-10}" y="${y+3}" font-size="9.5" fill="var(--ink-soft)" text-anchor="end" font-family="IBM Plex Mono, monospace">${Math.round(val)}</text>`;
+    }
+    $('cmpChartHolder').innerHTML = `<svg width="${Math.max(totalW,260)}" height="${svgH}" viewBox="0 0 ${Math.max(totalW,260)} ${svgH}" xmlns="http://www.w3.org/2000/svg">${grid}${bars}${labels}</svg>`;
+
+    const incChange = pctChange(ta.income, tb.income);
+    const expChange = pctChange(ta.expense, tb.expense);
+    const rowHtml = (label, va, vb, change, goodIsUp) => {
+      const improved = goodIsUp ? change >= 0 : change <= 0;
+      const color = change === 0 ? 'var(--ink-soft)' : (improved ? 'var(--income)' : 'var(--expense)');
+      return `
+        <div class="arow"><span class="acc">${label} — ${escapeHtml(monthLabel(a))}</span><span class="amt">${fmt(va)}</span></div>
+        <div class="arow"><span class="acc">${label} — ${escapeHtml(monthLabel(b))}</span><span class="amt">${fmt(vb)}</span></div>
+        <div class="arow" style="border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:8px;"><span class="acc">التغيّر</span><span class="amt" style="color:${color};">${change>=0?'+':''}${change.toFixed(1)}%</span></div>`;
+    };
+    $('cmpTable').innerHTML = `<div class="audit-card">${rowHtml('الإيرادات', ta.income, tb.income, incChange, true)}${rowHtml('المصروفات', ta.expense, tb.expense, expChange, false)}</div>`;
+  }
+  $('cmp-month-a').addEventListener('change', renderComparePage);
+  $('cmp-month-b').addEventListener('change', renderComparePage);
+  $('cmpPrevMonthBtn').addEventListener('click', () => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    $('cmp-month-a').value = `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;
+    $('cmp-month-b').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    renderComparePage();
+  });
+  $('cmpLastYearBtn').addEventListener('click', () => {
+    const now = new Date();
+    const lastYear = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+    $('cmp-month-a').value = `${lastYear.getFullYear()}-${String(lastYear.getMonth()+1).padStart(2,'0')}`;
+    $('cmp-month-b').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    renderComparePage();
+  });
+
+  function renderVatPage(){
+    if(!vatInited){
+      const now = new Date();
+      $('vat-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      $('vat-to').value = todayStr();
+      // Default: select every category that exists right now.
+      state.categories.filter(c => c.type === 'income').forEach(c => vatSelectedIncome.add(c.id));
+      state.categories.filter(c => c.type === 'expense').forEach(c => vatSelectedExpense.add(c.id));
+      vatInited = true;
+    }
+
+    const incomeCats = state.categories.filter(c => c.type === 'income').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    const expenseCats = state.categories.filter(c => c.type === 'expense').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    $('vatIncomeCats').innerHTML = incomeCats.length
+      ? incomeCats.map(c => vatCatRowHtml(c, vatSelectedIncome.has(c.id))).join('')
+      : '<div class="cat-empty">لا توجد فئات إيرادات.</div>';
+    $('vatExpenseCats').innerHTML = expenseCats.length
+      ? expenseCats.map(c => vatCatRowHtml(c, vatSelectedExpense.has(c.id))).join('')
+      : '<div class="cat-empty">لا توجد فئات مصروفات.</div>';
+
+    document.querySelectorAll('[data-vat-cat]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const set = cb.getAttribute('data-vat-type') === 'income' ? vatSelectedIncome : vatSelectedExpense;
+        if(cb.checked) set.add(cb.getAttribute('data-vat-cat')); else set.delete(cb.getAttribute('data-vat-cat'));
+        computeVat();
+      });
+    });
+
+    computeVat();
+  }
+
+  function vatInRange(t){
+    const from = $('vat-from').value, to = $('vat-to').value;
+    if(from && t.date < from) return false;
+    if(to && t.date > to) return false;
+    return true;
+  }
+
+  function computeVat(){
+    const incomeTxns = state.transactions.filter(t => !t.voided && t.type === 'income' && vatSelectedIncome.has(t.categoryId) && vatInRange(t));
+    const expenseTxns = state.transactions.filter(t => !t.voided && t.type === 'expense' && vatSelectedExpense.has(t.categoryId) && vatInRange(t));
+    const outputVat = incomeTxns.reduce((s,t) => s + vatOf(t.amount), 0);
+    const inputVat = expenseTxns.reduce((s,t) => s + vatOf(t.amount), 0);
+    const net = outputVat - inputVat;
+    $('vatOutput').textContent = fmt(outputVat);
+    $('vatInput').textContent = fmt(inputVat);
+    $('vatNet').textContent = fmt(net);
+    $('vatNet').className = 'value ' + (net >= 0 ? 'expense' : 'income');
+  }
+  $('vat-from').addEventListener('change', computeVat);
+  $('vat-to').addEventListener('change', computeVat);
 
   function renderRemindersPage(){
     const rows = [...state.reminders].sort((a,b) => a.dueDate.localeCompare(b.dueDate));
@@ -1515,13 +2076,19 @@
     }).join('');
     listEl.querySelectorAll('[data-del-reminder]').forEach(btn => {
       btn.addEventListener('click', () => {
-        if(confirm('حذف هذا التذكير؟')) deleteReminder(btn.getAttribute('data-del-reminder'));
+        const rid = btn.getAttribute('data-del-reminder');
+        const rem = state.reminders.find(r => r.id === rid);
+        if(confirm('حذف هذا التذكير؟')){
+          deleteReminder(rid);
+          if(rem) logActivity('delete_reminder', `حذف تذكير: "${rem.title}"`);
+        }
       });
     });
   }
 
   $('reminderForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('manage_reminders')){ alert('ليست لديك صلاحية إدارة التذكيرات.'); return; }
     const btn = $('reminderSubmitBtn'); btn.disabled = true;
     try{
       const title = $('rem-title').value.trim();
@@ -1538,6 +2105,7 @@
       $('rem-title').value = ''; $('rem-date').value = ''; $('rem-notes').value = ''; $('rem-notify').value = '7';
       renderRemindersPage();
       persistReminder(r);
+      logActivity('add_reminder', `أضاف تذكيراً: "${r.title}" بتاريخ استحقاق ${r.dueDate}`);
     } finally { btn.disabled = false; }
   });
 
@@ -1623,6 +2191,7 @@
   // ---------------- Full JSON backup export ----------------
 
   $('exportBackupBtn').addEventListener('click', () => {
+    if(!hasPermission('export_backup')){ alert('ليست لديك صلاحية تصدير نسخة احتياطية.'); return; }
     const backup = {
       exportedAt: new Date().toISOString(),
       categories: state.categories,
@@ -1679,6 +2248,7 @@
 
   $('invoiceForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
     const btn = $('invoiceSubmitBtn'); btn.disabled = true;
     try{
       const file = $('inv-file').files[0];
@@ -1700,11 +2270,13 @@
       $('invoiceForm').style.display = 'none';
       renderSupplierDetail();
       persistSupplierInvoice(inv);
+      logActivity('add_supplier_invoice', `أضاف فاتورة رقم ${inv.invoiceNumber} بمبلغ ${fmt(inv.amount)} للمورد "${(state.suppliers.find(s=>s.id===currentSupplierId)||{}).name || ''}"`);
     } finally { btn.disabled = false; }
   });
 
   $('receiptForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
     const btn = $('receiptSubmitBtn'); btn.disabled = true;
     try{
       const file = $('rcpt-file').files[0];
@@ -1726,11 +2298,13 @@
       $('receiptForm').style.display = 'none';
       renderSupplierDetail();
       persistSupplierReceipt(r);
+      logActivity('add_supplier_receipt', `أضاف إيصال سداد بمبلغ ${fmt(r.amount)} للمورد "${(state.suppliers.find(s=>s.id===currentSupplierId)||{}).name || ''}"`);
     } finally { btn.disabled = false; }
   });
 
   $('returnForm').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
     const btn = $('returnSubmitBtn'); btn.disabled = true;
     try{
       const amount = parseFloat($('ret-amount').value) || 0;
@@ -1752,6 +2326,7 @@
       $('returnForm').style.display = 'none';
       renderSupplierDetail();
       persistSupplierReturn(ret);
+      logActivity('add_supplier_return', `أضاف مرتجعاً بمبلغ ${fmt(ret.amount)} للفاتورة رقم ${ret.originalInvoiceNumber}`);
     } finally { btn.disabled = false; }
   });
 
@@ -1785,7 +2360,7 @@
     const txnItems = list.filter(t => !t.voided).map(t => ({
       kind: t.type,
       label: t.description || rowCatLabel(t),
-      meta: rowCatLabel(t) + (t.isReversal ? ' · قيد عكسي' : ''),
+      meta: rowCatLabel(t) + (t.isReversal ? ' · قيد عكسي' : '') + (creatorName(t) ? ' · ' + creatorName(t) : ''),
       amount: t.amount,
       sortKey: t.date + '_' + (t.createdAt || ''),
     }));
@@ -1924,10 +2499,11 @@
           ${thumb}
           <div class="txn-main">
             <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
-            <div class="meta">${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}</div>
+            <div class="meta">${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}</div>
           </div>
           <div class="txn-side">
             <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
+            <div style="font-size:10px; color:var(--ink-soft); direction:ltr;">ض.ق.م ١٥٪: ${fmt(vatOf(t.amount))}</div>
             ${canVoid ? `<button class="txn-void-btn" data-void="${t.id}">إلغاء</button>` : (t.voided ? `<span class="txn-tag">ملغى</span>` : `<span class="txn-tag">عكسي</span>`)}
           </div>
         </div>`;
@@ -1963,6 +2539,7 @@
   // ---------------- Void / reversal ----------------
 
   async function voidTransaction(id){
+    if(!hasPermission('void_entries')){ alert('ليست لديك صلاحية لإلغاء القيود.'); return; }
     const original = state.transactions.find(t => t.id === id);
     if(!original || original.voided) return;
     const reversal = {
@@ -1977,6 +2554,7 @@
     renderCurrentPage();
     persistTransaction(original);
     persistTransaction(reversal);
+    logActivity('void_transaction', `ألغى قيد "${original.categoryName || rowCatLabel(original)}" بمبلغ ${fmt(original.amount)}`);
   }
 
   // ---------------- Receipt attachment ----------------
@@ -2032,6 +2610,11 @@
       const categoryId = $('f-cat').value;
       const amount = parseFloat($('f-amt').value);
       if(!categoryId || !amount || amount <= 0){ return; }
+      const neededPerm = state.currentType === 'income' ? 'add_income' : 'add_expense';
+      if(!hasPermission(neededPerm)){
+        alert('ليست لديك صلاحية لإضافة ' + (state.currentType === 'income' ? 'إيراد' : 'مصروف') + '.');
+        return;
+      }
       const catObj = state.categories.find(c => c.id === categoryId);
       const txn = {
         id: uid(), date, description, categoryId, categoryName: catObj ? catObj.name : '',
@@ -2048,6 +2631,7 @@
       setTimeout(() => { $('confirmMsg').style.display = 'none'; }, 2000);
 
       persistTransaction(txn);
+      logActivity('add_transaction', `أضاف ${state.currentType === 'income' ? 'إيراد' : 'مصروف'} بمبلغ ${fmt(txn.amount)} (${txn.categoryName})`);
     } finally {
       btn.disabled = false;
     }
@@ -2068,5 +2652,6 @@
   }
 })();
 </script>
+<div id="printableReport" style="display:none;"></div>
 </body>
 </html>
