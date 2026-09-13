@@ -69,33 +69,33 @@
   .splash-draw{
     stroke-dasharray: 480;
     stroke-dashoffset: 480;
-    animation: splashDraw 1.1s ease forwards;
+    animation: splashDraw 1.4s ease forwards;
   }
   .splash-draw:nth-of-type(1){ animation-delay: 0s; }
-  .splash-draw:nth-of-type(2){ animation-delay: 0.12s; }
-  .splash-draw:nth-of-type(3){ animation-delay: 0.28s; }
-  .splash-draw:nth-of-type(4){ animation-delay: 0.44s; }
+  .splash-draw:nth-of-type(2){ animation-delay: 0.15s; }
+  .splash-draw:nth-of-type(3){ animation-delay: 0.35s; }
+  .splash-draw:nth-of-type(4){ animation-delay: 0.55s; }
   @keyframes splashDraw{ to{ stroke-dashoffset: 0; } }
 
   .splash-bar{
     opacity: 0;
     transform-origin: 50% 100%;
     transform: scaleY(0);
-    animation: splashGrow 0.45s ease forwards;
+    animation: splashGrow 0.55s ease forwards;
   }
-  .splash-bar:nth-of-type(1){ animation-delay: 1.05s; }
-  .splash-bar:nth-of-type(2){ animation-delay: 1.2s; }
-  .splash-bar:nth-of-type(3){ animation-delay: 1.35s; }
-  .splash-bar:nth-of-type(4){ animation-delay: 1.5s; }
+  .splash-bar:nth-of-type(1){ animation-delay: 1.95s; }
+  .splash-bar:nth-of-type(2){ animation-delay: 2.15s; }
+  .splash-bar:nth-of-type(3){ animation-delay: 2.35s; }
+  .splash-bar:nth-of-type(4){ animation-delay: 2.55s; }
   @keyframes splashGrow{ to{ opacity: 1; transform: scaleY(1); } }
 
   .splash-title, .splash-sub{
     opacity: 0;
     transform: translateY(8px);
-    animation: splashFadeUp 0.5s ease forwards;
+    animation: splashFadeUp 0.6s ease forwards;
   }
-  .splash-title{ animation-delay: 1.75s; }
-  .splash-sub{ animation-delay: 1.95s; }
+  .splash-title{ animation-delay: 3.15s; }
+  .splash-sub{ animation-delay: 3.4s; }
   @keyframes splashFadeUp{ to{ opacity: 1; transform: translateY(0); } }
 
   /* ---------- Login screen ---------- */
@@ -1109,15 +1109,27 @@
     catch(e){ console.error(e); showBanner('تعذّر حذف التذكير: ' + e.message); }
   }
 
+  const splashStartTime = Date.now();
+  const SPLASH_ANIM_MS = 4100;   // time for the logo + name animation to fully finish
+  const SPLASH_MAX_EXTRA_MS = 800; // grace pause after that before forcing the app open regardless
+
+  function revealApp(){
+    if(appIsReady || !currentUser) return;
+    appIsReady = true;
+    setDefaultDateRange();
+    $('authChecking').style.display = 'none';
+    $('appShell').style.display = 'block';
+    $('loadingMsg').style.display = 'none';
+    $('app').style.display = 'block';
+    renderCurrentPage();
+  }
+
   function checkAllLoaded(){
     if(appIsReady) return;
     if(COLLECTIONS.every(([name]) => loadedFlags[name])){
-      appIsReady = true;
-      setDefaultDateRange();
-      $('authChecking').style.display = 'none';
-      $('loadingMsg').style.display = 'none';
-      $('app').style.display = 'block';
-      renderCurrentPage();
+      const remaining = SPLASH_ANIM_MS - (Date.now() - splashStartTime);
+      if(remaining > 0) setTimeout(revealApp, remaining);
+      else revealApp();
     }
   }
 
@@ -1362,9 +1374,8 @@
         currentUser = user;
         $('currentUserEmail').textContent = user.email;
         $('loginScreen').style.display = 'none';
-        $('appShell').style.display = 'block';
-        $('loadingMsg').style.display = 'block';
-        $('app').style.display = 'none';
+        // appShell stays hidden — the splash alone stays on screen until
+        // checkAllLoaded() reveals it, so the two are never visible together.
         const status = await ensureOwnerUserDoc();
         if(status === 'revoked'){
           await auth.signOut();
@@ -1372,6 +1383,7 @@
           $('loginError').style.display = 'block';
           return;
         }
+        setTimeout(revealApp, Math.max(0, SPLASH_ANIM_MS + SPLASH_MAX_EXTRA_MS - (Date.now() - splashStartTime)));
         subscribeAll();
       } else {
         currentUser = null;
