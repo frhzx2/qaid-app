@@ -62,7 +62,14 @@
 
   main.pages{ padding: 6px 20px 20px; }
 
-  .banner{ background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #6B5320; padding: 10px 14px; font-size: 12.5px; margin: 14px 0; border-radius:10px; display:none; }
+  .banner{
+    position:fixed; top:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:460px; z-index:9999;
+    background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #6B5320;
+    padding: 12px 40px 12px 14px; font-size: 12.5px; border-radius:0 0 12px 12px;
+    display:none; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+  }
+  .banner-close{ position:absolute; left:8px; top:6px; background:none; border:none; color:var(--warn-ink); font-size:15px; line-height:1; cursor:pointer; padding:4px 7px; }
   .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
 
   /* ---------- Splash screen: line-art draw-on animation ---------- */
@@ -1032,7 +1039,12 @@
   const todayStr = () => new Date().toISOString().slice(0, 10);
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
-  function showBanner(msg){ const b = $('storageBanner'); b.textContent = msg; b.style.display = 'block'; }
+  function showBanner(msg){
+    const b = $('storageBanner');
+    b.innerHTML = escapeHtml(msg) + '<button type="button" class="banner-close" id="bannerCloseBtn">✕</button>';
+    b.style.display = 'block';
+    $('bannerCloseBtn').addEventListener('click', () => { b.style.display = 'none'; });
+  }
 
   // ============================================================
   // FIREBASE SETUP — replace the values below with YOUR project's
@@ -2022,10 +2034,11 @@
           <div class="txn-card" style="flex-direction:column; align-items:stretch;">
             <div class="field" style="margin-bottom:10px;"><label>الاسم</label><input type="text" id="edituser-name-${u.uid}" value="${escapeHtml(u.name)}"></div>
             <div class="field" style="margin-bottom:10px;"><label>الصلاحية</label>
-              <select id="edituser-role-${u.uid}">
+              <select id="edituser-role-${u.uid}" ${isMe && u.role === 'owner' ? 'disabled' : ''}>
                 <option value="accountant" ${u.role==='accountant'?'selected':''}>محاسب</option>
                 <option value="owner" ${u.role==='owner'?'selected':''}>مالك (صلاحية كاملة)</option>
               </select>
+              ${isMe && u.role === 'owner' ? '<div class="meta" style="margin-top:4px;">لا يمكنك تغيير صلاحيتك الخاصة كمالك، حتى بنفسك.</div>' : ''}
             </div>
             <div class="field" id="edituser-permswrap-${u.uid}" style="margin-bottom:10px; display:${u.role==='owner'?'none':'block'};">
               <label>صلاحيات محددة</label>
@@ -2076,6 +2089,10 @@
         const name = $(`edituser-name-${uid}`).value.trim();
         const role = $(`edituser-role-${uid}`).value;
         if(!name) return;
+        if(currentUser && uid === currentUser.uid && role !== 'owner'){
+          alert('لا يمكنك تغيير صلاحيتك الخاصة من مالك إلى محاسب، حتى لو كنت أنت المالك — هذا لمنع فقدان الوصول لإدارة المستخدمين بالخطأ.');
+          return;
+        }
         const permissions = role === 'owner' ? {} : readPermissionCheckboxes('edituserperm-' + uid);
         try{
           await db.collection('users').doc(uid).update({ name, role, permissions });
@@ -3037,14 +3054,26 @@
     URL.revokeObjectURL(url);
   });
 
+  // Firestore rejects any single document over ~1 MiB. Base64-encoding a raw
+  // file inflates its size by roughly a third, and the record has other
+  // fields on top of the attachment — so keep the encoded attachment
+  // comfortably under that ceiling, not right up against it.
+  const MAX_ATTACHMENT_DATAURL_BYTES = 700 * 1024;
+
   function readAttachment(file){
     return new Promise((resolve, reject) => {
       if(file.type.startsWith('image/')){
         compressImage(file).then(dataUrl => resolve({ dataUrl, isImage: true, fileName: file.name })).catch(reject);
       } else {
-        if(file.size > 4 * 1024 * 1024){ reject(new Error('too-large')); return; }
+        // Roughly back-calculate an equivalent raw-file ceiling from the
+        // base64 budget, so the check (and the message the user sees before
+        // we even try) matches what will actually be able to save.
+        if(file.size > MAX_ATTACHMENT_DATAURL_BYTES * 0.72){ reject(new Error('too-large')); return; }
         const reader = new FileReader();
-        reader.onload = (e) => resolve({ dataUrl: e.target.result, isImage: false, fileName: file.name });
+        reader.onload = (e) => {
+          if(e.target.result.length > MAX_ATTACHMENT_DATAURL_BYTES){ reject(new Error('too-large')); return; }
+          resolve({ dataUrl: e.target.result, isImage: false, fileName: file.name });
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       }
@@ -3083,7 +3112,7 @@
       $('invFileStatus').textContent = 'جارٍ معالجة الملف…';
       let attachment;
       try{ attachment = await readAttachment(file); }
-      catch(err){ $('invFileStatus').textContent = 'الملف كبير جداً أو تعذّرت معالجته.'; return; }
+      catch(err){ $('invFileStatus').textContent = 'الملف كبير جداً (الحد الأقصى تقريباً 500 كيلوبايت للملفات، أو صورة عالية الدقة) — جرّب ملفاً أصغر أو صوّره بجودة أقل.'; return; }
       $('invFileStatus').textContent = '';
       const inv = {
         id: uid(), supplierId: currentSupplierId, invoiceNumber, date,
@@ -3111,7 +3140,7 @@
       $('rcptFileStatus').textContent = 'جارٍ معالجة الملف…';
       let attachment;
       try{ attachment = await readAttachment(file); }
-      catch(err){ $('rcptFileStatus').textContent = 'الملف كبير جداً أو تعذّرت معالجته.'; return; }
+      catch(err){ $('rcptFileStatus').textContent = 'الملف كبير جداً (الحد الأقصى تقريباً 500 كيلوبايت للملفات، أو صورة عالية الدقة) — جرّب ملفاً أصغر أو صوّره بجودة أقل.'; return; }
       $('rcptFileStatus').textContent = '';
       const r = {
         id: uid(), supplierId: currentSupplierId, date, method,
@@ -3570,7 +3599,18 @@
           }
           const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
           canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.62));
+          let quality = 0.62;
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          // If it's still too big even after the initial compression (rare,
+          // but possible for very busy/detailed photos), keep squeezing the
+          // quality down rather than saving something that will silently
+          // fail to write to Firestore.
+          while(dataUrl.length > MAX_ATTACHMENT_DATAURL_BYTES && quality > 0.25){
+            quality -= 0.12;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+          if(dataUrl.length > MAX_ATTACHMENT_DATAURL_BYTES){ reject(new Error('too-large')); return; }
+          resolve(dataUrl);
         };
         img.onerror = reject; img.src = e.target.result;
       };
@@ -3586,7 +3626,7 @@
       $('receiptStatus').textContent = '';
       $('receiptPreview').innerHTML = `<img src="${dataUrl}" alt="معاينة الفاتورة"><button type="button" id="receiptClear">إزالة</button>`;
       $('receiptClear').addEventListener('click', () => { state.pendingReceipt = null; $('f-receipt').value = ''; $('receiptPreview').innerHTML = ''; });
-    }catch(e){ $('receiptStatus').textContent = 'تعذّرت المعالجة، حاول صورة أخرى.'; }
+    }catch(e){ $('receiptStatus').textContent = 'الصورة كبيرة جداً حتى بعد الضغط — جرّب صورة أخرى أو بجودة أقل.'; }
   });
 
   function openModal(src){ $('modalImg').src = src; $('modalOverlay').classList.add('open'); }
