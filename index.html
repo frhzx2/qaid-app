@@ -292,7 +292,7 @@
     html, body{ background:#fff !important; }
     #authChecking, #loginScreen, .app-shell, .modal-overlay{ display:none !important; }
     #printableReport{ display:block !important; background:#fff !important; padding:30px 36px; }
-    #printableReport, #printableReport *{ color:#1a1a1a; }
+    #printableReport{ color:#1a1a1a; }
     #printableReport table{ width:100%; border-collapse:collapse; font-size:12.5px; background:#fff; }
     #printableReport th, #printableReport td{ padding:9px 10px; text-align:right; border-bottom:1px solid #e2e2e2; background:#fff; color:#1a1a1a; }
     #printableReport thead th{ background:#14A9B8 !important; color:#fff !important; font-weight:700; border-bottom:none; }
@@ -589,6 +589,8 @@
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
+        <button type="button" class="submit" id="restoreBackupBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">⬆ استعادة من نسخة احتياطية</button>
+        <input type="file" id="restoreBackupFile" accept="application/json" style="display:none;">
         <button type="button" class="submit" id="notifToggleBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🔔 تفعيل تنبيهات المتصفح</button>
         <div class="audit-note" id="notifStatusNote" style="margin-top:8px;"></div>
       </section>
@@ -1040,6 +1042,22 @@
   const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   const todayStr = () => new Date().toISOString().slice(0, 10);
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  // Building a big report's HTML and then calling window.print() can take a
+  // moment for months with lots of entries. Give the button a "working"
+  // state and let the browser paint it BEFORE the heavy synchronous work
+  // runs, so the UI never looks frozen — it's doing the same work, just not
+  // silently.
+  function runPrintTask(btn, taskFn){
+    if(!btn){ setTimeout(taskFn, 0); return; }
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'جارٍ التجهيز…';
+    setTimeout(() => {
+      try{ taskFn(); }
+      finally{ btn.disabled = false; btn.textContent = originalText; }
+    }, 20);
+  }
 
   function showBanner(msg){
     const b = $('storageBanner');
@@ -2247,6 +2265,7 @@
   $('exportExcelBtn').addEventListener('click', () => {
     const rows = reportRows();
     if(!rows.length){ alert('لا توجد قيود ضمن الفترة المحددة.'); return; }
+    runPrintTask($('exportExcelBtn'), () => {
     const data = rows.map(t => ({
       'التاريخ': t.date,
       'النوع': t.type === 'income' ? 'إيراد' : 'مصروف',
@@ -2260,9 +2279,11 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
     XLSX.writeFile(wb, `تقرير_قيد_${$('rep-from').value}_إلى_${$('rep-to').value}.xlsx`);
+    });
   });
 
   $('printReportBtn').addEventListener('click', () => {
+    runPrintTask($('printReportBtn'), () => {
     const rows = reportRows();
     let income = 0, expense = 0;
     rows.forEach(t => { if(t.type === 'income') income += t.amount; else expense += t.amount; });
@@ -2298,6 +2319,7 @@
         <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
       </div>`;
     window.print();
+    });
   });
 
   function renderActivityLogPage(){
@@ -2587,6 +2609,7 @@
   });
 
   $('cashReportExportBtn').addEventListener('click', () => {
+    runPrintTask($('cashReportExportBtn'), () => {
     const from = $('cashReportFrom').value, to = $('cashReportTo').value;
     const events = cashEvents()
       .filter(e => (!from || e.date >= from) && (!to || e.date <= to))
@@ -2628,6 +2651,7 @@
         <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
       </div>`;
     window.print();
+    });
   });
 
   $('toggleDepositBtn').addEventListener('click', () => {
@@ -2839,7 +2863,7 @@
     holder.querySelectorAll('[data-print-payroll]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        printPayrollMonth(btn.getAttribute('data-print-payroll'));
+        runPrintTask(btn, () => printPayrollMonth(btn.getAttribute('data-print-payroll')));
       });
     });
     holder.querySelectorAll('[data-hard-delete-payroll]').forEach(btn => {
@@ -3044,6 +3068,12 @@
       supplierInvoices: state.supplierInvoices,
       supplierReceipts: state.supplierReceipts,
       supplierReturns: state.supplierReturns,
+      reminders: state.reminders,
+      users: state.users,
+      activityLog: state.activityLog,
+      employees: state.employees,
+      payrollEntries: state.payrollEntries,
+      cashDeposits: state.cashDeposits,
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -3054,6 +3084,52 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  });
+
+  // Collections safe to restore automatically. Deliberately excludes
+  // 'users': restoring old role/permission docs could silently re-grant
+  // access to a removed account or overwrite someone's current permissions
+  // with stale ones — that always needs a human decision, not an automatic
+  // overwrite from a backup file.
+  const RESTORABLE_COLLECTIONS = [
+    'categories', 'transactions', 'settlements', 'suppliers', 'supplierInvoices',
+    'supplierReceipts', 'supplierReturns', 'reminders', 'activityLog',
+    'employees', 'payrollEntries', 'cashDeposits',
+  ];
+
+  $('restoreBackupBtn').addEventListener('click', () => {
+    if(!hasPermission('export_backup')){ alert('ليست لديك صلاحية استعادة نسخة احتياطية.'); return; }
+    $('restoreBackupFile').click();
+  });
+
+  $('restoreBackupFile').addEventListener('change', async () => {
+    const file = $('restoreBackupFile').files[0];
+    $('restoreBackupFile').value = '';
+    if(!file) return;
+    let data;
+    try{
+      data = JSON.parse(await file.text());
+    }catch(e){
+      alert('تعذّرت قراءة الملف — تأكد أنه ملف النسخة الاحتياطية الصحيح (JSON).');
+      return;
+    }
+    const exportedLabel = data.exportedAt ? new Date(data.exportedAt).toLocaleString('ar-SA') : 'غير معروف';
+    if(!confirm(`سيتم استعادة بيانات هذا الملف (تاريخ التصدير: ${exportedLabel}) إلى قاعدة البيانات الحالية.\n\nأي قيد موجود حالياً بنفس المعرّف سيُستبدل بنسخة الملف. القيود غير الموجودة بالملف لن تُحذف.\n\nملاحظة: لا يشمل هذا استعادة المستخدمين وصلاحياتهم — تلك تُدار يدوياً فقط. هل تريد المتابعة؟`)) return;
+
+    let total = 0, failed = 0;
+    for(const key of RESTORABLE_COLLECTIONS){
+      const arr = data[key];
+      if(!Array.isArray(arr)) continue;
+      for(const rec of arr){
+        if(!rec || !rec.id) continue;
+        try{ await db.collection(key).doc(rec.id).set(rec); total++; }
+        catch(e){ console.error(e); failed++; }
+      }
+    }
+    logActivity('restore_backup', `استعاد نسخة احتياطية بتاريخ تصدير ${exportedLabel} (${total} سجل${failed ? '، فشل ' + failed : ''})`);
+    alert(failed
+      ? `تمت استعادة ${total} سجل بنجاح، وفشل ${failed} — راجع اتصال الإنترنت وأعد المحاولة إذا احتجت.`
+      : `تمت استعادة ${total} سجل بنجاح.`);
   });
 
   // Firestore rejects any single document over ~1 MiB. Base64-encoding a raw
@@ -3476,7 +3552,7 @@
     holder.querySelectorAll('[data-print-month]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        printEntryMonth(btn.getAttribute('data-print-type'), btn.getAttribute('data-print-month'));
+        runPrintTask(btn, () => printEntryMonth(btn.getAttribute('data-print-type'), btn.getAttribute('data-print-month')));
       });
     });
     holder.querySelectorAll('[data-void]').forEach(btn => btn.addEventListener('click', () => voidTransaction(btn.getAttribute('data-void'))));
