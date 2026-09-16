@@ -1038,6 +1038,7 @@
   // sidesteps that entirely.
   const REPORT_PRINT_CSS = `
     body{ font-family:'Cairo','Tajawal',sans-serif; color:#1a1a1a; background:#fff; padding:30px 36px; margin:0; }
+    @media print{ .no-print{ display:none !important; } }
     table{ width:100%; border-collapse:collapse; font-size:12.5px; }
     th, td{ padding:9px 10px; text-align:right; border-bottom:1px solid #e2e2e2; background:#fff; color:#1a1a1a; }
     thead th{ background:#14A9B8; color:#fff; font-weight:700; border-bottom:none; }
@@ -1067,8 +1068,13 @@
       let bodyHtml;
       try{ bodyHtml = buildBodyHtmlFn(); }
       catch(e){ console.error(e); printWin.close(); showBanner('تعذّر تجهيز التقرير: ' + e.message); return; }
+      const actionBar = `
+        <div class="no-print" style="position:sticky; top:0; display:flex; gap:10px; background:#fff; padding:10px 16px; margin:-30px -36px 24px; border-bottom:1px solid #e2e2e2; z-index:10;">
+          <button onclick="window.close()" style="font-family:'Cairo','Tajawal',sans-serif; font-size:13px; padding:8px 16px; border-radius:8px; border:1px solid #ccc; background:#f5f5f5; color:#333; cursor:pointer;">← الرجوع للتطبيق</button>
+          <button onclick="window.print()" style="font-family:'Cairo','Tajawal',sans-serif; font-size:13px; padding:8px 16px; border-radius:8px; border:none; background:#14A9B8; color:#fff; cursor:pointer;">🖨 طباعة / حفظ PDF</button>
+        </div>`;
       printWin.document.open();
-      printWin.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title><style>' + REPORT_PRINT_CSS + '</style></head><body>' + bodyHtml + '</body></html>');
+      printWin.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title><style>' + REPORT_PRINT_CSS + '</style></head><body>' + actionBar + bodyHtml + '</body></html>');
       printWin.document.close();
       setTimeout(() => { try{ printWin.focus(); printWin.print(); }catch(e){} }, 150);
     }, 10);
