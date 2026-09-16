@@ -288,24 +288,6 @@
   .modal-close{ text-align:left; margin-bottom:8px; }
   .modal-close button{ font-family:'Cairo',sans-serif; font-size:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); padding:5px 12px; cursor:pointer; border-radius:8px; }
 
-  @media print{
-    html, body{ background:#fff !important; }
-    #authChecking, #loginScreen, .app-shell, .modal-overlay{ display:none !important; }
-    #printableReport{ display:block !important; background:#fff !important; padding:30px 36px; }
-    #printableReport{ color:#1a1a1a; }
-    #printableReport table{ width:100%; border-collapse:collapse; font-size:12.5px; background:#fff; }
-    #printableReport th, #printableReport td{ padding:9px 10px; text-align:right; border-bottom:1px solid #e2e2e2; background:#fff; color:#1a1a1a; }
-    #printableReport thead th{ background:#14A9B8 !important; color:#fff !important; font-weight:700; border-bottom:none; }
-    #printableReport tbody tr:nth-child(even) td{ background:#f7f9fa !important; }
-    #printableReport tfoot td{ background:#eaf6f7 !important; color:#1a1a1a !important; font-weight:700; border-top:2px solid #14A9B8; border-bottom:none; }
-    #printableReport .rpt-header{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #14A9B8; padding-bottom:14px; margin-bottom:22px; }
-    #printableReport .rpt-brand{ font-size:23px; font-weight:800; color:#14A9B8 !important; }
-    #printableReport .rpt-sub{ font-size:11px; color:#666 !important; margin-top:2px; }
-    #printableReport .rpt-title{ font-size:16px; font-weight:700; text-align:left; color:#1a1a1a !important; }
-    #printableReport .rpt-meta{ font-size:12px; color:#666 !important; text-align:left; margin-top:3px; }
-    #printableReport .rpt-sign{ display:flex; justify-content:space-between; margin-top:56px; font-size:12px; color:#333 !important; }
-    #printableReport .rpt-footer{ margin-top:28px; font-size:10px; color:#999 !important; text-align:center; border-top:1px solid #eee; padding-top:8px; }
-  }
 </style>
 </head>
 <body>
@@ -1048,6 +1030,50 @@
   // state and let the browser paint it BEFORE the heavy synchronous work
   // runs, so the UI never looks frozen — it's doing the same work, just not
   // silently.
+  // window.print() on the main document forces the browser to recompute
+  // styles across our ENTIRE app (every hidden page, form, and list — this
+  // app has grown to hundreds of elements) before it can even start
+  // printing. That's the real cost on a big report, not just perceived lag.
+  // Printing from a small, separate window with its own tiny stylesheet
+  // sidesteps that entirely.
+  const REPORT_PRINT_CSS = `
+    body{ font-family:'Cairo','Tajawal',sans-serif; color:#1a1a1a; background:#fff; padding:30px 36px; margin:0; }
+    table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+    th, td{ padding:9px 10px; text-align:right; border-bottom:1px solid #e2e2e2; background:#fff; color:#1a1a1a; }
+    thead th{ background:#14A9B8; color:#fff; font-weight:700; border-bottom:none; }
+    tbody tr:nth-child(even) td{ background:#f7f9fa; }
+    tfoot td{ background:#eaf6f7; color:#1a1a1a; font-weight:700; border-top:2px solid #14A9B8; border-bottom:none; }
+    .rpt-header{ display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #14A9B8; padding-bottom:14px; margin-bottom:22px; }
+    .rpt-brand{ font-size:23px; font-weight:800; color:#14A9B8; }
+    .rpt-sub{ font-size:11px; color:#666; margin-top:2px; }
+    .rpt-title{ font-size:16px; font-weight:700; text-align:left; }
+    .rpt-meta{ font-size:12px; color:#666; text-align:left; margin-top:3px; }
+    .rpt-sign{ display:flex; justify-content:space-between; margin-top:56px; font-size:12px; color:#333; }
+    .rpt-footer{ margin-top:28px; font-size:10px; color:#999; text-align:center; border-top:1px solid #eee; padding-top:8px; }
+  `;
+
+  function printInNewWindow(title, buildBodyHtmlFn){
+    // window.open must fire synchronously inside the click handler, or
+    // Safari/iOS in particular will treat it as not user-initiated and
+    // silently block it.
+    const printWin = window.open('', '_blank');
+    if(!printWin){
+      alert('يرجى السماح بالنوافذ المنبثقة (Pop-ups) لهذا الموقع حتى يعمل تصدير التقرير.');
+      return;
+    }
+    printWin.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title></head><body style="font-family:sans-serif; padding:40px; color:#666;">جارٍ تجهيز التقرير…</body></html>');
+    printWin.document.close();
+    setTimeout(() => {
+      let bodyHtml;
+      try{ bodyHtml = buildBodyHtmlFn(); }
+      catch(e){ console.error(e); printWin.close(); showBanner('تعذّر تجهيز التقرير: ' + e.message); return; }
+      printWin.document.open();
+      printWin.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>' + title + '</title><style>' + REPORT_PRINT_CSS + '</style></head><body>' + bodyHtml + '</body></html>');
+      printWin.document.close();
+      setTimeout(() => { try{ printWin.focus(); printWin.print(); }catch(e){} }, 150);
+    }, 10);
+  }
+
   function runPrintTask(btn, taskFn){
     if(!btn){ setTimeout(taskFn, 0); return; }
     const originalText = btn.textContent;
@@ -2283,7 +2309,7 @@
   });
 
   $('printReportBtn').addEventListener('click', () => {
-    runPrintTask($('printReportBtn'), () => {
+    printInNewWindow('تقرير مالي - قيد', () => {
     const rows = reportRows();
     let income = 0, expense = 0;
     rows.forEach(t => { if(t.type === 'income') income += t.amount; else expense += t.amount; });
@@ -2298,8 +2324,7 @@
         <td>${escapeHtml(creatorName(t) || '')}</td>
       </tr>`).join('');
     const now = new Date();
-    $('printableReport').innerHTML = `
-      <div dir="rtl" style="font-family:'Cairo',sans-serif; color:#1a1a1a;">
+    return `
         <div class="rpt-header">
           <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
           <div><div class="rpt-title">تقرير مالي</div><div class="rpt-meta">الفترة: ${$('rep-from').value} إلى ${$('rep-to').value}</div></div>
@@ -2316,9 +2341,7 @@
           <tbody>${tableRows || '<tr><td colspan="7" style="text-align:center; color:#888;">لا توجد قيود ضمن الفترة.</td></tr>'}</tbody>
         </table>
         <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
-        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
-      </div>`;
-    window.print();
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
     });
   });
 
@@ -2609,7 +2632,7 @@
   });
 
   $('cashReportExportBtn').addEventListener('click', () => {
-    runPrintTask($('cashReportExportBtn'), () => {
+    printInNewWindow('تقرير الخزينة النقدية - قيد', () => {
     const from = $('cashReportFrom').value, to = $('cashReportTo').value;
     const events = cashEvents()
       .filter(e => (!from || e.date >= from) && (!to || e.date <= to))
@@ -2628,8 +2651,7 @@
     const endBalance = startBalance + totalIn - totalOut - totalDeposit;
 
     const now = new Date();
-    $('printableReport').innerHTML = `
-      <div dir="rtl" style="font-family:'Cairo',sans-serif; color:#1a1a1a;">
+    return `
         <div class="rpt-header">
           <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
           <div><div class="rpt-title">تقرير الخزينة النقدية</div><div class="rpt-meta">الفترة: ${from || '—'} إلى ${to || '—'}</div></div>
@@ -2648,9 +2670,7 @@
           <tbody>${tableRows || '<tr><td colspan="4" style="text-align:center; color:#888;">لا توجد حركة نقدية ضمن الفترة.</td></tr>'}</tbody>
         </table>
         <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
-        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
-      </div>`;
-    window.print();
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
     });
   });
 
@@ -2863,7 +2883,7 @@
     holder.querySelectorAll('[data-print-payroll]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        runPrintTask(btn, () => printPayrollMonth(btn.getAttribute('data-print-payroll')));
+        printPayrollMonth(btn.getAttribute('data-print-payroll'));
       });
     });
     holder.querySelectorAll('[data-hard-delete-payroll]').forEach(btn => {
@@ -2886,6 +2906,7 @@
   }
 
   function printPayrollMonth(month){
+    printInNewWindow('تقرير الرواتب - قيد', () => {
     const entries = [...state.payrollEntries.filter(p => p.month === month)].sort((a,b) => a.employeeName.localeCompare(b.employeeName, 'ar'));
     let totalSalary = 0, totalCommission = 0, totalDeduction = 0, totalNet = 0;
     const rows = entries.map(p => {
@@ -2904,8 +2925,7 @@
         </tr>`;
     }).join('');
     const now = new Date();
-    $('printableReport').innerHTML = `
-      <div dir="rtl" style="font-family:'Cairo',sans-serif; color:#1a1a1a;">
+    return `
         <div class="rpt-header">
           <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
           <div><div class="rpt-title">تقرير الرواتب</div><div class="rpt-meta">الشهر: ${escapeHtml(monthLabel(month))}</div></div>
@@ -2916,9 +2936,8 @@
           <tfoot><tr><td>الإجمالي</td><td>${fmt(totalSalary)}</td><td>${fmt(totalCommission)}</td><td>${fmt(totalDeduction)}</td><td>${fmt(totalNet)}</td></tr></tfoot>
         </table>
         <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
-        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
-      </div>`;
-    window.print();
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
+    });
   }
 
   function renderRemindersPage(){
@@ -3552,7 +3571,7 @@
     holder.querySelectorAll('[data-print-month]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        runPrintTask(btn, () => printEntryMonth(btn.getAttribute('data-print-type'), btn.getAttribute('data-print-month')));
+        printEntryMonth(btn.getAttribute('data-print-type'), btn.getAttribute('data-print-month'));
       });
     });
     holder.querySelectorAll('[data-void]').forEach(btn => btn.addEventListener('click', () => voidTransaction(btn.getAttribute('data-void'))));
@@ -3565,6 +3584,7 @@
 
   function printEntryMonth(type, month){
     const isIncome = type === 'income';
+    printInNewWindow((isIncome ? 'تقرير إيرادات' : 'تقرير مصروفات') + ' - قيد', () => {
     const barColor = isIncome ? '#14A9B8' : '#DC4A4A';
     const entries = state.transactions.filter(t => t.type === type && !t.voided && t.date.slice(0,7) === month)
       .sort((a,b) => a.date.localeCompare(b.date));
@@ -3601,8 +3621,7 @@
       </tr>`).join('');
 
     const now = new Date();
-    $('printableReport').innerHTML = `
-      <div dir="rtl" style="font-family:'Cairo',sans-serif; color:#1a1a1a;">
+    return `
         <div class="rpt-header">
           <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
           <div><div class="rpt-title">تقرير ${isIncome ? 'إيرادات' : 'مصروفات'} شهر ${escapeHtml(monthLabel(month))}</div><div class="rpt-meta">الإجمالي: ${fmt(total)}</div></div>
@@ -3614,9 +3633,8 @@
           <tfoot><tr><td colspan="3">الإجمالي</td><td colspan="2">${fmt(total)}</td></tr></tfoot>
         </table>
         <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
-        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>
-      </div>`;
-    window.print();
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
+    });
   }
 
   // ---------------- Audit ----------------
@@ -3777,6 +3795,5 @@
   }
 })();
 </script>
-<div id="printableReport" style="display:none; background:#fff;"></div>
 </body>
 </html>
