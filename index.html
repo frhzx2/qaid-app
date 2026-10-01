@@ -36,6 +36,42 @@
     --warn-bg: #3A2E12;
     --warn-ink: #F2C572;
   }
+  :root[data-theme="light"]{
+    --bg: #F5F6FA;
+    --frame: #E8EAF0;
+    --panel: #FFFFFF;
+    --panel-2: #F0F2F7;
+    --border: rgba(0,0,0,0.09);
+    --ink: #1A1F2B;
+    --ink-soft: #6B7280;
+    --accent: #0E8793;
+    --accent-deep: #0B6D77;
+    --income: #0E9F6E;
+    --income-bg: rgba(14,159,110,0.12);
+    --expense: #DC2626;
+    --expense-bg: rgba(220,38,38,0.10);
+    --void: #9CA3AF;
+    --warn-bg: #FEF3C7;
+    --warn-ink: #92400E;
+  }
+  :root[data-theme="midnight"]{
+    --bg: #0B1526;
+    --frame: #050B16;
+    --panel: #13213A;
+    --panel-2: #1A2C4A;
+    --border: rgba(255,255,255,0.08);
+    --ink: #EAF0FB;
+    --ink-soft: #8FA3C4;
+    --accent: #4D9FFF;
+    --accent-deep: #2F7FE0;
+    --income: #3FD6A3;
+    --income-bg: rgba(63,214,163,0.12);
+    --expense: #FF6B81;
+    --expense-bg: rgba(255,107,129,0.14);
+    --void: #5B6478;
+    --warn-bg: #3A2E12;
+    --warn-ink: #F2C572;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -288,9 +324,21 @@
   .modal-close{ text-align:left; margin-bottom:8px; }
   .modal-close button{ font-family:'Cairo',sans-serif; font-size:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); padding:5px 12px; cursor:pointer; border-radius:8px; }
 
+  /* Hide the up/down spinner arrows on every number input, app-wide */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
+  .theme-btn.active{ border-color:var(--accent); color:var(--accent); font-weight:700; }
+
 </style>
 </head>
 <body>
+<script>
+  try{
+    const savedTheme = localStorage.getItem('qayd_theme');
+    if(savedTheme && savedTheme !== 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
+  }catch(e){}
+</script>
 
 <div id="authChecking" class="loading" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
   <svg class="splash-svg" viewBox="0 0 200 170" width="90" height="77" xmlns="http://www.w3.org/2000/svg">
@@ -383,13 +431,14 @@
         <div id="reminderAlertBox"></div>
 
         <div class="stat-row">
-          <div class="stat-card"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
-          <div class="stat-card"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
+          <div class="stat-card" id="dashIncomeCard" style="cursor:pointer;"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
+          <div class="stat-card" id="dashExpenseCard" style="cursor:pointer;"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
           <div class="stat-card"><div class="label">صافي الفترة</div><div class="value" id="dashNetTotal">0.00</div></div>
           <div class="stat-card"><div class="label">الخزينة النقدية</div><div class="value" id="dashCashTotal" style="color:#D9A227;">0.00</div></div>
-          <div class="stat-card"><div class="label">الحساب البنكي</div><div class="value" id="dashBankTotal">0.00</div></div>
+          <div class="stat-card" id="dashBankCard" style="cursor:pointer;"><div class="label">الحساب البنكي</div><div class="value" id="dashBankTotal">0.00</div></div>
           <div class="stat-card"><div class="label">الرواتب الشهرية</div><div class="value" id="dashPayrollTotal" style="color:var(--expense);">0.00</div></div>
         </div>
+        <div class="audit-note" style="margin:-10px 0 14px;">اضغط على الإيرادات، المصروفات، أو الحساب البنكي لعرض التفاصيل</div>
 
         <div class="filterbar" id="filterPills">
           <button type="button" class="pill" data-preset="today">اليوم</button>
@@ -438,7 +487,10 @@
           <div class="field"><label>من أضافه</label><select id="incomeFilterCreator"><option value="">الكل</option></select></div>
           <div class="field"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="incomeFilterHideVoided" style="width:auto;"> إخفاء القيود الملغاة والعكسية</label></div>
           <div class="field">
-            <label>التصنيفات</label>
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              <span>التصنيفات</span>
+              <button type="button" id="incomeFilterSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+            </label>
             <div id="incomeFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -447,15 +499,21 @@
           </div>
         </div>
 
+        <div id="incomeBulkBar"></div>
         <div id="incomeMonthList"></div>
         <div id="incomeEmpty" class="empty" style="display:none;">لا توجد قيود إيرادات.</div>
       </section>
 
       <!-- ============ EXPENSES ============ -->
       <section id="page-expenses" hidden>
-        <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
-          <button type="button" id="expenseFilterToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔍 تصفية</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+          <button type="button" id="importExcelBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">⬆ استيراد من Excel</button>
+          <span style="display:flex; gap:8px;">
+            <button type="button" id="findDuplicatesBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔁 كشف التكرارات</button>
+            <button type="button" id="expenseFilterToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔍 تصفية</button>
+          </span>
         </div>
+        <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="display:none;">
         <div id="expenseFilterPanel" class="entry-panel" style="display:none; margin-bottom:20px;">
           <div class="row2">
             <div class="field"><label>من تاريخ</label><input type="date" id="expenseFilterFrom"></div>
@@ -469,7 +527,10 @@
           <div class="field"><label>من أضافه</label><select id="expenseFilterCreator"><option value="">الكل</option></select></div>
           <div class="field"><label style="display:flex; align-items:center; gap:8px; cursor:pointer;"><input type="checkbox" id="expenseFilterHideVoided" style="width:auto;"> إخفاء القيود الملغاة والعكسية</label></div>
           <div class="field">
-            <label>التصنيفات</label>
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              <span>التصنيفات</span>
+              <button type="button" id="expenseFilterSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+            </label>
             <div id="expenseFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
           <div style="display:flex; gap:8px;">
@@ -478,6 +539,7 @@
           </div>
         </div>
 
+        <div id="expenseBulkBar"></div>
         <div id="expenseMonthList"></div>
         <div id="expenseEmpty" class="empty" style="display:none;">لا توجد قيود مصروفات.</div>
       </section>
@@ -501,6 +563,10 @@
           <div class="field" id="f-cash-expense-wrap" style="display:none;">
             <label for="f-cash-expense">مبلغ مدفوع نقداً (ر.س)</label>
             <input type="number" id="f-cash-expense" step="0.01" min="0" placeholder="0.00">
+          </div>
+          <div class="field" id="f-bank-expense-wrap" style="display:none;">
+            <label for="f-bank-expense">مبلغ مدفوع من الحساب البنكي (ر.س)</label>
+            <input type="number" id="f-bank-expense" step="0.01" min="0" placeholder="0.00">
           </div>
           <div class="field">
             <label for="f-cat">الفئة</label>
@@ -572,9 +638,18 @@
           </div>
         </div>
 
+        <h3 class="block-title" style="margin-top:20px;">المظهر</h3>
+        <div style="display:flex; gap:10px; margin-bottom:16px;">
+          <button type="button" class="theme-btn" data-theme-choice="dark" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌙 داكن</button>
+          <button type="button" class="theme-btn" data-theme-choice="midnight" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌌 أزرق ليلي</button>
+          <button type="button" class="theme-btn" data-theme-choice="light" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">☀ فاتح</button>
+        </div>
+
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
         <button type="button" class="submit" id="restoreBackupBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">⬆ استعادة من نسخة احتياطية</button>
         <input type="file" id="restoreBackupFile" accept="application/json" style="display:none;">
+        <button type="button" class="submit" id="cleanupSinceBackupBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🧹 حذف كل ما أُضيف بعد نسخة احتياطية</button>
+        <input type="file" id="cleanupSinceBackupFile" accept="application/json" style="display:none;">
         <button type="button" class="submit" id="notifToggleBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🔔 تفعيل تنبيهات المتصفح</button>
         <div class="audit-note" id="notifStatusNote" style="margin-top:8px;"></div>
       </section>
@@ -599,12 +674,18 @@
 
         <button type="button" class="submit" id="toggleDepositBtn" style="margin-bottom:14px;">+ عملية إيداع</button>
         <form id="depositForm" style="display:none; margin-bottom:22px;">
+          <div class="field"><label for="deposit-kind">نوع العملية</label>
+            <select id="deposit-kind">
+              <option value="to_bank">إيداع من الخزينة للحساب البنكي (ينقص الخزينة ويزيد البنك)</option>
+              <option value="cash_in">إضافة نقد للخزينة (نقد كان معي، يزيد الخزينة فقط)</option>
+            </select>
+          </div>
           <div class="row2">
             <div class="field"><label for="deposit-date">التاريخ *</label><input type="date" id="deposit-date" required></div>
             <div class="field"><label for="deposit-amount">المبلغ (ر.س) *</label><input type="number" step="0.01" min="0.01" id="deposit-amount" placeholder="0.00" required></div>
           </div>
           <div class="field"><label for="deposit-note">ملاحظة (اختياري)</label><input type="text" id="deposit-note" placeholder="مثلاً: أودعت بحساب المؤسسة"></div>
-          <button type="submit" class="submit" id="depositSubmitBtn">حفظ الإيداع</button>
+          <button type="submit" class="submit" id="depositSubmitBtn">حفظ</button>
         </form>
 
         <h3 class="block-title">الحركة الشهرية</h3>
@@ -645,6 +726,23 @@
         <div class="row2">
           <div class="field"><label for="rep-from">من تاريخ</label><input type="date" id="rep-from"></div>
           <div class="field"><label for="rep-to">إلى تاريخ</label><input type="date" id="rep-to"></div>
+        </div>
+
+        <h3 class="block-title" id="repCatToggle" style="cursor:pointer; user-select:none;">
+          تحديد فئات معيّنة (اختياري)
+          <span id="repCatChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <div id="repCatPanel" style="display:none; margin-bottom:18px;">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+            <button type="button" id="repCatSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+          </div>
+          <div class="field"><label>فئات الإيرادات</label>
+            <div id="repIncomeCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:180px; overflow-y:auto;"></div>
+          </div>
+          <div class="field"><label>فئات المصروفات</label>
+            <div id="repExpenseCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:180px; overflow-y:auto;"></div>
+          </div>
+          <button type="button" class="submit" id="repCatApplyBtn">تطبيق</button>
         </div>
 
         <div class="stat-row">
@@ -788,10 +886,10 @@
       <section id="page-bank" hidden>
         <div class="banner" id="bankReviewBanner" style="display:none;"></div>
 
-        <div class="stat-card" style="margin-bottom:18px; text-align:center; padding:22px;">
+        <div class="stat-card" id="bankBalanceCard" style="margin-bottom:18px; text-align:center; padding:22px; cursor:pointer;">
           <div class="label">رصيد الحساب البنكي الحالي</div>
           <div class="value" id="bankBalanceDisplay" style="font-size:28px; margin-top:4px;">0.00 ر.س</div>
-          <div class="audit-note" style="margin-top:6px;">مجموع الموازنات المؤكدة الاستلام + الحوالات الواردة − الحوالات الصادرة</div>
+          <div class="audit-note" style="margin-top:6px;">اضغط لعرض تفصيل الرصيد (كل التاريخ)</div>
         </div>
 
         <h3 class="block-title" id="settleFormToggle" style="cursor:pointer; user-select:none; margin-top:4px;">
@@ -817,7 +915,7 @@
         </form>
 
         <h3 class="block-title" id="transferFormToggle" style="cursor:pointer; user-select:none;">
-          حوالة بنكية
+          إضافة حوالة بنكية
           <span id="transferFormChevron" style="display:inline-block; transition:transform .2s;">▾</span>
         </h3>
         <form id="transferForm" style="display:none; margin-bottom:20px;">
@@ -836,14 +934,10 @@
           <button type="submit" class="submit" id="transferSubmitBtn">حفظ الحوالة</button>
         </form>
 
-        <h3 class="block-title">الموازنات</h3>
-        <input type="text" id="bankSearchInput" placeholder="ابحث بالتاريخ أو المبلغ…" style="width:100%; font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:14px;">
-        <div id="settleList"></div>
-        <div id="settleEmpty" class="empty" style="display:none;">لا توجد موازنات مسجّلة بعد.</div>
-
-        <h3 class="block-title">سجل التحويلات البنكية</h3>
-        <div id="transferList"></div>
-        <div id="transferEmpty" class="empty" style="display:none;">لا توجد حوالات مسجّلة بعد.</div>
+        <h3 class="block-title">السجل</h3>
+        <input type="text" id="bankSearchInput" placeholder="ابحث بالتاريخ أو المبلغ أو الاسم…" style="width:100%; font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:14px;">
+        <div id="bankRecordList"></div>
+        <div id="bankRecordEmpty" class="empty" style="display:none;">لا توجد موازنات أو حوالات مسجّلة بعد.</div>
       </section>
 
       <!-- ============ SUPPLIERS LIST ============ -->
@@ -986,6 +1080,14 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="infoModalOverlay">
+  <div class="modal-box" style="background:var(--panel); padding:20px; max-width:360px; width:90%; border-radius:16px;">
+    <div class="modal-close"><button type="button" id="infoModalCloseBtn">إغلاق ✕</button></div>
+    <h3 id="infoModalTitle" style="margin:0 0 14px; font-size:16px; font-weight:800; color:var(--ink);"></h3>
+    <div id="infoModalBody" style="max-height:60vh; overflow-y:auto;"></div>
+  </div>
+</div>
+
 <script>
 (function(){
   const DEFAULT_CATEGORIES = [
@@ -1058,7 +1160,17 @@
     return sign + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' ر.س';
   };
   const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-  const todayStr = () => new Date().toISOString().slice(0, 10);
+  // new Date(y,m,d) builds LOCAL midnight, but .toISOString() always converts
+  // to UTC — for Saudi Arabia (UTC+3) that shifts local midnight back into
+  // the previous day. Every "give me this date as YYYY-MM-DD" needs to read
+  // the LOCAL year/month/day directly instead.
+  function toLocalDateStr(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  const todayStr = () => toLocalDateStr(new Date());
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
   // Building a big report's HTML and then calling window.print() can take a
@@ -1321,6 +1433,28 @@
     });
   }
 
+  // ---------------- Theme ----------------
+
+  function currentTheme(){
+    return document.documentElement.getAttribute('data-theme') || 'dark';
+  }
+  function applyTheme(theme){
+    if(theme === 'dark') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', theme);
+    try{ localStorage.setItem('qayd_theme', theme); }catch(e){}
+    updateThemeButtonsUI();
+  }
+  function updateThemeButtonsUI(){
+    const active = currentTheme();
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-theme-choice') === active);
+    });
+  }
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyTheme(btn.getAttribute('data-theme-choice')));
+  });
+  updateThemeButtonsUI();
+
   function updateNotifStatusUI(){
     const btn = $('notifToggleBtn'); const note = $('notifStatusNote');
     if(typeof Notification === 'undefined'){
@@ -1524,6 +1658,7 @@
     }
     window.scrollTo(0,0);
     if(name === 'more') updateNotifStatusUI();
+    if(name === 'bank') bankBannerDismissed = false;
     renderCurrentPage();
   }
   document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-tab'))));
@@ -1557,7 +1692,7 @@
 
   function setDefaultDateRange(){
     const now = new Date();
-    $('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+    $('dateFrom').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
     $('dateTo').value = todayStr();
     highlightPreset('month');
   }
@@ -1566,8 +1701,8 @@
     btn.addEventListener('click', () => {
       const p = btn.getAttribute('data-preset'); const now = new Date();
       if(p === 'today'){ $('dateFrom').value = todayStr(); $('dateTo').value = todayStr(); }
-      else if(p === '7d'){ const d = new Date(); d.setDate(d.getDate() - 6); $('dateFrom').value = d.toISOString().slice(0,10); $('dateTo').value = todayStr(); }
-      else if(p === 'month'){ $('dateFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10); $('dateTo').value = todayStr(); }
+      else if(p === '7d'){ const d = new Date(); d.setDate(d.getDate() - 6); $('dateFrom').value = toLocalDateStr(d); $('dateTo').value = todayStr(); }
+      else if(p === 'month'){ $('dateFrom').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1)); $('dateTo').value = todayStr(); }
       else if(p === 'all'){ $('dateFrom').value = ''; $('dateTo').value = ''; }
       highlightPreset(p); renderCurrentPage();
     });
@@ -1592,6 +1727,7 @@
     $('typeExpenseBtn').classList.toggle('active', type === 'expense');
     $('f-cash-income-wrap').style.display = type === 'income' ? 'block' : 'none';
     $('f-cash-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
+    $('f-bank-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
     populateCategorySelect();
   }
   function usageCount(catId){ return state.transactions.filter(t => t.categoryId === catId && !t.voided).length; }
@@ -1746,33 +1882,98 @@
     state.bankTransfers.forEach(t => {
       bal += (t.direction === 'in' ? t.amount : -t.amount);
     });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount) return;
+      if(t.type === 'expense') bal -= t.bankAmount;
+    });
+    // Depositing cash into the bank doesn't vanish — it moves straight from
+    // the cash treasury into this same bank balance. Adding outside cash
+    // into the treasury (kind: cash_in) never touched the bank, so it's
+    // excluded here.
+    state.cashDeposits.forEach(d => { if(d.kind !== 'cash_in') bal += d.amount; });
     return bal;
   }
 
+  $('bankBalanceCard').addEventListener('click', () => {
+    let settleTotal = 0, transferTotal = 0, expenseDebits = 0, depositCredits = 0;
+    state.settlements.forEach(s => { if(s.bankReceived != null) settleTotal += s.bankReceived; });
+    state.bankTransfers.forEach(t => { transferTotal += (t.direction === 'in' ? t.amount : -t.amount); });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount || t.type !== 'expense') return;
+      expenseDebits += t.bankAmount;
+    });
+    state.cashDeposits.forEach(d => { if(d.kind !== 'cash_in') depositCredits += d.amount; });
+    const rows = [
+      { label: 'مجموع الموازنات المؤكدة', value: settleTotal, color: 'var(--income)' },
+      { label: 'صافي الحوالات البنكية', value: transferTotal, color: transferTotal >= 0 ? 'var(--income)' : 'var(--expense)' },
+      { label: 'إيداعات من الخزينة للبنك', value: depositCredits, color: 'var(--income)' },
+      { label: 'مصروفات مدفوعة من الحساب', value: -expenseDebits, color: 'var(--expense)' },
+    ];
+    openInfoModal('تفصيل الرصيد البنكي (كل التاريخ)', infoModalRowsHtml(rows));
+  });
+
   function renderBankPage(){
     $('bankBalanceDisplay').textContent = fmt(bankBalanceAllTime());
-    renderSettlementList();
-    renderBankTransferList();
+    renderBankRecordList();
   }
 
-  function renderSettlementList(){
-    const query = $('bankSearchInput').value.trim().toLowerCase();
-    let rows = [...state.settlements].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
-    const shortfalls = rows.filter(s => {
-      const { net } = settlementVisaFigures(s);
-      return s.bankReceived != null && s.bankReceived < (s.mada + net);
-    });
+  let settleDetailOpen = new Set();
 
+  function settlementEntryHtml(s){
+    const isConfirmed = s.bankReceived != null;
+    if(!isConfirmed) return settlementCardHtml(s);
+    if(!settleDetailOpen.has(s.id)){
+      const { net } = settlementVisaFigures(s);
+      const expected = s.mada + net;
+      const matched = s.status === 'matched';
+      const diff = s.bankReceived - expected;
+      const mismatchTag = Math.abs(diff) >= 0.01
+        ? `<span class="txn-tag" style="${diff < 0 ? 'border-color:var(--expense); color:var(--expense);' : 'border-color:#D9A227; color:#D9A227;'}">${diff < 0 ? 'ناقص ' + fmt(Math.abs(diff)) : 'زائد ' + fmt(diff)}</span>`
+        : '';
+      return `
+        <div class="audit-card" style="cursor:pointer;" data-toggle-settle-detail="${s.id}">
+          <div class="arow" style="margin-top:0;">
+            <span style="font-weight:700;">${s.date}</span>
+            <span style="display:flex; gap:6px;">
+              <span class="txn-tag" style="${matched ? 'border-color:var(--income); color:var(--income);' : 'border-color:var(--expense); color:var(--expense);'}">${matched ? 'متوافقة' : 'غير متوافقة'}</span>
+              ${mismatchTag}
+            </span>
+          </div>
+          <div class="arow"><span class="acc">الإجمالي</span><span class="amt">${fmt(expected)}</span></div>
+        </div>`;
+    }
+    return settlementCardHtml(s) + `<button type="button" class="cancel-edit-btn" data-collapse-settle-detail="${s.id}" style="margin:2px 0 14px;">طي التفاصيل</button>`;
+  }
+
+  let bankBannerDismissed = false;
+
+  function renderBankRecordList(){
+    const query = $('bankSearchInput').value.trim().toLowerCase();
+
+    const mismatches = state.settlements.filter(s => {
+      if(s.bankReceived == null) return false;
+      const { net } = settlementVisaFigures(s);
+      return Math.abs(s.bankReceived - (s.mada + net)) >= 0.01;
+    });
     const bannerEl = $('bankReviewBanner');
-    if(shortfalls.length){
+    if(mismatches.length && !bankBannerDismissed){
+      const shortCount = mismatches.filter(s => { const { net } = settlementVisaFigures(s); return s.bankReceived < (s.mada + net); }).length;
+      const overCount = mismatches.length - shortCount;
+      const parts = [];
+      if(shortCount) parts.push(`${shortCount} ${shortCount === 1 ? 'موازنة وصلها' : 'موازنات وصلها'} مبلغ أقل من المتوقع`);
+      if(overCount) parts.push(`${overCount} ${overCount === 1 ? 'موازنة وصلها' : 'موازنات وصلها'} مبلغ أكثر من المتوقع`);
       bannerEl.style.display = 'block';
-      bannerEl.innerHTML = `⚠ يوجد ${shortfalls.length} ${shortfalls.length === 1 ? 'موازنة' : 'موازنات'} وصل لها مبلغ أقل من المتوقع — أدخل المبلغ الصحيح بعد وصوله لإزالة التنبيه.`;
-    } else {
+      bannerEl.innerHTML = `⚠ يوجد ${parts.join(' و')} — افتح تفاصيلها لمراجعة الفرق وتصحيحه.<button type="button" class="banner-close" id="bankBannerCloseBtn">✕</button>`;
+      $('bankBannerCloseBtn').addEventListener('click', () => { bankBannerDismissed = true; bannerEl.style.display = 'none'; });
+    } else if(!mismatches.length) {
       bannerEl.style.display = 'none';
     }
 
+    let settleRows = [...state.settlements];
+    let transferRows = [...state.bankTransfers];
+
     if(query){
-      rows = rows.filter(s => {
+      settleRows = settleRows.filter(s => {
         const { net } = settlementVisaFigures(s);
         const expected = s.mada + net;
         const haystack = [s.date, s.mada, s.visa, expected, s.bankReceived]
@@ -1780,33 +1981,50 @@
           .map(String).join(' ').toLowerCase();
         return haystack.includes(query);
       });
+      transferRows = transferRows.filter(t => {
+        const haystack = [t.date, t.amount, t.name, t.reason]
+          .filter(v => v !== null && v !== undefined && v !== '')
+          .map(String).join(' ').toLowerCase();
+        return haystack.includes(query);
+      });
     }
 
-    const listEl = $('settleList');
-    if(!rows.length){
+    const listEl = $('bankRecordList');
+    if(!settleRows.length && !transferRows.length){
       listEl.innerHTML = '';
-      $('settleEmpty').style.display = 'block';
-      $('settleEmpty').textContent = query ? 'لا توجد موازنات مطابقة لبحثك.' : 'لا توجد موازنات مسجّلة بعد.';
+      $('bankRecordEmpty').style.display = 'block';
+      $('bankRecordEmpty').textContent = query ? 'لا توجد نتائج مطابقة لبحثك.' : 'لا توجد موازنات أو حوالات مسجّلة بعد.';
       return;
     }
-    $('settleEmpty').style.display = 'none';
+    $('bankRecordEmpty').style.display = 'none';
 
     const groups = {};
-    rows.forEach(s => { const m = s.date.slice(0,7); if(!groups[m]) groups[m] = []; groups[m].push(s); });
+    settleRows.forEach(s => {
+      const m = s.date.slice(0,7);
+      if(!groups[m]) groups[m] = [];
+      const { net } = settlementVisaFigures(s);
+      groups[m].push({ kind: 'settle', sortKey: s.date + '_' + s.createdAt, amount: s.mada + net, data: s });
+    });
+    transferRows.forEach(t => {
+      const m = t.date.slice(0,7);
+      if(!groups[m]) groups[m] = [];
+      groups[m].push({ kind: 'transfer', sortKey: t.date + '_' + t.createdAt, amount: t.direction === 'in' ? t.amount : -t.amount, data: t });
+    });
     const months = Object.keys(groups).sort().reverse();
 
     listEl.innerHTML = months.map(m => {
-      const items = groups[m];
-      const monthTotal = items.reduce((sum,s) => { const { net } = settlementVisaFigures(s); return sum + s.mada + net; }, 0);
+      const items = [...groups[m]].sort((a,b) => b.sortKey.localeCompare(a.sortKey));
+      const monthNet = items.reduce((sum,i) => sum + i.amount, 0);
       const isOpen = settleOpenMonths.has(m);
+      const detailHtml = items.map(i => i.kind === 'settle' ? settlementEntryHtml(i.data) : transferCardHtml(i.data)).join('');
       return `
         <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-settle-month="${m}">
             <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
-            <span class="txn-amt income">${fmt(monthTotal)}</span>
+            <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--expense)'};">${fmt(monthNet)}</span>
           </div>
-          <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-settle-month="${m}">${items.length} موازنة</div>
-          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${items.map(settlementCardHtml).join('')}</div>` : ''}
+          <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-settle-month="${m}">${items.length} عملية</div>
+          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${detailHtml}</div>` : ''}
         </div>`;
     }).join('');
 
@@ -1814,11 +2032,26 @@
       el.addEventListener('click', () => {
         const m = el.getAttribute('data-toggle-settle-month');
         if(settleOpenMonths.has(m)) settleOpenMonths.delete(m); else settleOpenMonths.add(m);
-        renderBankPage();
+        renderBankRecordList();
+      });
+    });
+    listEl.querySelectorAll('[data-toggle-settle-detail]').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settleDetailOpen.add(el.getAttribute('data-toggle-settle-detail'));
+        renderBankRecordList();
+      });
+    });
+    listEl.querySelectorAll('[data-collapse-settle-detail]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settleDetailOpen.delete(btn.getAttribute('data-collapse-settle-detail'));
+        renderBankRecordList();
       });
     });
     listEl.querySelectorAll('[data-confirm-received]').forEach(btn => {
-      btn.addEventListener('click', async () => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
         if(!hasPermission('confirm_settlement')){ alert('ليست لديك صلاحية تأكيد استلام الموازنة.'); return; }
         const id = btn.getAttribute('data-confirm-received');
         const input = listEl.querySelector(`[data-received-input="${id}"]`);
@@ -1834,23 +2067,26 @@
       });
     });
     listEl.querySelectorAll('[data-edit-received]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         editingReceivedIds.add(btn.getAttribute('data-edit-received'));
         renderBankPage();
       });
     });
     listEl.querySelectorAll('[data-cancel-edit]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         editingReceivedIds.delete(btn.getAttribute('data-cancel-edit'));
         renderBankPage();
       });
     });
     listEl.querySelectorAll('[data-hard-delete-settle]').forEach(btn => {
-      btn.addEventListener('click', () => hardDeleteSettlement(btn.getAttribute('data-hard-delete-settle')));
+      btn.addEventListener('click', (e) => { e.stopPropagation(); hardDeleteSettlement(btn.getAttribute('data-hard-delete-settle')); });
+    });
+    listEl.querySelectorAll('[data-hard-delete-transfer]').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); hardDeleteBankTransfer(btn.getAttribute('data-hard-delete-transfer')); });
     });
   }
-
-  let bankTransferOpenMonths = new Set();
 
   function transferCardHtml(t){
     const isIn = t.direction === 'in';
@@ -1875,48 +2111,7 @@
     }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
   }
 
-  function renderBankTransferList(){
-    const rows = [...state.bankTransfers].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
-    const listEl = $('transferList');
-    if(!rows.length){
-      listEl.innerHTML = '';
-      $('transferEmpty').style.display = 'block';
-      return;
-    }
-    $('transferEmpty').style.display = 'none';
-
-    const groups = {};
-    rows.forEach(t => { const m = t.date.slice(0,7); if(!groups[m]) groups[m] = []; groups[m].push(t); });
-    const months = Object.keys(groups).sort().reverse();
-
-    listEl.innerHTML = months.map(m => {
-      const items = groups[m];
-      const monthNet = items.reduce((sum,t) => sum + (t.direction === 'in' ? t.amount : -t.amount), 0);
-      const isOpen = bankTransferOpenMonths.has(m);
-      return `
-        <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-transfer-month="${m}">
-            <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
-            <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--expense)'};">${fmt(monthNet)}</span>
-          </div>
-          <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-transfer-month="${m}">${items.length} حوالة</div>
-          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${items.map(transferCardHtml).join('')}</div>` : ''}
-        </div>`;
-    }).join('');
-
-    listEl.querySelectorAll('[data-toggle-transfer-month]').forEach(el => {
-      el.addEventListener('click', () => {
-        const m = el.getAttribute('data-toggle-transfer-month');
-        if(bankTransferOpenMonths.has(m)) bankTransferOpenMonths.delete(m); else bankTransferOpenMonths.add(m);
-        renderBankTransferList();
-      });
-    });
-    listEl.querySelectorAll('[data-hard-delete-transfer]').forEach(btn => {
-      btn.addEventListener('click', () => hardDeleteBankTransfer(btn.getAttribute('data-hard-delete-transfer')));
-    });
-  }
-
-  $('bankSearchInput').addEventListener('input', () => { if(currentPage === 'bank') renderSettlementList(); });
+  $('bankSearchInput').addEventListener('input', () => { if(currentPage === 'bank') renderBankRecordList(); });
 
   $('settleFormToggle').addEventListener('click', () => {
     const open = $('settleForm').style.display === 'none';
@@ -2404,17 +2599,51 @@
 
   let repInited = false;
 
+  let reportSelectedCats = null; // null = all categories (default, unchanged behavior)
+
   function reportRows(){
     const from = $('rep-from').value, to = $('rep-to').value;
     return state.transactions
       .filter(t => !t.voided && (!from || t.date >= from) && (!to || t.date <= to))
+      .filter(t => !reportSelectedCats || reportSelectedCats.has(t.categoryId))
       .sort((a,b) => a.date.localeCompare(b.date));
   }
+
+  function populateReportCatPanel(){
+    const incomeCats = state.categories.filter(c => c.type === 'income').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    const expenseCats = state.categories.filter(c => c.type === 'expense').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    const rowHtml = c => `
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; cursor:pointer; border-bottom:1px solid var(--border);">
+        <input type="checkbox" data-rep-cat="${c.id}" style="width:auto;" ${(!reportSelectedCats || reportSelectedCats.has(c.id)) ? 'checked' : ''}>
+        ${escapeHtml(c.name)}
+      </label>`;
+    $('repIncomeCats').innerHTML = incomeCats.length ? incomeCats.map(rowHtml).join('') : '<div class="cat-empty">لا توجد فئات.</div>';
+    $('repExpenseCats').innerHTML = expenseCats.length ? expenseCats.map(rowHtml).join('') : '<div class="cat-empty">لا توجد فئات.</div>';
+  }
+
+  $('repCatToggle').addEventListener('click', () => {
+    const open = $('repCatPanel').style.display === 'none';
+    $('repCatPanel').style.display = open ? 'block' : 'none';
+    $('repCatChevron').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+    if(open) populateReportCatPanel();
+  });
+  $('repCatSelectAllBtn').addEventListener('click', () => {
+    const boxes = document.querySelectorAll('#repIncomeCats [data-rep-cat], #repExpenseCats [data-rep-cat]');
+    const allChecked = [...boxes].length > 0 && [...boxes].every(cb => cb.checked);
+    boxes.forEach(cb => { cb.checked = !allChecked; });
+  });
+  $('repCatApplyBtn').addEventListener('click', () => {
+    const allCatIds = state.categories.map(c => c.id);
+    const checked = new Set();
+    document.querySelectorAll('#repIncomeCats [data-rep-cat], #repExpenseCats [data-rep-cat]').forEach(cb => { if(cb.checked) checked.add(cb.getAttribute('data-rep-cat')); });
+    reportSelectedCats = (checked.size === allCatIds.length || checked.size === 0) ? null : checked;
+    renderReportsPage();
+  });
 
   function renderReportsPage(){
     if(!repInited){
       const now = new Date();
-      $('rep-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      $('rep-from').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
       $('rep-to').value = todayStr();
       repInited = true;
     }
@@ -2426,13 +2655,14 @@
     const net = income - expense;
     $('repNetTotal').textContent = fmt(net);
     $('repNetTotal').className = 'value ' + (net >= 0 ? 'income' : 'expense');
-    $('repRowCount').textContent = `${rows.length} قيد ضمن الفترة المحددة.`;
+    const scopeNote = reportSelectedCats ? ` (${reportSelectedCats.size} فئة محددة)` : '';
+    $('repRowCount').textContent = `${rows.length} قيد ضمن الفترة المحددة${scopeNote}.`;
   }
   $('rep-from').addEventListener('change', renderReportsPage);
   $('rep-to').addEventListener('change', renderReportsPage);
   $('repThisMonthBtn').addEventListener('click', () => {
     const now = new Date();
-    $('rep-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+    $('rep-from').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
     $('rep-to').value = todayStr();
     renderReportsPage();
   });
@@ -2440,8 +2670,8 @@
     const now = new Date();
     const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    $('rep-from').value = prevStart.toISOString().slice(0,10);
-    $('rep-to').value = prevEnd.toISOString().slice(0,10);
+    $('rep-from').value = toLocalDateStr(prevStart);
+    $('rep-to').value = toLocalDateStr(prevEnd);
     renderReportsPage();
   });
   $('repThisYearBtn').addEventListener('click', () => {
@@ -2451,23 +2681,33 @@
     renderReportsPage();
   });
 
+  function reportScopeLabel(){
+    if(reportSelectedCats && reportSelectedCats.size === 1){
+      const cat = state.categories.find(c => reportSelectedCats.has(c.id));
+      if(cat) return cat.name;
+    }
+    return 'تقرير مالي';
+  }
+
   $('exportExcelBtn').addEventListener('click', () => {
     const rows = reportRows();
     if(!rows.length){ alert('لا توجد قيود ضمن الفترة المحددة.'); return; }
     runPrintTask($('exportExcelBtn'), () => {
+    const catMap = {}; state.categories.forEach(c => { catMap[c.id] = c.name; });
+    const userMap = {}; state.users.forEach(u => { userMap[u.email] = u.name; });
     const data = rows.map(t => ({
       'التاريخ': t.date,
       'النوع': t.type === 'income' ? 'إيراد' : 'مصروف',
-      'الفئة': rowCatLabel(t),
+      'الفئة': catMap[t.categoryId] || t.categoryName || '(فئة محذوفة)',
       'الوصف': t.description || '',
       'المبلغ (شامل الضريبة)': t.amount,
       'ضريبة القيمة المضافة': vatOf(t.amount),
-      'أضافه': creatorName(t) || '',
+      'أضافه': t.createdBy ? (userMap[t.createdBy] || t.createdBy) : '',
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'التقرير');
-    XLSX.writeFile(wb, `تقرير_قيد_${$('rep-from').value}_إلى_${$('rep-to').value}.xlsx`);
+    XLSX.writeFile(wb, `${reportScopeLabel()}_${$('rep-from').value}_إلى_${$('rep-to').value}.xlsx`);
     });
   });
 
@@ -2476,21 +2716,28 @@
     const rows = reportRows();
     let income = 0, expense = 0;
     rows.forEach(t => { if(t.type === 'income') income += t.amount; else expense += t.amount; });
+    // Precompute lookups once instead of calling rowCatLabel()/creatorName()
+    // (each an O(n) find()) per row — with large imports this was the real
+    // cause of the page freezing while building the report.
+    const catMap = {}; state.categories.forEach(c => { catMap[c.id] = c.name; });
+    const userMap = {}; state.users.forEach(u => { userMap[u.email] = u.name; });
+    const fastCatLabel = t => catMap[t.categoryId] || t.categoryName || '(فئة محذوفة)';
+    const fastCreatorName = t => t.createdBy ? (userMap[t.createdBy] || t.createdBy) : '';
     const tableRows = rows.map(t => `
       <tr>
         <td>${t.date}</td>
         <td>${t.type === 'income' ? 'إيراد' : 'مصروف'}</td>
-        <td>${escapeHtml(rowCatLabel(t))}</td>
+        <td>${escapeHtml(fastCatLabel(t))}</td>
         <td>${escapeHtml(t.description || '')}</td>
         <td>${fmt(t.amount)}</td>
         <td>${fmt(vatOf(t.amount))}</td>
-        <td>${escapeHtml(creatorName(t) || '')}</td>
+        <td>${escapeHtml(fastCreatorName(t))}</td>
       </tr>`).join('');
     const now = new Date();
     return `
         <div class="rpt-header">
           <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
-          <div><div class="rpt-title">تقرير مالي</div><div class="rpt-meta">الفترة: ${$('rep-from').value} إلى ${$('rep-to').value}</div></div>
+          <div><div class="rpt-title">${escapeHtml(reportScopeLabel())}</div><div class="rpt-meta">الفترة: ${$('rep-from').value} إلى ${$('rep-to').value}</div></div>
         </div>
         <table style="margin-bottom:22px;">
           <tbody>
@@ -2600,7 +2847,7 @@
   function renderVatPage(){
     if(!vatInited){
       const now = new Date();
-      $('vat-from').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      $('vat-from').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
       $('vat-to').value = todayStr();
       // Default: select every category that exists right now.
       state.categories.filter(c => c.type === 'income').forEach(c => vatSelectedIncome.add(c.id));
@@ -2672,7 +2919,9 @@
         bal += (t.type === 'income' ? t.cashAmount : -t.cashAmount);
       }
     });
-    state.cashDeposits.forEach(d => { bal -= d.amount; });
+    state.cashDeposits.forEach(d => {
+      bal += (d.kind === 'cash_in' ? d.amount : -d.amount);
+    });
     return bal;
   }
 
@@ -2690,10 +2939,11 @@
       });
     });
     state.cashDeposits.forEach(d => {
+      const isCashIn = d.kind === 'cash_in';
       events.push({
-        id: d.id, depositId: d.id,
-        date: d.date, kind: 'deposit', amount: d.amount,
-        label: d.note ? d.note : 'إيداع بنكي',
+        id: d.id, depositId: d.id, depositKind: d.kind,
+        date: d.date, kind: isCashIn ? 'cashin' : 'deposit', amount: d.amount,
+        label: d.note ? d.note : (isCashIn ? 'إضافة نقد للخزينة' : 'إيداع بنكي'),
         sortKey: d.date + '_' + (d.createdAt || ''),
       });
     });
@@ -2707,7 +2957,9 @@
     if(!confirm('سيُحذف هذا الإيداع نهائياً ولن يظهر في أي سجل، ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟')) return;
     try{
       await db.collection('cashDeposits').doc(id).delete();
-      logActivity('hard_delete_cash_deposit', `حذف نهائياً إيداعاً بمبلغ ${fmt(d.amount)}`);
+      logActivity('hard_delete_cash_deposit', d.kind === 'cash_in'
+        ? `حذف نهائياً إضافة نقد بمبلغ ${fmt(d.amount)}`
+        : `حذف نهائياً إيداعاً بمبلغ ${fmt(d.amount)}`);
     }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
   }
 
@@ -2729,14 +2981,16 @@
       const netIn = items.filter(i => i.kind === 'in').reduce((s,i) => s + i.amount, 0);
       const netOut = items.filter(i => i.kind === 'out').reduce((s,i) => s + i.amount, 0);
       const netDeposit = items.filter(i => i.kind === 'deposit').reduce((s,i) => s + i.amount, 0);
-      const monthNet = netIn - netOut - netDeposit;
+      const netCashIn = items.filter(i => i.kind === 'cashin').reduce((s,i) => s + i.amount, 0);
+      const monthNet = netIn + netCashIn - netOut - netDeposit;
       const isOpen = cashOpenMonths.has(m);
       const rows = items.map(i => {
         const isDeposit = i.kind === 'deposit';
-        const colorClass = isDeposit ? '' : (i.kind === 'in' ? 'income' : 'expense');
-        const sign = isDeposit ? '\u2212' : (i.kind === 'in' ? '+' : '\u2212');
-        const tagLabel = isDeposit ? 'إيداع بنكي' : (i.kind === 'in' ? 'نقد وارد' : 'نقد صادر');
-        const deleteBtn = isDeposit ? `<button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-deposit="${i.id}">حذف نهائي</button>` : '';
+        const isCashIn = i.kind === 'cashin';
+        const colorClass = isDeposit ? '' : (i.kind === 'in' || isCashIn ? 'income' : 'expense');
+        const sign = isDeposit ? '\u2212' : '+';
+        const tagLabel = isDeposit ? 'إيداع بنكي' : isCashIn ? 'إضافة نقد للخزينة' : (i.kind === 'in' ? 'نقد وارد' : 'نقد صادر');
+        const deleteBtn = (isDeposit || isCashIn) ? `<button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-deposit="${i.id}">حذف نهائي</button>` : '';
         return `
           <div class="txn-card">
             <div class="txn-main">
@@ -2778,7 +3032,7 @@
       if(t.voided || !t.cashAmount) return;
       if(t.date < dateExclusiveBefore) bal += (t.type === 'income' ? t.cashAmount : -t.cashAmount);
     });
-    state.cashDeposits.forEach(d => { if(d.date < dateExclusiveBefore) bal -= d.amount; });
+    state.cashDeposits.forEach(d => { if(d.date < dateExclusiveBefore) bal += (d.kind === 'cash_in' ? d.amount : -d.amount); });
     return bal;
   }
 
@@ -2786,7 +3040,7 @@
   $('cashReportToggleBtn').addEventListener('click', () => {
     if(!cashReportInited){
       const now = new Date();
-      $('cashReportFrom').value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10);
+      $('cashReportFrom').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
       $('cashReportTo').value = todayStr();
       cashReportInited = true;
     }
@@ -2802,16 +3056,17 @@
       .sort((a,b) => a.sortKey.localeCompare(b.sortKey));
 
     const startBalance = from ? computeCashBalanceAsOf(from) : 0;
-    let totalIn = 0, totalOut = 0, totalDeposit = 0;
+    let totalIn = 0, totalOut = 0, totalDeposit = 0, totalCashIn = 0;
     const tableRows = events.map(e => {
       if(e.kind === 'in') totalIn += e.amount;
       else if(e.kind === 'out') totalOut += e.amount;
+      else if(e.kind === 'cashin') totalCashIn += e.amount;
       else totalDeposit += e.amount;
-      const label = e.kind === 'in' ? 'نقد وارد' : (e.kind === 'out' ? 'نقد صادر' : 'إيداع بنكي');
-      const sign = e.kind === 'in' ? '+' : '\u2212';
+      const label = e.kind === 'in' ? 'نقد وارد' : e.kind === 'out' ? 'نقد صادر' : e.kind === 'cashin' ? 'إضافة نقد للخزينة' : 'إيداع بنكي';
+      const sign = (e.kind === 'in' || e.kind === 'cashin') ? '+' : '\u2212';
       return `<tr><td>${e.date}</td><td>${escapeHtml(e.label)}</td><td>${label}</td><td>${sign} ${fmt(e.amount)}</td></tr>`;
     }).join('');
-    const endBalance = startBalance + totalIn - totalOut - totalDeposit;
+    const endBalance = startBalance + totalIn + totalCashIn - totalOut - totalDeposit;
 
     const now = new Date();
     return `
@@ -2825,6 +3080,7 @@
             <tr><td>إجمالي النقد الوارد</td><td style="font-weight:600;">${fmt(totalIn)}</td></tr>
             <tr><td>إجمالي النقد الصادر</td><td style="font-weight:600;">${fmt(totalOut)}</td></tr>
             <tr><td>إجمالي الإيداعات البنكية</td><td style="font-weight:600;">${fmt(totalDeposit)}</td></tr>
+            <tr><td>إجمالي النقد المُضاف للخزينة</td><td style="font-weight:600;">${fmt(totalCashIn)}</td></tr>
             <tr><td style="font-weight:700;">الرصيد النقدي في نهاية الفترة</td><td style="font-weight:700;">${fmt(endBalance)}</td></tr>
           </tbody>
         </table>
@@ -2849,16 +3105,19 @@
       const amount = parseFloat($('deposit-amount').value);
       if(!amount || amount <= 0) return;
       const note = $('deposit-note').value.trim();
+      const kind = $('deposit-kind').value; // 'to_bank' | 'cash_in'
       const deposit = {
-        id: uid(), date, amount: Math.round(amount*100)/100, note,
+        id: uid(), date, amount: Math.round(amount*100)/100, note, kind,
         createdAt: new Date().toISOString(), createdBy: currentUser ? currentUser.email : '',
       };
       state.cashDeposits.push(deposit);
-      $('deposit-amount').value = ''; $('deposit-note').value = ''; $('deposit-date').value = todayStr();
+      $('deposit-amount').value = ''; $('deposit-note').value = ''; $('deposit-date').value = todayStr(); $('deposit-kind').value = 'to_bank';
       $('depositForm').style.display = 'none';
       renderCashPage();
       persistCashDeposit(deposit);
-      logActivity('add_cash_deposit', `سجّل إيداعاً بنكياً بمبلغ ${fmt(deposit.amount)}`);
+      logActivity('add_cash_deposit', kind === 'cash_in'
+        ? `أضاف نقداً للخزينة بمبلغ ${fmt(deposit.amount)}`
+        : `سجّل إيداعاً بنكياً بمبلغ ${fmt(deposit.amount)}`);
     } finally { btn.disabled = false; }
   });
 
@@ -3315,6 +3574,85 @@
       : `تمت استعادة ${total} سجل بنجاح.`);
   });
 
+  // ---------------- Clean up: delete everything added after a backup ----------------
+  // The restore feature above only adds/overwrites, it never deletes — so by
+  // itself it can't undo an accidental bulk import. This compares a backup
+  // file against the live data and shows exactly what's new since then, for
+  // review before deleting (never a blind wipe, since the person may have
+  // also done legitimate work in the gap between the backup and the mistake).
+
+  let cleanupSelectedIds = new Set();
+
+  $('cleanupSinceBackupBtn').addEventListener('click', () => {
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية الحذف النهائي.'); return; }
+    $('cleanupSinceBackupFile').click();
+  });
+
+  $('cleanupSinceBackupFile').addEventListener('change', async () => {
+    const file = $('cleanupSinceBackupFile').files[0];
+    $('cleanupSinceBackupFile').value = '';
+    if(!file) return;
+    let data;
+    try{ data = JSON.parse(await file.text()); }
+    catch(e){ alert('تعذّرت قراءة الملف — تأكد أنه ملف النسخة الاحتياطية الصحيح (JSON).'); return; }
+
+    const backupTxnIds = new Set((Array.isArray(data.transactions) ? data.transactions : []).map(t => t.id));
+    const newSince = state.transactions
+      .filter(t => !backupTxnIds.has(t.id))
+      .sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+
+    if(!newSince.length){
+      openInfoModal('تنظيف منذ النسخة الاحتياطية', '<div class="empty" style="padding:14px 0;">ما فيه أي قيد مضاف بعد هذي النسخة الاحتياطية — لا شيء يحتاج حذف.</div>');
+      return;
+    }
+    showCleanupReview(newSince, data.exportedAt);
+  });
+
+  function showCleanupReview(items, exportedAt){
+    cleanupSelectedIds = new Set(items.map(t => t.id));
+    const exportedLabel = exportedAt ? new Date(exportedAt).toLocaleString('ar-SA') : 'غير معروف';
+    const total = items.reduce((s,t) => s + t.amount, 0);
+    const rows = items.map(t => `
+      <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
+        <input type="checkbox" data-cleanup-cb="${t.id}" checked style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
+        <span>${t.type === 'income' ? 'إيراد' : 'مصروف'} · ${escapeHtml(rowCatLabel(t))} · ${fmt(t.amount)} · ${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}</span>
+      </label>`).join('');
+    const body = `
+      <div class="audit-note" style="margin-bottom:12px;">
+        النسخة الاحتياطية بتاريخ تصدير ${exportedLabel}. لقيت ${items.length} قيد مضاف بعدها (بمجموع ${fmt(total)}) — كلها محددة افتراضياً. راجعها وشيل أي قيد سليم تبي تحتفظ فيه (مثلاً شي سجّلته صح بعد أخذ النسخة وقبل رفع الملف الغلط) قبل ما تحذف.
+      </div>
+      <div id="cleanupList" style="max-height:45vh; overflow-y:auto; margin-bottom:12px;">${rows}</div>
+      <button type="button" class="submit" id="cleanupDeleteBtn" style="width:100%; background:var(--expense);">حذف المحدد (<span id="cleanupSelCount">${items.length}</span>)</button>
+    `;
+    openInfoModal('تنظيف منذ النسخة الاحتياطية', body);
+    document.querySelectorAll('[data-cleanup-cb]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.getAttribute('data-cleanup-cb');
+        if(cb.checked) cleanupSelectedIds.add(id); else cleanupSelectedIds.delete(id);
+        $('cleanupSelCount').textContent = cleanupSelectedIds.size;
+      });
+    });
+    $('cleanupDeleteBtn').addEventListener('click', confirmCleanupDelete);
+  }
+
+  async function confirmCleanupDelete(){
+    if(!cleanupSelectedIds.size) return;
+    const ids = [...cleanupSelectedIds];
+    const items = ids.map(id => state.transactions.find(t => t.id === id)).filter(Boolean);
+    const total = items.reduce((s,t) => s + t.amount, 0);
+    const typed = prompt(`سيتم حذف ${ids.length} قيد نهائياً (بمجموع ${fmt(total)}) — لا رجعة فيه إطلاقاً.\n\nللتأكيد، اكتب الرقم ${ids.length} بالضبط ثم اضغط موافق:`);
+    if(typed === null) return;
+    if(typed.trim() !== String(ids.length)){ alert('الرقم غير مطابق — تم إلغاء الحذف لحمايتك.'); return; }
+    let count = 0, failed = 0;
+    for(const id of ids){
+      try{ await db.collection('transactions').doc(id).delete(); count++; }
+      catch(e){ console.error(e); failed++; }
+    }
+    logActivity('cleanup_since_backup', `حذف ${count} قيد غير موجود بالنسخة الاحتياطية (تنظيف)`);
+    closeInfoModal();
+    alert(failed ? `تم حذف ${count} قيد، وفشل حذف ${failed}.` : `تم حذف ${count} قيد نهائياً.`);
+  }
+
   // Firestore rejects any single document over ~1 MiB. Base64-encoding a raw
   // file inflates its size by roughly a third, and the record has other
   // fields on top of the attachment — so keep the encoded attachment
@@ -3453,15 +3791,27 @@
 
   function renderHome(list){
     renderReminderAlerts();
-    const cash = cashBalance(list);
     const { income, expense } = totals(list);
     $('dashIncomeTotal').textContent = fmt(income);
     $('dashExpenseTotal').textContent = fmt(expense);
-    $('dashNetTotal').textContent = fmt(cash);
-    $('dashNetTotal').style.color = cash >= 0 ? 'var(--income)' : 'var(--expense)';
     $('dashCashTotal').textContent = fmt(cashBalanceAllTime());
 
     const bFrom = $('dateFrom').value, bTo = $('dateTo').value;
+
+    let payrollTotal = 0;
+    state.payrollEntries.forEach(p => {
+      const { from: mFrom, to: mTo } = monthRange(p.month);
+      if(bFrom && mTo < bFrom) return;
+      if(bTo && mFrom > bTo) return;
+      payrollTotal += p.salary + p.commission - p.deduction;
+    });
+    $('dashPayrollTotal').textContent = fmt(payrollTotal);
+
+    // الرواتب تُحسب مصروفاً أيضاً، فصافي الفترة يطرحها زي ما تُطرح المصروفات العادية.
+    const net = income - expense - payrollTotal;
+    $('dashNetTotal').textContent = fmt(net);
+    $('dashNetTotal').style.color = net >= 0 ? 'var(--income)' : 'var(--expense)';
+
     let bankNet = 0;
     state.settlements.forEach(s => {
       if(s.bankReceived == null) return;
@@ -3474,17 +3824,20 @@
       if(bTo && t.date > bTo) return;
       bankNet += (t.direction === 'in' ? t.amount : -t.amount);
     });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount || t.type !== 'expense') return;
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      bankNet -= t.bankAmount;
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      if(bFrom && d.date < bFrom) return;
+      if(bTo && d.date > bTo) return;
+      bankNet += d.amount;
+    });
     $('dashBankTotal').textContent = fmt(bankNet);
     $('dashBankTotal').style.color = bankNet >= 0 ? 'var(--income)' : 'var(--expense)';
-
-    let payrollTotal = 0;
-    state.payrollEntries.forEach(p => {
-      const { from: mFrom, to: mTo } = monthRange(p.month);
-      if(bFrom && mTo < bFrom) return;
-      if(bTo && mFrom > bTo) return;
-      payrollTotal += p.salary + p.commission - p.deduction;
-    });
-    $('dashPayrollTotal').textContent = fmt(payrollTotal);
 
     renderChart(list);
     renderDashboardActivity(list);
@@ -3549,7 +3902,7 @@
     if(byDay){
       let d = new Date(minDate); const end = new Date(maxDate);
       while(d <= end){
-        const key = d.toISOString().slice(0,10);
+        const key = toLocalDateStr(d);
         buckets[key] = { income: 0, expense: 0, label: String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') };
         order.push(key); d.setDate(d.getDate() + 1);
       }
@@ -3596,17 +3949,20 @@
   function defaultEntryFilter(){ return { from: '', to: '', min: '', max: '', search: '', creator: '', hideVoided: false, categories: null }; }
   let entryFilters = { income: defaultEntryFilter(), expense: defaultEntryFilter() };
   let entryOpenMonths = { income: new Set(), expense: new Set() };
+  let selectedForDelete = { income: new Set(), expense: new Set() };
 
   function typeIds(type){
     return type === 'income'
-      ? { monthList:'incomeMonthList', empty:'incomeEmpty',
+      ? { monthList:'incomeMonthList', empty:'incomeEmpty', bulkBar:'incomeBulkBar',
           filterBtn:'incomeFilterToggleBtn', panel:'incomeFilterPanel', from:'incomeFilterFrom', to:'incomeFilterTo',
           min:'incomeFilterMin', max:'incomeFilterMax', search:'incomeFilterSearch', creator:'incomeFilterCreator',
-          voided:'incomeFilterHideVoided', cats:'incomeFilterCats', apply:'incomeFilterApplyBtn', reset:'incomeFilterResetBtn' }
-      : { monthList:'expenseMonthList', empty:'expenseEmpty',
+          voided:'incomeFilterHideVoided', cats:'incomeFilterCats', apply:'incomeFilterApplyBtn', reset:'incomeFilterResetBtn',
+          selectAll:'incomeFilterSelectAllBtn' }
+      : { monthList:'expenseMonthList', empty:'expenseEmpty', bulkBar:'expenseBulkBar',
           filterBtn:'expenseFilterToggleBtn', panel:'expenseFilterPanel', from:'expenseFilterFrom', to:'expenseFilterTo',
           min:'expenseFilterMin', max:'expenseFilterMax', search:'expenseFilterSearch', creator:'expenseFilterCreator',
-          voided:'expenseFilterHideVoided', cats:'expenseFilterCats', apply:'expenseFilterApplyBtn', reset:'expenseFilterResetBtn' };
+          voided:'expenseFilterHideVoided', cats:'expenseFilterCats', apply:'expenseFilterApplyBtn', reset:'expenseFilterResetBtn',
+          selectAll:'expenseFilterSelectAllBtn' };
   }
 
   function filterEntries(type){
@@ -3645,17 +4001,24 @@
     creatorSel.innerHTML = '<option value="">الكل</option>' + state.users.map(u => `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)}</option>`).join('');
     creatorSel.value = f.creator || '';
 
+    // Categories always start unchecked when the panel opens — picking just
+    // the few you want is much faster than unchecking everything else.
+    // "تحديد الكل" below is there for when you do want all of them.
     const cats = state.categories.filter(c => c.type === type).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    const selected = f.categories; // null = all selected
     $(ids.cats).innerHTML = cats.length ? cats.map(c => `
       <label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; cursor:pointer; border-bottom:1px solid var(--border);">
-        <input type="checkbox" data-filter-cat="${c.id}" style="width:auto;" ${(!selected || selected.has(c.id)) ? 'checked' : ''}>
+        <input type="checkbox" data-filter-cat="${c.id}" style="width:auto;">
         ${escapeHtml(c.name)}
       </label>`).join('') : '<div class="cat-empty">لا توجد تصنيفات.</div>';
   }
 
   ['income', 'expense'].forEach(type => {
     const ids = typeIds(type);
+    $(ids.selectAll).addEventListener('click', () => {
+      const boxes = document.querySelectorAll(`#${ids.cats} [data-filter-cat]`);
+      const allChecked = [...boxes].length > 0 && [...boxes].every(cb => cb.checked);
+      boxes.forEach(cb => { cb.checked = !allChecked; });
+    });
     $(ids.filterBtn).addEventListener('click', () => {
       const panel = $(ids.panel);
       const open = panel.style.display === 'none';
@@ -3694,13 +4057,80 @@
     }catch(e){ console.error(e); showBanner('تعذّر حذف القيد: ' + e.message); }
   }
 
+  function updateBulkBar(type){
+    const ids = typeIds(type);
+    const list = filterEntries(type);
+    const selected = selectedForDelete[type];
+    // Drop any selected ids that fell out of the current filter (e.g. after
+    // changing the filter), so the count shown is always accurate.
+    const validIds = new Set(list.map(t => t.id));
+    [...selected].forEach(id => { if(!validIds.has(id)) selected.delete(id); });
+
+    if(!hasPermission('delete_entries') || !list.length){ $(ids.bulkBar).innerHTML = ''; return; }
+
+    const selectedCount = selected.size;
+    const selectedTotal = list.filter(t => selected.has(t.id) && !t.voided).reduce((s,t) => s + t.amount, 0);
+    const allSelected = list.length > 0 && list.every(t => selected.has(t.id));
+    $(ids.bulkBar).innerHTML = `
+      <div class="audit-note" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
+        <span>${selectedCount} محدد من ${list.length}${selectedCount ? ' (' + fmt(selectedTotal) + ')' : ''}</span>
+        <span style="display:flex; gap:6px;">
+          <button type="button" data-bulk-select-all="${type}" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 11px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">${allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل'}</button>
+          <button type="button" data-bulk-delete-selected="${type}" ${selectedCount ? '' : 'disabled'} style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 11px; border-radius:14px; border:1px solid var(--expense); background:transparent; color:var(--expense); cursor:pointer; opacity:${selectedCount ? '1' : '0.45'};">حذف المحدد</button>
+        </span>
+      </div>`;
+    $(ids.bulkBar).querySelector('[data-bulk-select-all]').addEventListener('click', () => bulkSelectAllToggle(type));
+    if(selectedCount){
+      $(ids.bulkBar).querySelector('[data-bulk-delete-selected]').addEventListener('click', () => bulkDeleteSelected(type));
+    }
+  }
+
+  function bulkSelectAllToggle(type){
+    const ids = typeIds(type);
+    const list = filterEntries(type);
+    const selected = selectedForDelete[type];
+    const allSelected = list.length > 0 && list.every(t => selected.has(t.id));
+    if(allSelected) list.forEach(t => selected.delete(t.id));
+    else list.forEach(t => selected.add(t.id));
+    document.querySelectorAll(`#${ids.monthList} [data-bulk-select]`).forEach(cb => {
+      cb.checked = selected.has(cb.getAttribute('data-bulk-select'));
+    });
+    updateBulkBar(type);
+  }
+
+  async function bulkDeleteSelected(type){
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية حذف القيود نهائياً.'); return; }
+    const ids = typeIds(type);
+    const selected = selectedForDelete[type];
+    const list = filterEntries(type).filter(t => selected.has(t.id));
+    if(!list.length) return;
+    const total = list.filter(t => !t.voided).reduce((s,t) => s + t.amount, 0);
+    const typed = prompt(`سيتم حذف ${list.length} قيد محدد نهائياً (بمجموع ${fmt(total)}) — هذا الإجراء لا رجعة فيه إطلاقاً ولا يمكن التراجع عنه.\n\nللتأكيد، اكتب الرقم ${list.length} بالضبط ثم اضغط موافق:`);
+    if(typed === null) return;
+    if(typed.trim() !== String(list.length)){
+      alert('الرقم غير مطابق — تم إلغاء الحذف الجماعي لحمايتك.');
+      return;
+    }
+    let count = 0, failed = 0;
+    for(const t of list){
+      try{ await db.collection('transactions').doc(t.id).delete(); selected.delete(t.id); count++; }
+      catch(e){ console.error(e); failed++; }
+    }
+    logActivity('bulk_hard_delete', `حذف نهائياً ${count} قيد محدد (${type === 'income' ? 'إيرادات' : 'مصروفات'})`);
+    alert(failed ? `تم حذف ${count} قيد، وفشل حذف ${failed} — تحقق من اتصال الإنترنت وحاول مرة أخرى لما تبقّى.` : `تم حذف ${count} قيد نهائياً.`);
+  }
+
   function entryRowHtml(t){
     const sign = t.type === 'income' ? '+' : '\u2212';
     const amtClass = t.type === 'income' ? 'income' : 'expense';
     const canVoid = !t.voided && !t.isReversal;
     const thumb = t.receipt ? `<button type="button" class="txn-thumb" style="background-image:url('${t.receipt}')" data-view="${t.id}" title="عرض صورة الفاتورة"></button>` : '<div class="txn-thumb" style="opacity:0.25;"></div>';
+    const checkbox = hasPermission('delete_entries')
+      ? `<input type="checkbox" class="bulk-select-cb" data-bulk-select="${t.id}" ${selectedForDelete[t.type].has(t.id) ? 'checked' : ''} style="width:19px; height:19px; align-self:center; flex-shrink:0; accent-color:var(--expense);">`
+      : '';
     return `
       <div class="txn-card${t.voided ? ' void-card' : ''}">
+        ${checkbox}
         ${thumb}
         <div class="txn-main">
           <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
@@ -3727,11 +4157,14 @@
     const holder = $(ids.monthList);
     if(!months.length){
       holder.innerHTML = '';
+      $(ids.bulkBar).innerHTML = '';
       $(ids.empty).style.display = 'block';
       $(ids.empty).textContent = 'لا توجد قيود مطابقة للتصفية الحالية.';
       return;
     }
     $(ids.empty).style.display = 'none';
+
+    updateBulkBar(type);
 
     holder.innerHTML = months.map(m => {
       const entries = [...groups[m]].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
@@ -3770,6 +4203,14 @@
       const t = state.transactions.find(t => t.id === btn.getAttribute('data-view'));
       if(t && t.receipt) openModal(t.receipt);
     }));
+    holder.querySelectorAll('[data-bulk-select]').forEach(cb => {
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', () => {
+        const id = cb.getAttribute('data-bulk-select');
+        if(cb.checked) selectedForDelete[type].add(id); else selectedForDelete[type].delete(id);
+        updateBulkBar(type);
+      });
+    });
   }
 
   function printEntryMonth(type, month){
@@ -3858,6 +4299,7 @@
       id: uid(), date: todayStr(), description: 'قيد عكسي لـ: ' + (original.description || rowCatLabel(original)),
       categoryId: original.categoryId, categoryName: original.categoryName || rowCatLabel(original), amount: original.amount,
       cashAmount: original.cashAmount || 0,
+      bankAmount: original.bankAmount || 0,
       type: original.type === 'income' ? 'expense' : 'income',
       createdAt: new Date().toISOString(),
       isReversal: true, reversesId: original.id, voided: false, receipt: null,
@@ -3920,6 +4362,319 @@
   $('modalCloseBtn').addEventListener('click', closeModal);
   $('modalOverlay').addEventListener('click', (e) => { if(e.target.id === 'modalOverlay') closeModal(); });
 
+  // ---------------- Duplicate detection (expenses) ----------------
+
+  let dupSelectedIds = new Set();
+
+  $('findDuplicatesBtn').addEventListener('click', () => {
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية الحذف النهائي.'); return; }
+    showDuplicateCategoryPicker();
+  });
+
+  function showDuplicateCategoryPicker(){
+    const expCats = state.categories.filter(c => c.type === 'expense').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    const defaultCat = expCats.find(c => c.name.includes('قطع غيار'));
+    const body = `
+      <div class="audit-note" style="margin-bottom:12px;">يبحث عن قيود متطابقة تماماً بنفس التصنيف، نفس المبلغ، ونفس الوصف (اللي يحتوي عادة اسم المورد ورقم الفاتورة).</div>
+      <div class="field"><label for="dupCatSelect">التصنيف</label>
+        <select id="dupCatSelect">
+          <option value="">كل فئات المصروفات</option>
+          ${expCats.map(c => `<option value="${c.id}" ${defaultCat && c.id === defaultCat.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+      </div>
+      <button type="button" class="submit" id="dupScanBtn" style="width:100%; margin-top:6px;">ابحث عن تكرارات</button>
+    `;
+    openInfoModal('كشف التكرارات', body);
+    $('dupScanBtn').addEventListener('click', () => scanAndShowDuplicates($('dupCatSelect').value));
+  }
+
+  function scanAndShowDuplicates(catId){
+    const list = state.transactions.filter(t => t.type === 'expense' && !t.voided && (!catId || t.categoryId === catId));
+    const groups = {};
+    list.forEach(t => {
+      // Match on category + amount only — the description also carries the
+      // invoice number, and matching the whole thing was too strict: two
+      // genuine duplicates can have slightly different invoice-number text
+      // (typo, extra space) and still be the exact same purchase. Showing
+      // every same-amount candidate for visual review is safer than silently
+      // missing real duplicates.
+      const key = t.categoryId + '|' + t.amount;
+      if(!groups[key]) groups[key] = [];
+      groups[key].push(t);
+    });
+    const dupGroups = Object.values(groups).filter(g => g.length >= 2);
+    if(!dupGroups.length){
+      openInfoModal('كشف التكرارات', '<div class="empty" style="padding:14px 0;">ما لقيت أي تكرار مطابق (نفس التصنيف + نفس المبلغ) ضمن هذا النطاق.</div>');
+      return;
+    }
+    renderDuplicateResults(dupGroups);
+  }
+
+  function renderDuplicateResults(dupGroups){
+    dupSelectedIds = new Set();
+    // Nothing pre-selected: matching is now by amount + category only (see
+    // above), so a group can contain genuinely different purchases that
+    // just happen to share an amount. Only the person reviewing the actual
+    // descriptions below should decide what's a real duplicate.
+    const totalDupCount = dupGroups.reduce((s,g) => s + g.length, 0);
+    const groupsHtml = dupGroups.map(g => {
+      const sorted = [...g].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+      const rows = sorted.map((t,i) => `
+        <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
+          <input type="checkbox" data-dup-cb="${t.id}" style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
+          <span>${escapeHtml(t.description || rowCatLabel(t))} — ${t.date}${i === 0 ? ' (الأقدم)' : ''}</span>
+        </label>`).join('');
+      return `
+        <div class="audit-card" style="margin-bottom:10px;">
+          <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${escapeHtml(rowCatLabel(g[0]))}</span><span class="amt">${fmt(g[0].amount)}</span></div>
+          <div class="meta" style="margin-bottom:6px;">${g.length} قيد بنفس المبلغ — راجع الوصف قبل التحديد</div>
+          ${rows}
+        </div>`;
+    }).join('');
+    const body = `
+      <div class="audit-note" style="margin-bottom:12px;">
+        لقيت ${dupGroups.length} مجموعة بنفس المبلغ والتصنيف (${totalDupCount} قيد إجمالي). ما حدد لك شي تلقائياً — راجع كل وصف وحدّد يدوياً اللي تأكدت إنه تكرار فعلي قبل الحذف.
+      </div>
+      <div id="dupGroupsList" style="max-height:40vh; overflow-y:auto; margin-bottom:12px;">${groupsHtml}</div>
+      <button type="button" class="submit" id="dupDeleteBtn" style="width:100%; background:var(--expense);">حذف المحدد (<span id="dupSelCount">${dupSelectedIds.size}</span>)</button>
+    `;
+    openInfoModal('نتائج كشف التكرارات', body);
+    document.querySelectorAll('[data-dup-cb]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const id = cb.getAttribute('data-dup-cb');
+        if(cb.checked) dupSelectedIds.add(id); else dupSelectedIds.delete(id);
+        $('dupSelCount').textContent = dupSelectedIds.size;
+      });
+    });
+    $('dupDeleteBtn').addEventListener('click', confirmDeleteDuplicates);
+  }
+
+  async function confirmDeleteDuplicates(){
+    if(!dupSelectedIds.size) return;
+    const ids = [...dupSelectedIds];
+    const items = ids.map(id => state.transactions.find(t => t.id === id)).filter(Boolean);
+    const total = items.reduce((s,t) => s + t.amount, 0);
+    const typed = prompt(`سيتم حذف ${ids.length} قيد مكرر نهائياً (بمجموع ${fmt(total)}) — لا رجعة فيه إطلاقاً.\n\nللتأكيد، اكتب الرقم ${ids.length} بالضبط ثم اضغط موافق:`);
+    if(typed === null) return;
+    if(typed.trim() !== String(ids.length)){ alert('الرقم غير مطابق — تم إلغاء الحذف لحمايتك.'); return; }
+    let count = 0, failed = 0;
+    for(const id of ids){
+      try{ await db.collection('transactions').doc(id).delete(); count++; }
+      catch(e){ console.error(e); failed++; }
+    }
+    logActivity('delete_duplicates', `حذف ${count} قيد مكرر عبر أداة كشف التكرارات`);
+    closeInfoModal();
+    alert(failed ? `تم حذف ${count} قيد، وفشل حذف ${failed}.` : `تم حذف ${count} قيد مكرر بنجاح.`);
+  }
+
+  // ---------------- Excel import (expenses) ----------------
+
+  let pendingImportRows = null;
+
+  function parseExcelDate(val){
+    if(val instanceof Date && !isNaN(val)) return toLocalDateStr(val);
+    if(typeof val === 'string'){
+      const s = val.trim();
+      let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+      m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    }
+    return null;
+  }
+
+  function findExcelKey(rowObj, keywords){
+    const keys = Object.keys(rowObj);
+    for(const kw of keywords){
+      const found = keys.find(k => k.includes(kw));
+      if(found) return found;
+    }
+    return null;
+  }
+
+  $('importExcelBtn').addEventListener('click', () => {
+    if(!hasPermission('add_expense')){ alert('ليست لديك صلاحية لإضافة مصروف.'); return; }
+    $('importExcelFile').click();
+  });
+
+  $('importExcelFile').addEventListener('change', async () => {
+    const file = $('importExcelFile').files[0];
+    $('importExcelFile').value = '';
+    if(!file) return;
+    try{
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' });
+      processImportRows(rawRows);
+    }catch(e){
+      console.error(e);
+      alert('تعذّرت قراءة ملف Excel — تأكد من صيغة الملف.');
+    }
+  });
+
+  function processImportRows(rawRows){
+    if(!rawRows.length){ alert('الملف فارغ أو لا يحتوي بيانات صالحة.'); return; }
+    const sample = rawRows[0];
+    const dateKey = findExcelKey(sample, ['تاريخ']);
+    const supplierKey = findExcelKey(sample, ['مورد']);
+    const invKey = findExcelKey(sample, ['رقم']);
+    const amtKey = findExcelKey(sample, ['قيمة', 'مبلغ']);
+
+    if(!dateKey || !amtKey){
+      alert('تعذّر التعرف على أعمدة الملف. تأكد من وجود عمود عنوانه "تاريخ" وعمود عنوانه "قيمة" أو "مبلغ" بالصف الأول على الأقل.');
+      return;
+    }
+
+    const parsed = [];
+    let invalidCount = 0;
+    rawRows.forEach(r => {
+      const dateVal = parseExcelDate(r[dateKey]);
+      const amount = parseFloat(String(r[amtKey]).replace(/,/g, ''));
+      if(!dateVal || !amount || amount <= 0){ invalidCount++; return; }
+      parsed.push({
+        date: dateVal,
+        supplier: supplierKey ? String(r[supplierKey] || '').trim() : '',
+        invoiceNumber: invKey ? String(r[invKey] || '').trim() : '',
+        amount: Math.round(amount * 100) / 100,
+      });
+    });
+
+    if(!parsed.length){ alert('ما قدرت ألقى أي صف صالح بالملف — تأكد من التواريخ والقيم.'); return; }
+
+    pendingImportRows = parsed;
+    showImportPreview(parsed, invalidCount);
+  }
+
+  function showImportPreview(rows, invalidCount){
+    const total = rows.reduce((s,r) => s + r.amount, 0);
+    const expCats = state.categories.filter(c => c.type === 'expense').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    const defaultCat = expCats.find(c => c.name.includes('قطع غيار')) || expCats[0];
+    const body = `
+      <div class="audit-note" style="margin-bottom:14px;">
+        وجدت ${rows.length} فاتورة صالحة بمجموع ${fmt(total)}${invalidCount ? `، وتجاهلت ${invalidCount} صف ناقص البيانات` : ''}.
+      </div>
+      <div class="field"><label for="importCatSelect">التصنيف</label>
+        <select id="importCatSelect">${expCats.map(c => `<option value="${c.id}" ${defaultCat && c.id === defaultCat.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label for="importPaymentSelect">طريقة الدفع لكل فواتير هذا الملف</label>
+        <select id="importPaymentSelect">
+          <option value="none">غير محدد (لا يخصم من البنك أو الخزينة)</option>
+          <option value="cash">نقد (يخصم من الخزينة النقدية)</option>
+          <option value="bank">بنكي (يخصم من الحساب البنكي)</option>
+        </select>
+      </div>
+      <button type="button" class="submit" id="confirmImportBtn" style="width:100%; margin-top:6px;">استيراد ${rows.length} فاتورة</button>
+    `;
+    openInfoModal('معاينة الاستيراد', body);
+    $('confirmImportBtn').addEventListener('click', confirmImport);
+  }
+
+  async function confirmImport(){
+    if(!pendingImportRows || !pendingImportRows.length) return;
+    const catId = $('importCatSelect').value;
+    const catObj = state.categories.find(c => c.id === catId);
+    const payment = $('importPaymentSelect').value;
+    const btn = $('confirmImportBtn'); btn.disabled = true; btn.textContent = 'جارٍ الاستيراد…';
+    const rows = pendingImportRows;
+    let count = 0;
+    for(const r of rows){
+      const cashAmount = payment === 'cash' ? r.amount : 0;
+      const bankAmount = payment === 'bank' ? r.amount : 0;
+      const desc = [r.invoiceNumber ? `فاتورة رقم ${r.invoiceNumber}` : '', r.supplier].filter(Boolean).join(' - ');
+      const txn = {
+        id: uid(), date: r.date, description: desc, categoryId: catId, categoryName: catObj ? catObj.name : '',
+        amount: r.amount, cashAmount, bankAmount,
+        type: 'expense', createdAt: new Date().toISOString(),
+        createdBy: currentUser ? currentUser.email : '',
+        isReversal: false, voided: false, receipt: null,
+      };
+      state.transactions.push(txn);
+      await persistTransaction(txn);
+      count++;
+    }
+    renderCurrentPage();
+    logActivity('import_excel_expenses', `استورد ${count} فاتورة مصروف من ملف Excel (تصنيف: ${catObj ? catObj.name : ''})`);
+    pendingImportRows = null;
+    closeInfoModal();
+    alert(`تم استيراد ${count} فاتورة بنجاح.`);
+  }
+
+  function openInfoModal(title, bodyHtml){
+    $('infoModalTitle').textContent = title;
+    $('infoModalBody').innerHTML = bodyHtml;
+    $('infoModalOverlay').classList.add('open');
+  }
+  function closeInfoModal(){ $('infoModalOverlay').classList.remove('open'); }
+  $('infoModalCloseBtn').addEventListener('click', closeInfoModal);
+  $('infoModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'infoModalOverlay') closeInfoModal(); });
+
+  function infoModalRowsHtml(rows){
+    if(!rows.length) return '<div class="empty" style="padding:14px 0;">لا توجد بيانات ضمن الفترة المحددة.</div>';
+    return rows.map(r => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:11px 2px; border-bottom:1px solid var(--border);">
+        <span style="font-size:13.5px;">${escapeHtml(r.label)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace; direction:ltr; font-size:13.5px; font-weight:600; ${r.color ? 'color:' + r.color + ';' : ''}">${fmt(r.value)}</span>
+      </div>`).join('');
+  }
+
+  function periodSubtitleHtml(){
+    const from = $('dateFrom').value, to = $('dateTo').value;
+    if(!from && !to) return '<div class="audit-note" style="margin:-8px 0 14px;">كل الفترة</div>';
+    return `<div class="audit-note" style="margin:-8px 0 14px;">الفترة: ${from || '—'} إلى ${to || '—'}</div>`;
+  }
+
+  $('dashIncomeCard') && $('dashIncomeCard').addEventListener('click', () => {
+    const list = filteredTransactions().filter(t => t.type === 'income' && !t.voided);
+    const byCat = {};
+    list.forEach(t => { byCat[rowCatLabel(t)] = (byCat[rowCatLabel(t)] || 0) + t.amount; });
+    const rows = Object.entries(byCat).sort((a,b) => b[1]-a[1]).map(([label,value]) => ({ label, value, color: 'var(--income)' }));
+    openInfoModal('تفصيل الإيرادات', periodSubtitleHtml() + infoModalRowsHtml(rows));
+  });
+
+  $('dashExpenseCard') && $('dashExpenseCard').addEventListener('click', () => {
+    const list = filteredTransactions().filter(t => t.type === 'expense' && !t.voided);
+    const byCat = {};
+    list.forEach(t => { byCat[rowCatLabel(t)] = (byCat[rowCatLabel(t)] || 0) + t.amount; });
+    const top = Object.entries(byCat).sort((a,b) => b[1]-a[1]).slice(0, 3).map(([label,value]) => ({ label, value, color: 'var(--expense)' }));
+    openInfoModal('أكبر بنود الصرف', periodSubtitleHtml() + infoModalRowsHtml(top));
+  });
+
+  $('dashBankCard') && $('dashBankCard').addEventListener('click', () => {
+    const bFrom = $('dateFrom').value, bTo = $('dateTo').value;
+    let settleTotal = 0, transferTotal = 0, expenseDebits = 0, depositCredits = 0;
+    state.settlements.forEach(s => {
+      if(s.bankReceived == null) return;
+      if(bFrom && s.date < bFrom) return;
+      if(bTo && s.date > bTo) return;
+      settleTotal += s.bankReceived;
+    });
+    state.bankTransfers.forEach(t => {
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      transferTotal += (t.direction === 'in' ? t.amount : -t.amount);
+    });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount || t.type !== 'expense') return;
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      expenseDebits += t.bankAmount;
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      if(bFrom && d.date < bFrom) return;
+      if(bTo && d.date > bTo) return;
+      depositCredits += d.amount;
+    });
+    const rows = [
+      { label: 'مجموع الموازنات المؤكدة', value: settleTotal, color: 'var(--income)' },
+      { label: 'صافي الحوالات البنكية', value: transferTotal, color: transferTotal >= 0 ? 'var(--income)' : 'var(--expense)' },
+      { label: 'إيداعات من الخزينة للبنك', value: depositCredits, color: 'var(--income)' },
+      { label: 'مصروفات مدفوعة من الحساب', value: -expenseDebits, color: 'var(--expense)' },
+    ];
+    openInfoModal('تفصيل الحساب البنكي', periodSubtitleHtml() + infoModalRowsHtml(rows));
+  });
+
   // ---------------- Event wiring ----------------
 
   $('typeIncomeBtn').addEventListener('click', () => setType('income'));
@@ -3936,8 +4691,9 @@
       if(!categoryId || !amount || amount <= 0){ return; }
       const cashField = state.currentType === 'income' ? $('f-cash-income') : $('f-cash-expense');
       const cashAmount = cashField.value === '' ? 0 : parseFloat(cashField.value) || 0;
-      if(cashAmount > amount){
-        alert('لا يمكن أن يكون المبلغ النقدي أكبر من إجمالي المبلغ.');
+      const bankAmount = state.currentType === 'expense' ? ($('f-bank-expense').value === '' ? 0 : parseFloat($('f-bank-expense').value) || 0) : 0;
+      if(cashAmount + bankAmount > amount){
+        alert('لا يمكن أن يكون مجموع المبلغ النقدي والمبلغ البنكي أكبر من إجمالي المبلغ.');
         return;
       }
       const neededPerm = state.currentType === 'income' ? 'add_income' : 'add_expense';
@@ -3950,6 +4706,7 @@
         id: uid(), date, description, categoryId, categoryName: catObj ? catObj.name : '',
         amount: Math.round(amount * 100) / 100,
         cashAmount: Math.round(cashAmount * 100) / 100,
+        bankAmount: Math.round(bankAmount * 100) / 100,
         type: state.currentType, createdAt: new Date().toISOString(),
         createdBy: currentUser ? currentUser.email : '',
         isReversal: false, voided: false, receipt: state.pendingReceipt || null,
@@ -3957,7 +4714,7 @@
       state.transactions.push(txn);
 
       $('f-desc').value = ''; $('f-amt').value = ''; $('f-date').value = todayStr();
-      $('f-cash-income').value = ''; $('f-cash-expense').value = '';
+      $('f-cash-income').value = ''; $('f-cash-expense').value = ''; $('f-bank-expense').value = '';
       $('f-receipt').value = ''; $('receiptPreview').innerHTML = ''; state.pendingReceipt = null;
       $('confirmMsg').style.display = 'block';
       setTimeout(() => { $('confirmMsg').style.display = 'none'; }, 2000);
