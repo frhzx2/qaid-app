@@ -387,6 +387,8 @@
           <div class="stat-card"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
           <div class="stat-card"><div class="label">صافي الفترة</div><div class="value" id="dashNetTotal">0.00</div></div>
           <div class="stat-card"><div class="label">الخزينة النقدية</div><div class="value" id="dashCashTotal" style="color:#D9A227;">0.00</div></div>
+          <div class="stat-card"><div class="label">الحساب البنكي</div><div class="value" id="dashBankTotal">0.00</div></div>
+          <div class="stat-card"><div class="label">الرواتب الشهرية</div><div class="value" id="dashPayrollTotal" style="color:var(--expense);">0.00</div></div>
         </div>
 
         <div class="filterbar" id="filterPills">
@@ -786,8 +788,17 @@
       <section id="page-bank" hidden>
         <div class="banner" id="bankReviewBanner" style="display:none;"></div>
 
-        <h3 class="block-title" style="margin-top:4px;">إضافة موازنة يومية</h3>
-        <form id="settleForm" style="margin-bottom:20px;">
+        <div class="stat-card" style="margin-bottom:18px; text-align:center; padding:22px;">
+          <div class="label">رصيد الحساب البنكي الحالي</div>
+          <div class="value" id="bankBalanceDisplay" style="font-size:28px; margin-top:4px;">0.00 ر.س</div>
+          <div class="audit-note" style="margin-top:6px;">مجموع الموازنات المؤكدة الاستلام + الحوالات الواردة − الحوالات الصادرة</div>
+        </div>
+
+        <h3 class="block-title" id="settleFormToggle" style="cursor:pointer; user-select:none; margin-top:4px;">
+          إضافة موازنة يومية
+          <span id="settleFormChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <form id="settleForm" style="display:none; margin-bottom:20px;">
           <div class="row2">
             <div class="field"><label for="s-date">التاريخ</label><input type="date" id="s-date" required></div>
             <div class="field"><label for="s-status">حالة المجاميع</label>
@@ -805,10 +816,34 @@
           <div class="confirm-msg" id="settleErrorMsg" style="color:var(--expense);">عبّئ عمليات مدى أو فيزا على الأقل.</div>
         </form>
 
+        <h3 class="block-title" id="transferFormToggle" style="cursor:pointer; user-select:none;">
+          حوالة بنكية
+          <span id="transferFormChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <form id="transferForm" style="display:none; margin-bottom:20px;">
+          <div class="row2">
+            <div class="field"><label for="t-date">التاريخ</label><input type="date" id="t-date" required></div>
+            <div class="field"><label for="t-direction">نوع الحوالة</label>
+              <select id="t-direction">
+                <option value="out">صادرة (تنقص من الحساب)</option>
+                <option value="in">واردة (تزيد الحساب)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="t-amount">المبلغ (ر.س)</label><input type="number" id="t-amount" step="0.01" min="0.01" placeholder="0.00" required></div>
+          <div class="field"><label for="t-name">الاسم</label><input type="text" id="t-name" placeholder="اسم المُحوِّل أو المُحوَّل إليه"></div>
+          <div class="field"><label for="t-reason">سبب الحوالة (اختياري)</label><input type="text" id="t-reason" placeholder="اختياري"></div>
+          <button type="submit" class="submit" id="transferSubmitBtn">حفظ الحوالة</button>
+        </form>
+
         <h3 class="block-title">الموازنات</h3>
         <input type="text" id="bankSearchInput" placeholder="ابحث بالتاريخ أو المبلغ…" style="width:100%; font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:14px;">
         <div id="settleList"></div>
         <div id="settleEmpty" class="empty" style="display:none;">لا توجد موازنات مسجّلة بعد.</div>
+
+        <h3 class="block-title">سجل التحويلات البنكية</h3>
+        <div id="transferList"></div>
+        <div id="transferEmpty" class="empty" style="display:none;">لا توجد حوالات مسجّلة بعد.</div>
       </section>
 
       <!-- ============ SUPPLIERS LIST ============ -->
@@ -987,6 +1022,7 @@
     { key: 'export_backup', label: 'تصدير نسخة احتياطية' },
     { key: 'manage_payroll', label: 'إدارة الرواتب' },
     { key: 'delete_entries', label: 'حذف أي بيانات نهائياً (قيود، موازنات، موردين...)' },
+    { key: 'manage_bank_transfers', label: 'تسجيل حوالات بنكية' },
   ];
   // page -> [title, subtitle, parent-for-back-button-or-null]
   const PAGES = {
@@ -1011,7 +1047,7 @@
     cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات البنكية', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -1133,6 +1169,7 @@
     ['employees', 'employees'],
     ['payrollEntries', 'payrollEntries'],
     ['cashDeposits', 'cashDeposits'],
+    ['bankTransfers', 'bankTransfers'],
   ];
   let loadedFlags = {};
 
@@ -1163,6 +1200,7 @@
   const persistEmployee = (e) => persistRecord('employees', e);
   const persistPayrollEntry = (p) => persistRecord('payrollEntries', p);
   const persistCashDeposit = (d) => persistRecord('cashDeposits', d);
+  const persistBankTransfer = (t) => persistRecord('bankTransfers', t);
   async function deleteEmployee(id){
     try{ await db.collection('employees').doc(id).delete(); }
     catch(e){ console.error(e); showBanner('تعذّر حذف الموظف: ' + e.message); }
@@ -1700,7 +1738,24 @@
     }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
   }
 
+  function bankBalanceAllTime(){
+    let bal = 0;
+    state.settlements.forEach(s => {
+      if(s.bankReceived != null) bal += s.bankReceived;
+    });
+    state.bankTransfers.forEach(t => {
+      bal += (t.direction === 'in' ? t.amount : -t.amount);
+    });
+    return bal;
+  }
+
   function renderBankPage(){
+    $('bankBalanceDisplay').textContent = fmt(bankBalanceAllTime());
+    renderSettlementList();
+    renderBankTransferList();
+  }
+
+  function renderSettlementList(){
     const query = $('bankSearchInput').value.trim().toLowerCase();
     let rows = [...state.settlements].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
     const shortfalls = rows.filter(s => {
@@ -1795,7 +1850,109 @@
     });
   }
 
-  $('bankSearchInput').addEventListener('input', () => { if(currentPage === 'bank') renderBankPage(); });
+  let bankTransferOpenMonths = new Set();
+
+  function transferCardHtml(t){
+    const isIn = t.direction === 'in';
+    return `
+      <div class="audit-card">
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${t.date}</span><span class="txn-tag" style="${isIn ? 'border-color:var(--income); color:var(--income);' : 'border-color:var(--expense); color:var(--expense);'}">${isIn ? 'واردة' : 'صادرة'}</span></div>
+        ${t.name ? `<div class="arow"><span class="acc">الاسم</span><span class="amt">${escapeHtml(t.name)}</span></div>` : ''}
+        ${t.reason ? `<div class="arow"><span class="acc">السبب</span><span class="amt">${escapeHtml(t.reason)}</span></div>` : ''}
+        <div class="arow"><span class="acc">المبلغ</span><span class="amt ${isIn ? 'income' : 'expense'}">${isIn ? '+' : '\u2212'} ${fmt(t.amount)}</span></div>
+        <button type="button" class="txn-void-btn" style="margin-top:10px; border-color:var(--expense); color:var(--expense);" data-hard-delete-transfer="${t.id}">حذف نهائي</button>
+      </div>`;
+  }
+
+  async function hardDeleteBankTransfer(id){
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية الحذف النهائي.'); return; }
+    const t = state.bankTransfers.find(x => x.id === id);
+    if(!t) return;
+    if(!confirm('سيُحذف هذا القيد نهائياً ولن يظهر في أي سجل، ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟')) return;
+    try{
+      await db.collection('bankTransfers').doc(id).delete();
+      logActivity('hard_delete_bank_transfer', `حذف نهائياً حوالة ${t.direction === 'in' ? 'واردة' : 'صادرة'} بمبلغ ${fmt(t.amount)}`);
+    }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
+  }
+
+  function renderBankTransferList(){
+    const rows = [...state.bankTransfers].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+    const listEl = $('transferList');
+    if(!rows.length){
+      listEl.innerHTML = '';
+      $('transferEmpty').style.display = 'block';
+      return;
+    }
+    $('transferEmpty').style.display = 'none';
+
+    const groups = {};
+    rows.forEach(t => { const m = t.date.slice(0,7); if(!groups[m]) groups[m] = []; groups[m].push(t); });
+    const months = Object.keys(groups).sort().reverse();
+
+    listEl.innerHTML = months.map(m => {
+      const items = groups[m];
+      const monthNet = items.reduce((sum,t) => sum + (t.direction === 'in' ? t.amount : -t.amount), 0);
+      const isOpen = bankTransferOpenMonths.has(m);
+      return `
+        <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-transfer-month="${m}">
+            <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
+            <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--expense)'};">${fmt(monthNet)}</span>
+          </div>
+          <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-transfer-month="${m}">${items.length} حوالة</div>
+          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${items.map(transferCardHtml).join('')}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    listEl.querySelectorAll('[data-toggle-transfer-month]').forEach(el => {
+      el.addEventListener('click', () => {
+        const m = el.getAttribute('data-toggle-transfer-month');
+        if(bankTransferOpenMonths.has(m)) bankTransferOpenMonths.delete(m); else bankTransferOpenMonths.add(m);
+        renderBankTransferList();
+      });
+    });
+    listEl.querySelectorAll('[data-hard-delete-transfer]').forEach(btn => {
+      btn.addEventListener('click', () => hardDeleteBankTransfer(btn.getAttribute('data-hard-delete-transfer')));
+    });
+  }
+
+  $('bankSearchInput').addEventListener('input', () => { if(currentPage === 'bank') renderSettlementList(); });
+
+  $('settleFormToggle').addEventListener('click', () => {
+    const open = $('settleForm').style.display === 'none';
+    $('settleForm').style.display = open ? 'block' : 'none';
+    $('settleFormChevron').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  });
+  $('transferFormToggle').addEventListener('click', () => {
+    const open = $('transferForm').style.display === 'none';
+    $('transferForm').style.display = open ? 'block' : 'none';
+    $('transferFormChevron').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  });
+
+  $('transferForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if(!hasPermission('manage_bank_transfers')){ alert('ليست لديك صلاحية تسجيل حوالات بنكية.'); return; }
+    const btn = $('transferSubmitBtn'); btn.disabled = true;
+    try{
+      const date = $('t-date').value || todayStr();
+      const amount = parseFloat($('t-amount').value);
+      if(!amount || amount <= 0) return;
+      const direction = $('t-direction').value;
+      const name = $('t-name').value.trim();
+      const reason = $('t-reason').value.trim();
+      const transfer = {
+        id: uid(), date, amount: Math.round(amount*100)/100, direction, name, reason,
+        createdAt: new Date().toISOString(), createdBy: currentUser ? currentUser.email : '',
+      };
+      state.bankTransfers.push(transfer);
+      $('t-amount').value = ''; $('t-name').value = ''; $('t-reason').value = ''; $('t-date').value = todayStr();
+      $('transferForm').style.display = 'none';
+      $('transferFormChevron').style.transform = 'rotate(0deg)';
+      renderBankPage();
+      persistBankTransfer(transfer);
+      logActivity('add_bank_transfer', `سجّل حوالة ${direction === 'in' ? 'واردة' : 'صادرة'} بمبلغ ${fmt(transfer.amount)}${name ? ' (' + name + ')' : ''}`);
+    } finally { btn.disabled = false; }
+  });
 
   $('settleForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3099,6 +3256,7 @@
       employees: state.employees,
       payrollEntries: state.payrollEntries,
       cashDeposits: state.cashDeposits,
+      bankTransfers: state.bankTransfers,
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -3119,7 +3277,7 @@
   const RESTORABLE_COLLECTIONS = [
     'categories', 'transactions', 'settlements', 'suppliers', 'supplierInvoices',
     'supplierReceipts', 'supplierReturns', 'reminders', 'activityLog',
-    'employees', 'payrollEntries', 'cashDeposits',
+    'employees', 'payrollEntries', 'cashDeposits', 'bankTransfers',
   ];
 
   $('restoreBackupBtn').addEventListener('click', () => {
@@ -3302,6 +3460,32 @@
     $('dashNetTotal').textContent = fmt(cash);
     $('dashNetTotal').style.color = cash >= 0 ? 'var(--income)' : 'var(--expense)';
     $('dashCashTotal').textContent = fmt(cashBalanceAllTime());
+
+    const bFrom = $('dateFrom').value, bTo = $('dateTo').value;
+    let bankNet = 0;
+    state.settlements.forEach(s => {
+      if(s.bankReceived == null) return;
+      if(bFrom && s.date < bFrom) return;
+      if(bTo && s.date > bTo) return;
+      bankNet += s.bankReceived;
+    });
+    state.bankTransfers.forEach(t => {
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      bankNet += (t.direction === 'in' ? t.amount : -t.amount);
+    });
+    $('dashBankTotal').textContent = fmt(bankNet);
+    $('dashBankTotal').style.color = bankNet >= 0 ? 'var(--income)' : 'var(--expense)';
+
+    let payrollTotal = 0;
+    state.payrollEntries.forEach(p => {
+      const { from: mFrom, to: mTo } = monthRange(p.month);
+      if(bFrom && mTo < bFrom) return;
+      if(bTo && mFrom > bTo) return;
+      payrollTotal += p.salary + p.commission - p.deduction;
+    });
+    $('dashPayrollTotal').textContent = fmt(payrollTotal);
+
     renderChart(list);
     renderDashboardActivity(list);
   }
@@ -3789,6 +3973,7 @@
   $('s-date').value = todayStr();
   $('inv-date').value = todayStr();
   $('deposit-date').value = todayStr();
+  $('t-date').value = todayStr();
   $('rcpt-date').value = todayStr();
   setType('income');
   showPage('home');
