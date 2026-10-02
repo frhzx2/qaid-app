@@ -886,11 +886,12 @@
       <section id="page-bank" hidden>
         <div class="banner" id="bankReviewBanner" style="display:none;"></div>
 
-        <div class="stat-card" id="bankBalanceCard" style="margin-bottom:18px; text-align:center; padding:22px; cursor:pointer;">
+        <div class="stat-card" id="bankBalanceCard" style="margin-bottom:10px; text-align:center; padding:22px; cursor:pointer;">
           <div class="label">رصيد الحساب البنكي الحالي</div>
           <div class="value" id="bankBalanceDisplay" style="font-size:28px; margin-top:4px;">0.00 ر.س</div>
           <div class="audit-note" style="margin-top:6px;">اضغط لعرض تفصيل الرصيد (كل التاريخ)</div>
         </div>
+        <button type="button" id="resetBankBalanceBtn" style="width:100%; margin-bottom:18px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">↺ تصفير الرصيد المعروض (يبقي السجل كاملاً)</button>
 
         <h3 class="block-title" id="settleFormToggle" style="cursor:pointer; user-select:none; margin-top:4px;">
           إضافة موازنة يومية
@@ -1149,7 +1150,7 @@
     cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات البنكية', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], bankAdjustment: 0, currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -1405,6 +1406,12 @@
       });
       unsubscribers.push(unsub);
     });
+
+    const bankAdjUnsub = db.collection('meta').doc('bankAdjustment').onSnapshot(snap => {
+      state.bankAdjustment = (snap.exists && snap.data().offset) ? snap.data().offset : 0;
+      if(appIsReady) renderCurrentPage();
+    }, (err) => console.error(err));
+    unsubscribers.push(bankAdjUnsub);
   }
 
   // ---------------- Local (in-app) notifications ----------------
@@ -1518,7 +1525,15 @@
     try{ await cred.user.updateProfile({ displayName: name }); }catch(e){}
     await secAuth.signOut();
     const userDoc = { uid: newUid, name, email, role, permissions: permissions || {}, createdAt: new Date().toISOString() };
-    await db.collection('users').doc(newUid).set(userDoc);
+    try{
+      await db.collection('users').doc(newUid).set(userDoc);
+    }catch(e){
+      // The login account itself was already created successfully at this
+      // point — only the name/role profile failed to save. Say so plainly,
+      // since a generic error here would look like nothing happened at all.
+      e.message = 'تم إنشاء حساب الدخول بنجاح، لكن تعذّر حفظ اسمه وصلاحيته — حاول تسجيل نفس البريد مرة أخرى، أو تواصل للمساعدة. السبب: ' + e.message;
+      throw e;
+    }
     return userDoc;
   }
 
@@ -1874,7 +1889,7 @@
     }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
   }
 
-  function bankBalanceAllTime(){
+  function bankBalanceRawTotal(){
     let bal = 0;
     state.settlements.forEach(s => {
       if(s.bankReceived != null) bal += s.bankReceived;
@@ -1894,6 +1909,13 @@
     return bal;
   }
 
+  function bankBalanceAllTime(){
+    // The adjustment is a reconciliation offset, not a deletion — every
+    // settlement, transfer, and deposit stays fully in the record below,
+    // this only shifts what the running total displays as.
+    return bankBalanceRawTotal() - state.bankAdjustment;
+  }
+
   $('bankBalanceCard').addEventListener('click', () => {
     let settleTotal = 0, transferTotal = 0, expenseDebits = 0, depositCredits = 0;
     state.settlements.forEach(s => { if(s.bankReceived != null) settleTotal += s.bankReceived; });
@@ -1909,7 +1931,23 @@
       { label: 'إيداعات من الخزينة للبنك', value: depositCredits, color: 'var(--income)' },
       { label: 'مصروفات مدفوعة من الحساب', value: -expenseDebits, color: 'var(--expense)' },
     ];
+    if(state.bankAdjustment){
+      rows.push({ label: 'تعديل تصفير سابق', value: -state.bankAdjustment, color: 'var(--ink-soft)' });
+    }
     openInfoModal('تفصيل الرصيد البنكي (كل التاريخ)', infoModalRowsHtml(rows));
+  });
+
+  $('resetBankBalanceBtn').addEventListener('click', async () => {
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية هذا الإجراء.'); return; }
+    const current = fmt(bankBalanceAllTime());
+    if(!confirm(`سيصبح الرصيد المعروض صفراً ابتداءً من الآن (الرصيد الحالي: ${current}).\n\nكل الموازنات والحوالات والإيداعات تبقى محفوظة بالسجل كاملة بدون أي حذف — هذا فقط نقطة تصفير لعرض الرصيد، تقدر تراجعه لاحقاً إذا احتجت. هل تريد المتابعة؟`)) return;
+    try{
+      const rawTotal = bankBalanceRawTotal();
+      await db.collection('meta').doc('bankAdjustment').set({
+        offset: rawTotal, setAt: new Date().toISOString(), setBy: currentUser ? currentUser.email : '',
+      });
+      logActivity('reset_bank_balance', `صفّر عرض رصيد الحساب البنكي (كان ${current})`);
+    }catch(e){ console.error(e); showBanner('تعذّر تصفير الرصيد: ' + e.message); }
   });
 
   function renderBankPage(){
@@ -3836,6 +3874,9 @@
       if(bTo && d.date > bTo) return;
       bankNet += d.amount;
     });
+    // The reconciliation offset only makes sense against a running (all-time)
+    // balance — apply it here only when the period is unbounded at the start.
+    if(!bFrom) bankNet -= state.bankAdjustment;
     $('dashBankTotal').textContent = fmt(bankNet);
     $('dashBankTotal').style.color = bankNet >= 0 ? 'var(--income)' : 'var(--expense)';
 
