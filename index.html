@@ -475,6 +475,12 @@
           <button type="button" id="incomeFilterToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔍 تصفية</button>
         </div>
         <div id="incomeFilterPanel" class="entry-panel" style="display:none; margin-bottom:20px;">
+          <div class="presets" id="incomeFilterPresets" style="margin-bottom:14px;">
+            <button type="button" class="pill" data-range="all">كل الفترات</button>
+            <button type="button" class="pill" data-range="month">هذا الشهر</button>
+            <button type="button" class="pill" data-range="lastmonth">الشهر الماضي</button>
+            <button type="button" class="pill" data-range="year">هذه السنة</button>
+          </div>
           <div class="row2">
             <div class="field"><label>من تاريخ</label><input type="date" id="incomeFilterFrom"></div>
             <div class="field"><label>إلى تاريخ</label><input type="date" id="incomeFilterTo"></div>
@@ -494,11 +500,12 @@
             <div id="incomeFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
           <div style="display:flex; gap:8px;">
-            <button type="button" class="submit" style="flex:1;" id="incomeFilterApplyBtn">تطبيق</button>
+            <button type="button" class="submit" style="flex:1;" id="incomeFilterApplyBtn">عرض النتائج</button>
             <button type="button" class="cancel-edit-btn" id="incomeFilterResetBtn">إعادة تعيين</button>
           </div>
         </div>
 
+        <div id="incomeFilterSummary"></div>
         <div id="incomeBulkBar"></div>
         <div id="incomeMonthList"></div>
         <div id="incomeEmpty" class="empty" style="display:none;">لا توجد قيود إيرادات.</div>
@@ -515,6 +522,12 @@
         </div>
         <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="display:none;">
         <div id="expenseFilterPanel" class="entry-panel" style="display:none; margin-bottom:20px;">
+          <div class="presets" id="expenseFilterPresets" style="margin-bottom:14px;">
+            <button type="button" class="pill" data-range="all">كل الفترات</button>
+            <button type="button" class="pill" data-range="month">هذا الشهر</button>
+            <button type="button" class="pill" data-range="lastmonth">الشهر الماضي</button>
+            <button type="button" class="pill" data-range="year">هذه السنة</button>
+          </div>
           <div class="row2">
             <div class="field"><label>من تاريخ</label><input type="date" id="expenseFilterFrom"></div>
             <div class="field"><label>إلى تاريخ</label><input type="date" id="expenseFilterTo"></div>
@@ -534,11 +547,12 @@
             <div id="expenseFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
           <div style="display:flex; gap:8px;">
-            <button type="button" class="submit" style="flex:1;" id="expenseFilterApplyBtn">تطبيق</button>
+            <button type="button" class="submit" style="flex:1;" id="expenseFilterApplyBtn">عرض النتائج</button>
             <button type="button" class="cancel-edit-btn" id="expenseFilterResetBtn">إعادة تعيين</button>
           </div>
         </div>
 
+        <div id="expenseFilterSummary"></div>
         <div id="expenseBulkBar"></div>
         <div id="expenseMonthList"></div>
         <div id="expenseEmpty" class="empty" style="display:none;">لا توجد قيود مصروفات.</div>
@@ -791,18 +805,36 @@
           <div class="field"><label for="vat-to">إلى تاريخ</label><input type="date" id="vat-to"></div>
         </div>
 
-        <h3 class="block-title">فئات الإيرادات (ضريبة المخرجات)</h3>
-        <div id="vatIncomeCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-bottom:18px;"></div>
+        <h3 class="block-title" id="vatIncomeToggle" style="cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center;">
+          <span>فئات الإيرادات (ضريبة المخرجات) <span id="vatIncomeCount" class="meta" style="font-weight:400;"></span></span>
+          <span id="vatIncomeChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <div id="vatIncomeWrap" style="display:none; margin-bottom:18px;">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+            <button type="button" id="vatIncomeSelectAll" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 12px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+          </div>
+          <div id="vatIncomeCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px;"></div>
+        </div>
 
-        <h3 class="block-title">فئات المصروفات (ضريبة المدخلات)</h3>
-        <div id="vatExpenseCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px; margin-bottom:20px;"></div>
+        <h3 class="block-title" id="vatExpenseToggle" style="cursor:pointer; user-select:none; display:flex; justify-content:space-between; align-items:center;">
+          <span>فئات المصروفات (ضريبة المدخلات) <span id="vatExpenseCount" class="meta" style="font-weight:400;"></span></span>
+          <span id="vatExpenseChevron" style="display:inline-block; transition:transform .2s;">▾</span>
+        </h3>
+        <div id="vatExpenseWrap" style="display:none; margin-bottom:18px;">
+          <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+            <button type="button" id="vatExpenseSelectAll" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 12px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+          </div>
+          <div id="vatExpenseCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px;"></div>
+        </div>
 
         <div class="stat-row">
           <div class="stat-card"><div class="label">ضريبة المخرجات (إيرادات)</div><div class="value income" id="vatOutput">0.00</div></div>
           <div class="stat-card"><div class="label">ضريبة المدخلات (مصروفات)</div><div class="value expense" id="vatInput">0.00</div></div>
           <div class="stat-card"><div class="label">صافي الضريبة المستحقة</div><div class="value" id="vatNet">0.00</div></div>
         </div>
+        <div class="audit-note" id="vatPosNote" style="margin:-8px 0 10px;"></div>
         <p class="audit-note">الحساب مبني على أن المبالغ المُدخلة بالتطبيق شاملة الضريبة (١٥٪) أصلاً — يُستخرج مقدار الضريبة من داخل كل مبلغ ولا يُضاف عليه.</p>
+        <button type="button" class="submit" id="vatPrintBtn" style="margin-top:6px;">🖨 طباعة تقرير الضريبة</button>
       </section>
       <section id="page-users" hidden>
         <div id="usersOwnerOnlyNote" class="empty" style="display:none;">إضافة مستخدمين جديدين متاحة فقط لصاحب الحساب الرئيسي.</div>
@@ -1682,6 +1714,13 @@
   $('backToSuppliersBtn').addEventListener('click', () => showPage('suppliers'));
 
   function renderCurrentPage(){
+    try{ renderCurrentPageInner(); }
+    catch(e){
+      console.error(e);
+      showBanner('تعذّر عرض هذه الصفحة بسبب خطأ برمجي (' + e.message + ') — بياناتك سليمة. صوّر الشاشة وأرسلها لي.');
+    }
+  }
+  function renderCurrentPageInner(){
     const list = filteredTransactions();
     if(currentPage === 'home') renderHome(list);
     else if(currentPage === 'income') renderTypePage('income');
@@ -1828,11 +1867,29 @@
     return computeVisaFee(s.visa);
   }
 
+  // مدى: 0.8% + 15% ضريبة = 0.92% من المبلغ المُدخل.
+  function computeMadaFee(madaAmount){
+    if(!madaAmount) return { fee: 0, net: 0 };
+    const fee = Math.round(madaAmount * 0.0092 * 100) / 100;
+    const net = Math.round((madaAmount - fee) * 100) / 100;
+    return { fee, net };
+  }
+  // Settlements saved before the mada fee existed have no stored madaNet —
+  // they stay exactly as they were (no fee deducted), only new ones get it.
+  function settlementMadaFigures(s){
+    if(s.madaFee != null && s.madaNet != null) return { fee: s.madaFee, net: s.madaNet };
+    return { fee: 0, net: s.mada };
+  }
+  // The amount that should actually land in the bank: mada net + visa net.
+  function settlementExpected(s){
+    return Math.round((settlementMadaFigures(s).net + settlementVisaFigures(s).net) * 100) / 100;
+  }
+
   let settleOpenMonths = new Set();
 
   function settlementCardHtml(s){
     const { fee: visaFee, net: visaNet } = settlementVisaFigures(s);
-    const expected = s.mada + visaNet;
+    const expected = settlementExpected(s);
     const statusTag = s.status === 'matched'
       ? `<span class="txn-tag" style="border-color:var(--income); color:var(--income);">متوافقة</span>`
       : `<span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">غير متوافقة</span>`;
@@ -1862,6 +1919,10 @@
         <button type="button" class="edit-received-btn" data-edit-received="${s.id}">تعديل المبلغ المستلم</button>`;
     }
 
+    const { fee: madaFee, net: madaNet } = settlementMadaFigures(s);
+    const madaLines = (s.mada > 0 && madaFee > 0) ? `
+        <div class="arow"><span class="acc">رسوم مدى</span><span class="amt" style="color:var(--expense);">${fmt(madaFee)}</span></div>
+        <div class="arow"><span class="acc">المبلغ المودع (مدى)</span><span class="amt">${fmt(madaNet)}</span></div>` : '';
     const visaLines = s.visa > 0 ? `
         <div class="arow"><span class="acc">رسوم العملية</span><span class="amt" style="color:var(--expense);">${fmt(visaFee)}</span></div>
         <div class="arow"><span class="acc">المبلغ المودع (فيزا)</span><span class="amt">${fmt(visaNet)}</span></div>` : '';
@@ -1870,6 +1931,7 @@
       <div class="audit-card">
         <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${s.date}</span>${statusTag}</div>
         <div class="arow"><span class="acc">عمليات مدى</span><span class="amt">${fmt(s.mada)}</span></div>
+        ${madaLines}
         <div class="arow"><span class="acc">عمليات فيزا</span><span class="amt">${fmt(s.visa)}</span></div>
         ${visaLines}
         <div class="arow"><span class="acc">الإجمالي المتوقع</span><span class="amt">${fmt(expected)}</span></div>
@@ -1962,7 +2024,7 @@
     if(!isConfirmed) return settlementCardHtml(s);
     if(!settleDetailOpen.has(s.id)){
       const { net } = settlementVisaFigures(s);
-      const expected = s.mada + net;
+      const expected = settlementExpected(s);
       const matched = s.status === 'matched';
       const diff = s.bankReceived - expected;
       const mismatchTag = Math.abs(diff) >= 0.01
@@ -1983,6 +2045,105 @@
     return settlementCardHtml(s) + `<button type="button" class="cancel-edit-btn" data-collapse-settle-detail="${s.id}" style="margin:2px 0 14px;">طي التفاصيل</button>`;
   }
 
+  // Every movement that feeds the bank balance, with its exact contribution.
+  // The sum of `amount` over all of these equals bankBalanceRawTotal().
+  function bankAllMovements(){
+    const out = [];
+    const hay = arr => arr.filter(v => v !== null && v !== undefined && v !== '').map(String).join(' ').toLowerCase();
+    state.settlements.forEach(s => {
+      out.push({ kind: 'settle', date: s.date, sortKey: s.date + '_' + (s.createdAt || ''), data: s,
+        amount: s.bankReceived != null ? s.bankReceived : 0,
+        haystack: hay([s.date, s.mada, s.visa, settlementExpected(s), s.bankReceived]) });
+    });
+    state.bankTransfers.forEach(t => {
+      out.push({ kind: 'transfer', date: t.date, sortKey: t.date + '_' + (t.createdAt || ''), data: t,
+        amount: t.direction === 'in' ? t.amount : -t.amount,
+        haystack: hay([t.date, t.amount, t.name, t.reason]) });
+    });
+    state.transactions.forEach(t => {
+      if(t.voided || t.type !== 'expense' || !(t.bankAmount > 0)) return;
+      out.push({ kind: 'debit', date: t.date, sortKey: t.date + '_' + (t.createdAt || ''), data: t,
+        amount: -t.bankAmount,
+        haystack: hay([t.date, t.bankAmount, t.description, rowCatLabel(t)]) });
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      out.push({ kind: 'deposit', date: d.date, sortKey: d.date + '_' + (d.createdAt || ''), data: d,
+        amount: d.amount,
+        haystack: hay([d.date, d.amount, d.note]) });
+    });
+    return out;
+  }
+
+  function bankDebitCardHtml(t){
+    return `
+      <div class="audit-card">
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${t.date}</span><span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">مصروف من الحساب</span></div>
+        <div class="arow"><span class="acc">${escapeHtml(rowCatLabel(t))}</span><span class="amt expense">\u2212 ${fmt(t.bankAmount)}</span></div>
+        ${t.description ? `<div class="meta">${escapeHtml(t.description)}</div>` : ''}
+        ${t.bankAmount < t.amount ? `<div class="meta">من إجمالي المصروف ${fmt(t.amount)}</div>` : ''}
+        <div class="meta" style="margin-top:4px;">يُدار من صفحة المصروفات</div>
+      </div>`;
+  }
+  function bankDepositCardHtml(d){
+    return `
+      <div class="audit-card">
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${d.date}</span><span class="txn-tag" style="border-color:var(--income); color:var(--income);">إيداع من الخزينة</span></div>
+        <div class="arow"><span class="acc">${escapeHtml(d.note || 'إيداع بنكي')}</span><span class="amt income">+ ${fmt(d.amount)}</span></div>
+        <div class="meta" style="margin-top:4px;">يُدار من صفحة الخزينة النقدية</div>
+      </div>`;
+  }
+
+  function printBankMonth(month){
+    printInNewWindow('تقرير الحساب البنكي - قيد', () => {
+      const items = bankAllMovements().filter(i => i.date.slice(0,7) === month).sort((a,b) => a.sortKey.localeCompare(b.sortKey));
+      let totalIn = 0, totalOut = 0, totalFees = 0;
+      const rows = items.map(i => {
+        let label = '', details = '';
+        if(i.kind === 'settle'){
+          const s = i.data;
+          const fees = settlementMadaFigures(s).fee + settlementVisaFigures(s).fee;
+          totalFees += fees;
+          label = 'موازنة';
+          details = `مدى ${fmt(s.mada)} · فيزا ${fmt(s.visa)} · رسوم ${fmt(fees)}` + (s.bankReceived == null ? ' · بانتظار تأكيد الاستلام' : '');
+        } else if(i.kind === 'transfer'){
+          label = i.data.direction === 'in' ? 'حوالة واردة' : 'حوالة صادرة';
+          details = [i.data.name, i.data.reason].filter(Boolean).join(' - ');
+        } else if(i.kind === 'debit'){
+          label = 'مصروف من الحساب';
+          details = [rowCatLabel(i.data), i.data.description].filter(Boolean).join(' - ');
+        } else {
+          label = 'إيداع من الخزينة';
+          details = i.data.note || '';
+        }
+        const inAmt = i.amount > 0 ? i.amount : 0, outAmt = i.amount < 0 ? -i.amount : 0;
+        totalIn += inAmt; totalOut += outAmt;
+        return `<tr><td>${i.date}</td><td>${label}</td><td>${escapeHtml(details)}</td><td>${inAmt ? fmt(inAmt) : '—'}</td><td>${outAmt ? fmt(outAmt) : '—'}</td></tr>`;
+      }).join('');
+      const now = new Date();
+      return `
+        <div class="rpt-header">
+          <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
+          <div><div class="rpt-title">تقرير الحساب البنكي</div><div class="rpt-meta">الشهر: ${escapeHtml(monthLabel(month))}</div></div>
+        </div>
+        <table style="margin-bottom:22px;">
+          <tbody>
+            <tr><td>إجمالي الوارد</td><td style="font-weight:600;">${fmt(totalIn)}</td></tr>
+            <tr><td>إجمالي الصادر</td><td style="font-weight:600;">${fmt(totalOut)}</td></tr>
+            <tr><td style="font-weight:700;">صافي الشهر</td><td style="font-weight:700;">${fmt(totalIn - totalOut)}</td></tr>
+            <tr><td>رسوم مدى وفيزا المخصومة (للموازنات)</td><td style="font-weight:600;">${fmt(totalFees)}</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <thead><tr><th>التاريخ</th><th>النوع</th><th>التفاصيل</th><th>وارد</th><th>صادر</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5" style="text-align:center; color:#888;">لا توجد حركات.</td></tr>'}</tbody>
+          <tfoot><tr><td colspan="3">الإجمالي</td><td>${fmt(totalIn)}</td><td>${fmt(totalOut)}</td></tr></tfoot>
+        </table>
+        <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
+    });
+  }
+
   let bankBannerDismissed = false;
 
   function renderBankRecordList(){
@@ -1991,11 +2152,11 @@
     const mismatches = state.settlements.filter(s => {
       if(s.bankReceived == null) return false;
       const { net } = settlementVisaFigures(s);
-      return Math.abs(s.bankReceived - (s.mada + net)) >= 0.01;
+      return Math.abs(s.bankReceived - (settlementExpected(s))) >= 0.01;
     });
     const bannerEl = $('bankReviewBanner');
     if(mismatches.length && !bankBannerDismissed){
-      const shortCount = mismatches.filter(s => { const { net } = settlementVisaFigures(s); return s.bankReceived < (s.mada + net); }).length;
+      const shortCount = mismatches.filter(s => { const { net } = settlementVisaFigures(s); return s.bankReceived < (settlementExpected(s)); }).length;
       const overCount = mismatches.length - shortCount;
       const parts = [];
       if(shortCount) parts.push(`${shortCount} ${shortCount === 1 ? 'موازنة وصلها' : 'موازنات وصلها'} مبلغ أقل من المتوقع`);
@@ -2007,65 +2168,43 @@
       bannerEl.style.display = 'none';
     }
 
-    let settleRows = [...state.settlements];
-    let transferRows = [...state.bankTransfers];
-
-    if(query){
-      settleRows = settleRows.filter(s => {
-        const { net } = settlementVisaFigures(s);
-        const expected = s.mada + net;
-        const haystack = [s.date, s.mada, s.visa, expected, s.bankReceived]
-          .filter(v => v !== null && v !== undefined)
-          .map(String).join(' ').toLowerCase();
-        return haystack.includes(query);
-      });
-      transferRows = transferRows.filter(t => {
-        const haystack = [t.date, t.amount, t.name, t.reason]
-          .filter(v => v !== null && v !== undefined && v !== '')
-          .map(String).join(' ').toLowerCase();
-        return haystack.includes(query);
-      });
-    }
-
     const listEl = $('bankRecordList');
-    if(!settleRows.length && !transferRows.length){
+    let movements = bankAllMovements();
+    if(query) movements = movements.filter(i => i.haystack.includes(query));
+    if(!movements.length){
       listEl.innerHTML = '';
       $('bankRecordEmpty').style.display = 'block';
-      $('bankRecordEmpty').textContent = query ? 'لا توجد نتائج مطابقة لبحثك.' : 'لا توجد موازنات أو حوالات مسجّلة بعد.';
+      $('bankRecordEmpty').textContent = query ? 'لا توجد نتائج مطابقة لبحثك.' : 'لا توجد حركات بنكية مسجّلة بعد.';
       return;
     }
     $('bankRecordEmpty').style.display = 'none';
 
     const groups = {};
-    settleRows.forEach(s => {
-      const m = s.date.slice(0,7);
-      if(!groups[m]) groups[m] = [];
-      const { net } = settlementVisaFigures(s);
-      groups[m].push({ kind: 'settle', sortKey: s.date + '_' + s.createdAt, amount: s.mada + net, data: s });
-    });
-    transferRows.forEach(t => {
-      const m = t.date.slice(0,7);
-      if(!groups[m]) groups[m] = [];
-      groups[m].push({ kind: 'transfer', sortKey: t.date + '_' + t.createdAt, amount: t.direction === 'in' ? t.amount : -t.amount, data: t });
-    });
+    movements.forEach(i => { const m = i.date.slice(0,7); (groups[m] = groups[m] || []).push(i); });
     const months = Object.keys(groups).sort().reverse();
 
     listEl.innerHTML = months.map(m => {
       const items = [...groups[m]].sort((a,b) => b.sortKey.localeCompare(a.sortKey));
       const monthNet = items.reduce((sum,i) => sum + i.amount, 0);
       const isOpen = settleOpenMonths.has(m);
-      const detailHtml = items.map(i => i.kind === 'settle' ? settlementEntryHtml(i.data) : transferCardHtml(i.data)).join('');
+      const detailHtml = items.map(i => i.kind === 'settle' ? settlementEntryHtml(i.data) : i.kind === 'transfer' ? transferCardHtml(i.data) : i.kind === 'debit' ? bankDebitCardHtml(i.data) : bankDepositCardHtml(i.data)).join('');
       return `
         <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-settle-month="${m}">
             <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
             <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--expense)'};">${fmt(monthNet)}</span>
           </div>
-          <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-settle-month="${m}">${items.length} عملية</div>
+          <div class="meta" style="margin-top:2px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="cursor:pointer;" data-toggle-settle-month="${m}">${items.length} حركة · صافي الأثر على الرصيد</span>
+            <button type="button" class="txn-void-btn" data-print-bank-month="${m}">🖨 تصدير PDF</button>
+          </div>
           ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${detailHtml}</div>` : ''}
         </div>`;
     }).join('');
 
+    listEl.querySelectorAll('[data-print-bank-month]').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); printBankMonth(btn.getAttribute('data-print-bank-month')); });
+    });
     listEl.querySelectorAll('[data-toggle-settle-month]').forEach(el => {
       el.addEventListener('click', () => {
         const m = el.getAttribute('data-toggle-settle-month');
@@ -2202,9 +2341,10 @@
       $('settleErrorMsg').style.display = 'none';
       const status = $('s-status').value;
       const { fee: visaFee, net: visaNet } = computeVisaFee(Math.round(visa*100)/100);
+      const { fee: madaFee, net: madaNet } = computeMadaFee(Math.round(mada*100)/100);
       const s = {
         id: uid(), date, mada: Math.round(mada*100)/100, visa: Math.round(visa*100)/100,
-        visaFee, visaNet,
+        visaFee, visaNet, madaFee, madaNet,
         status, bankReceived: null, createdAt: new Date().toISOString(),
       };
       state.settlements.push(s);
@@ -2588,17 +2728,6 @@
     return Math.round((amount * 0.15 / 1.15) * 100) / 100;
   }
 
-  let vatSelectedIncome = new Set();
-  let vatSelectedExpense = new Set();
-  let vatInited = false;
-
-  function vatCatRowHtml(c, checked){
-    return `<label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:7px 0; cursor:pointer; border-bottom:1px solid var(--border);">
-      <input type="checkbox" data-vat-cat="${c.id}" data-vat-type="${c.type}" ${checked ? 'checked' : ''}>
-      ${escapeHtml(c.name)}
-    </label>`;
-  }
-
   // ---------------- Month-over-month comparison ----------------
 
   let cmpInited = false;
@@ -2623,6 +2752,7 @@
   }
   function monthLabel(ym){
     if(!ym) return '—';
+    if(!/^\d{4}-\d{2}$/.test(ym) || ym === '0000-00') return 'بدون تاريخ';
     const [y, m] = ym.split('-').map(Number);
     return ARABIC_MONTHS[m-1] + ' ' + y;
   }
@@ -2882,36 +3012,14 @@
     renderComparePage();
   });
 
-  function renderVatPage(){
-    if(!vatInited){
-      const now = new Date();
-      $('vat-from').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
-      $('vat-to').value = todayStr();
-      // Default: select every category that exists right now.
-      state.categories.filter(c => c.type === 'income').forEach(c => vatSelectedIncome.add(c.id));
-      state.categories.filter(c => c.type === 'expense').forEach(c => vatSelectedExpense.add(c.id));
-      vatInited = true;
-    }
 
-    const incomeCats = state.categories.filter(c => c.type === 'income').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    const expenseCats = state.categories.filter(c => c.type === 'expense').sort((a,b) => a.name.localeCompare(b.name, 'ar'));
-    $('vatIncomeCats').innerHTML = incomeCats.length
-      ? incomeCats.map(c => vatCatRowHtml(c, vatSelectedIncome.has(c.id))).join('')
-      : '<div class="cat-empty">لا توجد فئات إيرادات.</div>';
-    $('vatExpenseCats').innerHTML = expenseCats.length
-      ? expenseCats.map(c => vatCatRowHtml(c, vatSelectedExpense.has(c.id))).join('')
-      : '<div class="cat-empty">لا توجد فئات مصروفات.</div>';
-
-    document.querySelectorAll('[data-vat-cat]').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const set = cb.getAttribute('data-vat-type') === 'income' ? vatSelectedIncome : vatSelectedExpense;
-        if(cb.checked) set.add(cb.getAttribute('data-vat-cat')); else set.delete(cb.getAttribute('data-vat-cat'));
-        computeVat();
-      });
-    });
-
-    computeVat();
-  }
+  const VAT_POS_ID = '__pos_fees__';   // بند افتراضي خاص بصفحة الضريبة فقط
+  let vatSelectedIncome = new Set();
+  let vatSelectedExpense = new Set();
+  let vatSeen = new Set();             // فئات سبق عرضها (الجديدة تُحدَّد تلقائياً مرة واحدة)
+  let vatInited = false;
+  let vatOpen = { income: false, expense: false };
+  const r2 = n => Math.round(n * 100) / 100;
 
   function vatInRange(t){
     const from = $('vat-from').value, to = $('vat-to').value;
@@ -2920,19 +3028,171 @@
     return true;
   }
 
+  // رسوم مدى وفيزا شاملة الضريبة: تُستخرج ضريبتها هنا فقط (صفحة الضريبة وتقريرها)
+  // وتبقى خارج صفحة المصروفات الأساسية.
+  function vatPosFeeRows(){
+    const out = [];
+    state.settlements.forEach(s => {
+      if(!vatInRange(s)) return;
+      const fee = r2(settlementMadaFigures(s).fee + settlementVisaFigures(s).fee);
+      if(!(fee > 0)) return;
+      const vat = vatOf(fee);
+      out.push({ date: s.date, mada: s.mada || 0, visa: s.visa || 0, fee, vat, before: r2(fee - vat) });
+    });
+    return out.sort((a,b) => a.date.localeCompare(b.date));
+  }
+
+  // مصدر واحد للأرقام: يغذّي البطاقات والتقرير المطبوع معاً.
+  function vatDataset(){
+    const byDate = (a,b) => a.date.localeCompare(b.date);
+    const incomeTxns = state.transactions.filter(t => !t.voided && !t.isReversal && t.type === 'income' && vatSelectedIncome.has(t.categoryId) && vatInRange(t)).sort(byDate);
+    const expenseTxns = state.transactions.filter(t => !t.voided && !t.isReversal && t.type === 'expense' && vatSelectedExpense.has(t.categoryId) && vatInRange(t)).sort(byDate);
+    const posRows = vatSelectedExpense.has(VAT_POS_ID) ? vatPosFeeRows() : [];
+    const outputVat = r2(incomeTxns.reduce((s,t) => s + vatOf(t.amount), 0));
+    const expenseVat = r2(expenseTxns.reduce((s,t) => s + vatOf(t.amount), 0));
+    const posVat = r2(posRows.reduce((s,r) => s + r.vat, 0));
+    return { incomeTxns, expenseTxns, posRows, outputVat, expenseVat, posVat, inputVat: r2(expenseVat + posVat) };
+  }
+
+  function vatCatsOf(type){
+    return state.categories.filter(c => c.type === type).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+  }
+  function vatAllIds(type){
+    const ids = vatCatsOf(type).map(c => c.id);
+    return type === 'expense' ? [VAT_POS_ID, ...ids] : ids;
+  }
+
+  function vatRowHtml(id, name, checked, type, note){
+    return `<label style="display:flex; align-items:center; gap:8px; font-size:13.5px; padding:7px 0; cursor:pointer; border-bottom:1px solid var(--border);">
+      <input type="checkbox" data-vat-cat="${id}" data-vat-type="${type}" ${checked ? 'checked' : ''} style="width:auto;">
+      <span>${escapeHtml(name)}${note ? ` <span class="meta">${note}</span>` : ''}</span>
+    </label>`;
+  }
+
+  function renderVatPage(){
+    if(!vatInited){
+      const now = new Date();
+      $('vat-from').value = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+      $('vat-to').value = todayStr();
+      vatInited = true;
+    }
+    // أي فئة تظهر لأول مرة تُحدَّد تلقائياً (الإعداد الافتراضي: الكل محدد)، وبعدها اختيارك يُحترم.
+    ['income','expense'].forEach(type => {
+      const set = type === 'income' ? vatSelectedIncome : vatSelectedExpense;
+      vatAllIds(type).forEach(id => { if(!vatSeen.has(id)){ vatSeen.add(id); set.add(id); } });
+    });
+
+    const incomeCats = vatCatsOf('income'), expenseCats = vatCatsOf('expense');
+    $('vatIncomeCats').innerHTML = incomeCats.length
+      ? incomeCats.map(c => vatRowHtml(c.id, c.name, vatSelectedIncome.has(c.id), 'income')).join('')
+      : '<div class="cat-empty">لا توجد فئات إيرادات.</div>';
+    $('vatExpenseCats').innerHTML =
+      vatRowHtml(VAT_POS_ID, 'رسوم نقاط البيع (مدى وفيزا)', vatSelectedExpense.has(VAT_POS_ID), 'expense', '— ضريبتها تُستخرج من رسوم الموازنات')
+      + expenseCats.map(c => vatRowHtml(c.id, c.name, vatSelectedExpense.has(c.id), 'expense')).join('');
+
+    [['income','Income',vatSelectedIncome],['expense','Expense',vatSelectedExpense]].forEach(([type, cap, set]) => {
+      const ids = vatAllIds(type);
+      $('vat' + cap + 'Count').textContent = `(${ids.filter(id => set.has(id)).length} من ${ids.length} محددة)`;
+      $('vat' + cap + 'Wrap').style.display = vatOpen[type] ? 'block' : 'none';
+      $('vat' + cap + 'Chevron').style.transform = vatOpen[type] ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+    computeVat();
+  }
+
+  // ربط الأحداث مرة واحدة فقط
+  [['income','Income'],['expense','Expense']].forEach(([type, cap]) => {
+    const setOf = () => type === 'income' ? vatSelectedIncome : vatSelectedExpense;
+    $('vat' + cap + 'Toggle').addEventListener('click', () => { vatOpen[type] = !vatOpen[type]; renderVatPage(); });
+    $('vat' + cap + 'SelectAll').addEventListener('click', () => {
+      const set = setOf(), ids = vatAllIds(type);
+      const allSelected = ids.length > 0 && ids.every(id => set.has(id));
+      ids.forEach(id => { if(allSelected) set.delete(id); else set.add(id); });
+      renderVatPage();
+    });
+    $('vat' + cap + 'Cats').addEventListener('change', (e) => {
+      const cb = e.target;
+      if(!cb || !cb.matches || !cb.matches('[data-vat-cat]')) return;
+      const id = cb.getAttribute('data-vat-cat');
+      if(cb.checked) setOf().add(id); else setOf().delete(id);
+      renderVatPage();
+    });
+  });
+
   function computeVat(){
-    const incomeTxns = state.transactions.filter(t => !t.voided && t.type === 'income' && vatSelectedIncome.has(t.categoryId) && vatInRange(t));
-    const expenseTxns = state.transactions.filter(t => !t.voided && t.type === 'expense' && vatSelectedExpense.has(t.categoryId) && vatInRange(t));
-    const outputVat = incomeTxns.reduce((s,t) => s + vatOf(t.amount), 0);
-    const inputVat = expenseTxns.reduce((s,t) => s + vatOf(t.amount), 0);
-    const net = outputVat - inputVat;
-    $('vatOutput').textContent = fmt(outputVat);
-    $('vatInput').textContent = fmt(inputVat);
+    const d = vatDataset();
+    const net = r2(d.outputVat - d.inputVat);
+    $('vatOutput').textContent = fmt(d.outputVat);
+    $('vatInput').textContent = fmt(d.inputVat);
     $('vatNet').textContent = fmt(net);
     $('vatNet').className = 'value ' + (net >= 0 ? 'expense' : 'income');
+    $('vatPosNote').textContent = vatSelectedExpense.has(VAT_POS_ID) ? `ضريبة المدخلات تشمل ضريبة رسوم نقاط البيع: ${fmt(d.posVat)}` : '';
   }
   $('vat-from').addEventListener('change', computeVat);
   $('vat-to').addEventListener('change', computeVat);
+
+  $('vatPrintBtn').addEventListener('click', () => {
+    printInNewWindow('تقرير ضريبة القيمة المضافة - قيد', () => {
+      const d = vatDataset();
+      const catMap = {}; state.categories.forEach(c => { catMap[c.id] = c.name; });
+      const catName = t => catMap[t.categoryId] || t.categoryName || '(فئة محذوفة)';
+      const sumAmt = list => r2(list.reduce((s,t) => s + t.amount, 0));
+      const net = r2(d.outputVat - d.inputVat);
+      const posSelected = vatSelectedExpense.has(VAT_POS_ID);
+      const incIds = vatAllIds('income'), expIds = vatAllIds('expense');
+      const scope = `الفئات المحددة: إيرادات ${incIds.filter(id => vatSelectedIncome.has(id)).length} من ${incIds.length} · مصروفات ${expIds.filter(id => vatSelectedExpense.has(id)).length} من ${expIds.length}`;
+
+      const txnRows = list => list.map(t => {
+        const v = vatOf(t.amount);
+        return `<tr><td>${t.date}</td><td>${escapeHtml(catName(t))}</td><td>${escapeHtml(t.description || '')}</td><td>${fmt(t.amount)}</td><td>${fmt(r2(t.amount - v))}</td><td>${fmt(v)}</td></tr>`;
+      }).join('');
+      const txnSection = (title, list, vatTotal, typeLabel) => `
+        <div style="font-size:13px; font-weight:700; margin:22px 0 8px;">${title}</div>
+        <table>
+          <thead><tr><th>التاريخ</th><th>${typeLabel}</th><th>الوصف</th><th>المبلغ (شامل الضريبة)</th><th>قبل الضريبة</th><th>الضريبة</th></tr></thead>
+          <tbody>${list.length ? txnRows(list) : '<tr><td colspan="6" style="text-align:center; color:#888;">لا توجد قيود ضمن الفترة والفئات المحددة.</td></tr>'}</tbody>
+          <tfoot><tr><td colspan="3">الإجمالي</td><td>${fmt(sumAmt(list))}</td><td>${fmt(r2(sumAmt(list) - vatTotal))}</td><td>${fmt(vatTotal)}</td></tr></tfoot>
+        </table>`;
+
+      let posSection = '';
+      if(posSelected){
+        const rows = d.posRows.map(r => `
+          <tr><td>موازنة يوم ${r.date}</td>
+          <td>${fmt(r2(r.mada + r.visa))}<div style="font-size:10px; color:#888;">مدى ${fmt(r.mada)} · فيزا ${fmt(r.visa)}</div></td>
+          <td>${fmt(r.fee)}</td><td>${fmt(r.before)}</td><td>${fmt(r.vat)}</td></tr>`).join('');
+        const tFee = r2(d.posRows.reduce((s,r) => s + r.fee, 0));
+        const tOps = r2(d.posRows.reduce((s,r) => s + r.mada + r.visa, 0));
+        posSection = `
+          <div style="font-size:13px; font-weight:700; margin:22px 0 8px;">رسوم نقاط البيع (مدى وفيزا) — الرسوم شاملة الضريبة</div>
+          <table>
+            <thead><tr><th>الموازنة</th><th>مبلغ العمليات (قبل الرسوم)</th><th>الرسوم (شاملة الضريبة)</th><th>الرسوم قبل الضريبة</th><th>ضريبة الرسوم</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="5" style="text-align:center; color:#888;">لا توجد موازنات ذات رسوم ضمن الفترة.</td></tr>'}</tbody>
+            <tfoot><tr><td>الإجمالي</td><td>${fmt(tOps)}</td><td>${fmt(tFee)}</td><td>${fmt(r2(tFee - d.posVat))}</td><td>${fmt(d.posVat)}</td></tr></tfoot>
+          </table>`;
+      }
+
+      const now = new Date();
+      return `
+        <div class="rpt-header">
+          <div><div class="rpt-brand">قيد</div><div class="rpt-sub">البرنامج المحاسبي الخاص بالهزاع</div></div>
+          <div><div class="rpt-title">تقرير ضريبة القيمة المضافة (١٥٪)</div><div class="rpt-meta">الفترة: ${$('vat-from').value || '—'} إلى ${$('vat-to').value || '—'}</div><div class="rpt-meta">${scope}</div></div>
+        </div>
+        <table style="margin-bottom:6px;">
+          <tbody>
+            <tr><td>ضريبة المخرجات (المحصّلة على الإيرادات)</td><td style="font-weight:600;">${fmt(d.outputVat)}</td></tr>
+            <tr><td>ضريبة المدخلات (المدفوعة على المصروفات${posSelected ? ' ورسوم نقاط البيع' : ''})</td><td style="font-weight:600;">${fmt(d.inputVat)}</td></tr>
+            ${posSelected ? `<tr><td style="padding-right:26px; color:#666;">منها: ضريبة المصروفات</td><td>${fmt(d.expenseVat)}</td></tr>
+            <tr><td style="padding-right:26px; color:#666;">منها: ضريبة رسوم نقاط البيع</td><td>${fmt(d.posVat)}</td></tr>` : ''}
+            <tr><td style="font-weight:700;">${net >= 0 ? 'صافي الضريبة المستحقة للهيئة' : 'صافي الضريبة المستردة (رصيد دائن)'}</td><td style="font-weight:700;">${fmt(Math.abs(net))}</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:10.5px; color:#888; margin-bottom:4px;">المبالغ المسجّلة شاملة الضريبة؛ تُستخرج الضريبة من داخل كل مبلغ (المبلغ × ١٥ ÷ ١١٥).</div>
+        ${txnSection('الإيرادات — ضريبة المخرجات', d.incomeTxns, d.outputVat, 'نوع الإيراد')}
+        ${txnSection('المصروفات — ضريبة المدخلات', d.expenseTxns, d.expenseVat, 'نوع المصروف')}
+        ${posSection}
+        <div class="rpt-sign"><div>توقيع المسؤول: ______________________</div><div>ختم المنشأة</div></div>
+        <div class="rpt-footer">تم إنشاء هذا التقرير آلياً بواسطة تطبيق قيد — ${now.toLocaleDateString('ar-SA')}</div>`;
+    });
+  });
 
   // ---------------- Payroll ----------------
 
@@ -3506,7 +3766,7 @@
       const { net } = settlementVisaFigures(s);
       const hay = [s.date, s.mada, s.visa].filter(v => v !== null && v !== undefined).join(' ').toLowerCase();
       if(hay.includes(query)){
-        results.push({ kind: 'settle', title: 'موازنة نقاط بيع', meta: s.date + ' · مدى وفيزا', amount: s.mada + net });
+        results.push({ kind: 'settle', title: 'موازنة نقاط بيع', meta: s.date + ' · مدى وفيزا', amount: settlementExpected(s) });
       }
     });
 
@@ -3905,7 +4165,7 @@
         kind: 'settle',
         label: 'موازنة نقاط بيع',
         meta: s.date + ' · مدى وفيزا',
-        amount: s.mada + net,
+        amount: settlementExpected(s),
         sortKey: s.date + '_' + (s.createdAt || ''),
       };
     });
@@ -3994,12 +4254,12 @@
 
   function typeIds(type){
     return type === 'income'
-      ? { monthList:'incomeMonthList', empty:'incomeEmpty', bulkBar:'incomeBulkBar',
+      ? { monthList:'incomeMonthList', empty:'incomeEmpty', bulkBar:'incomeBulkBar', summary:'incomeFilterSummary', presets:'incomeFilterPresets',
           filterBtn:'incomeFilterToggleBtn', panel:'incomeFilterPanel', from:'incomeFilterFrom', to:'incomeFilterTo',
           min:'incomeFilterMin', max:'incomeFilterMax', search:'incomeFilterSearch', creator:'incomeFilterCreator',
           voided:'incomeFilterHideVoided', cats:'incomeFilterCats', apply:'incomeFilterApplyBtn', reset:'incomeFilterResetBtn',
           selectAll:'incomeFilterSelectAllBtn' }
-      : { monthList:'expenseMonthList', empty:'expenseEmpty', bulkBar:'expenseBulkBar',
+      : { monthList:'expenseMonthList', empty:'expenseEmpty', bulkBar:'expenseBulkBar', summary:'expenseFilterSummary', presets:'expenseFilterPresets',
           filterBtn:'expenseFilterToggleBtn', panel:'expenseFilterPanel', from:'expenseFilterFrom', to:'expenseFilterTo',
           min:'expenseFilterMin', max:'expenseFilterMax', search:'expenseFilterSearch', creator:'expenseFilterCreator',
           voided:'expenseFilterHideVoided', cats:'expenseFilterCats', apply:'expenseFilterApplyBtn', reset:'expenseFilterResetBtn',
@@ -4027,10 +4287,16 @@
 
   function groupByMonth(list){
     const map = {};
-    list.forEach(t => { const m = t.date.slice(0,7); if(!map[m]) map[m] = []; map[m].push(t); });
+    list.forEach(t => { const m = (t.date || '').slice(0,7) || '0000-00'; if(!map[m]) map[m] = []; map[m].push(t); });
     return map;
   }
 
+  function activeFilterCount(f){
+    return ((f.from || f.to) ? 1 : 0) + ((f.min !== '' || f.max !== '') ? 1 : 0) + (f.search ? 1 : 0)
+      + (f.creator ? 1 : 0) + (f.hideVoided ? 1 : 0) + (f.categories ? 1 : 0);
+  }
+
+  // تعبئة اللوحة من التصفية الفعّالة حالياً — فما تصير تصفية شغّالة ولوحتها تبدو فاضية.
   function populateEntryFilterPanel(type){
     const ids = typeIds(type);
     const f = entryFilters[type];
@@ -4042,23 +4308,83 @@
     creatorSel.innerHTML = '<option value="">الكل</option>' + state.users.map(u => `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)}</option>`).join('');
     creatorSel.value = f.creator || '';
 
-    // Categories always start unchecked when the panel opens — picking just
-    // the few you want is much faster than unchecking everything else.
-    // "تحديد الكل" below is there for when you do want all of them.
     const cats = state.categories.filter(c => c.type === type).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
     $(ids.cats).innerHTML = cats.length ? cats.map(c => `
       <label style="display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; cursor:pointer; border-bottom:1px solid var(--border);">
-        <input type="checkbox" data-filter-cat="${c.id}" style="width:auto;">
+        <input type="checkbox" data-filter-cat="${c.id}" style="width:auto;" ${(f.categories && f.categories.has(c.id)) ? 'checked' : ''}>
         ${escapeHtml(c.name)}
       </label>`).join('') : '<div class="cat-empty">لا توجد تصنيفات.</div>';
   }
 
+  // تُطبَّق التصفية فوراً مع كل تغيير. وبدون أي فئة محددة = كل الفئات (حتى لا تختفي القيود بالغلط).
+  function readEntryFilterFromPanel(type){
+    const ids = typeIds(type);
+    const f = entryFilters[type];
+    f.from = $(ids.from).value; f.to = $(ids.to).value;
+    f.min = $(ids.min).value; f.max = $(ids.max).value;
+    f.search = $(ids.search).value.trim();
+    f.creator = $(ids.creator).value;
+    f.hideVoided = $(ids.voided).checked;
+    const checked = new Set();
+    document.querySelectorAll(`#${ids.cats} [data-filter-cat]`).forEach(cb => { if(cb.checked) checked.add(cb.getAttribute('data-filter-cat')); });
+    const total = state.categories.filter(c => c.type === type).length;
+    f.categories = (checked.size === 0 || checked.size >= total) ? null : checked;
+    renderTypePage(type);
+  }
+
+  function clearEntryFilter(type){
+    entryFilters[type] = defaultEntryFilter();
+    renderTypePage(type);
+  }
+
+  function entryRangeFor(kind){
+    const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+    if(kind === 'month') return [toLocalDateStr(new Date(y, m, 1)), toLocalDateStr(new Date(y, m + 1, 0))];
+    if(kind === 'lastmonth') return [toLocalDateStr(new Date(y, m - 1, 1)), toLocalDateStr(new Date(y, m, 0))];
+    if(kind === 'year') return [`${y}-01-01`, `${y}-12-31`];
+    return ['', ''];
+  }
+
+  // شريط يوضح دائماً أن هناك تصفية شغّالة وكم قيد مخفي، مع مسحها بضغطة.
+  function renderFilterSummary(type, shown){
+    const ids = typeIds(type);
+    const n = activeFilterCount(entryFilters[type]);
+    $(ids.filterBtn).textContent = '🔍 تصفية' + (n ? ` (${n})` : '');
+    const box = $(ids.summary);
+    if(!n){ box.innerHTML = ''; return; }
+    const total = state.transactions.filter(t => t.type === type).length;
+    box.innerHTML = `
+      <div class="audit-note" style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; border:1px solid var(--accent); border-radius:10px; padding:8px 12px; color:var(--ink);">
+        <span>تصفية فعّالة · يظهر ${shown} من ${total} قيد</span>
+        <button type="button" data-clear-filter style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:4px 12px; border-radius:14px; border:1px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; flex-shrink:0;">مسح التصفية</button>
+      </div>`;
+    box.querySelector('[data-clear-filter]').addEventListener('click', () => {
+      clearEntryFilter(type);
+      if($(ids.panel).style.display !== 'none') populateEntryFilterPanel(type);
+    });
+  }
+
   ['income', 'expense'].forEach(type => {
     const ids = typeIds(type);
+    ['from', 'to', 'creator', 'voided'].forEach(k => $(ids[k]).addEventListener('change', () => readEntryFilterFromPanel(type)));
+    ['min', 'max'].forEach(k => $(ids[k]).addEventListener('input', () => readEntryFilterFromPanel(type)));
+    let searchTimer;
+    $(ids.search).addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(() => readEntryFilterFromPanel(type), 200); });
+    $(ids.cats).addEventListener('change', (e) => {
+      if(e.target && e.target.matches && e.target.matches('[data-filter-cat]')) readEntryFilterFromPanel(type);
+    });
+    $(ids.presets).addEventListener('click', (e) => {
+      const b = e.target && e.target.closest ? e.target.closest('[data-range]') : null;
+      if(!b) return;
+      const [from, to] = entryRangeFor(b.getAttribute('data-range'));
+      $(ids.from).value = from; $(ids.to).value = to;
+      readEntryFilterFromPanel(type);
+    });
     $(ids.selectAll).addEventListener('click', () => {
       const boxes = document.querySelectorAll(`#${ids.cats} [data-filter-cat]`);
       const allChecked = [...boxes].length > 0 && [...boxes].every(cb => cb.checked);
       boxes.forEach(cb => { cb.checked = !allChecked; });
+      readEntryFilterFromPanel(type);
     });
     $(ids.filterBtn).addEventListener('click', () => {
       const panel = $(ids.panel);
@@ -4066,25 +4392,8 @@
       panel.style.display = open ? 'block' : 'none';
       if(open) populateEntryFilterPanel(type);
     });
-    $(ids.apply).addEventListener('click', () => {
-      const f = entryFilters[type];
-      f.from = $(ids.from).value; f.to = $(ids.to).value;
-      f.min = $(ids.min).value; f.max = $(ids.max).value;
-      f.search = $(ids.search).value.trim();
-      f.creator = $(ids.creator).value;
-      f.hideVoided = $(ids.voided).checked;
-      const allCats = state.categories.filter(c => c.type === type).map(c => c.id);
-      const checked = new Set();
-      document.querySelectorAll(`#${ids.cats} [data-filter-cat]`).forEach(cb => { if(cb.checked) checked.add(cb.getAttribute('data-filter-cat')); });
-      f.categories = (checked.size === allCats.length) ? null : checked;
-      $(ids.panel).style.display = 'none';
-      renderTypePage(type);
-    });
-    $(ids.reset).addEventListener('click', () => {
-      entryFilters[type] = defaultEntryFilter();
-      populateEntryFilterPanel(type);
-      renderTypePage(type);
-    });
+    $(ids.apply).addEventListener('click', () => { readEntryFilterFromPanel(type); $(ids.panel).style.display = 'none'; });
+    $(ids.reset).addEventListener('click', () => { clearEntryFilter(type); populateEntryFilterPanel(type); });
   });
 
   async function hardDeleteTransaction(id){
@@ -4175,7 +4484,7 @@
         ${thumb}
         <div class="txn-main">
           <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
-          <div class="meta">${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}${t.cashAmount ? ' · نقد: ' + fmt(t.cashAmount) : ''}</div>
+          <div class="meta">${t.date || '—'}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}${t.cashAmount ? ' · نقد: ' + fmt(t.cashAmount) : ''}</div>
         </div>
         <div class="txn-side">
           <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
@@ -4192,6 +4501,7 @@
     const colorClass = type === 'income' ? 'income' : 'expense';
     const ids = typeIds(type);
     const list = filterEntries(type);
+    renderFilterSummary(type, list.length);
 
     const groups = groupByMonth(list);
     const months = Object.keys(groups).sort().reverse();
@@ -4200,7 +4510,7 @@
       holder.innerHTML = '';
       $(ids.bulkBar).innerHTML = '';
       $(ids.empty).style.display = 'block';
-      $(ids.empty).textContent = 'لا توجد قيود مطابقة للتصفية الحالية.';
+      $(ids.empty).textContent = activeFilterCount(entryFilters[type]) ? 'لا توجد قيود مطابقة للتصفية الحالية — اضغط «مسح التصفية» لعرض كل القيود.' : 'لا توجد قيود بعد.';
       return;
     }
     $(ids.empty).style.display = 'none';
