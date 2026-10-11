@@ -247,6 +247,11 @@
   .row2 .field{ flex:1; }
   .cat-field-row{ display:flex; align-items:center; gap:10px; }
   .cat-field-row select{ flex:1; }
+  .daily-field{ box-sizing:border-box; font-family:'Cairo',sans-serif; font-size:13.5px; padding:8px 10px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); }
+  .daily-field::placeholder{ color:var(--ink-soft); }
+  .daily-field[type=number]{ font-family:'IBM Plex Mono',monospace; text-align:center; direction:ltr; }
+  .daily-field[type=date]{ direction:ltr; }
+  .daily-row-del{ background:transparent; border:none; color:var(--ink-soft); font-size:14px; cursor:pointer; padding:4px; flex-shrink:0; }
   .manage-cat-link{ font-family:'Cairo',sans-serif; font-size:11.5px; color:var(--accent); background:none; border:none; cursor:pointer; white-space:nowrap; }
   .receipt-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .receipt-row input[type=file]{ font-family:'Cairo',sans-serif; font-size:12px; color:var(--ink-soft); }
@@ -430,6 +435,8 @@
       <section id="page-home">
         <div id="reminderAlertBox"></div>
 
+        <button type="button" class="submit" data-goto="daily" style="margin-bottom:14px;">📝 إضافة قيد يومي</button>
+
         <div class="stat-row">
           <div class="stat-card" id="dashIncomeCard" style="cursor:pointer;"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
           <div class="stat-card" id="dashExpenseCard" style="cursor:pointer;"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
@@ -596,6 +603,64 @@
           </div>
           <button type="submit" class="submit" id="submitBtn">تسجيل القيد</button>
           <div class="confirm-msg" id="confirmMsg">تم تسجيل القيد ✓</div>
+        </form>
+      </section>
+
+      <!-- ============ DAILY ENTRY (قيد يومي موحّد) ============ -->
+      <section id="page-daily" hidden>
+        <form id="dailyForm">
+          <div class="daily-sheet" style="background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:16px;">
+
+            <!-- Date -->
+            <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--border);">
+              <label for="daily-date" style="font-size:13px; font-weight:700; color:var(--ink-soft);">تاريخ القيد</label>
+              <input type="date" id="daily-date" class="daily-field" required style="width:auto;">
+            </div>
+
+            <!-- Income -->
+            <div class="daily-sec-head" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-size:13.5px; font-weight:800;">💰 الإيرادات</span>
+            </div>
+            <div id="dailyIncomeRows" style="display:flex; flex-direction:column; gap:7px;"></div>
+            <button type="button" class="manage-cat-link" id="dailyAddIncomeBtn" style="margin-top:8px;">+ إضافة بند إيراد آخر</button>
+
+            <div style="display:flex; align-items:center; gap:8px; background:var(--panel-2); border-radius:10px; padding:10px 12px; margin-top:14px;">
+              <label for="daily-cash-remaining" style="font-size:12.5px; color:var(--ink-soft); flex:1;">💵 الكاش المتبقي معي (يُضاف للخزينة النقدية)</label>
+              <input type="number" id="daily-cash-remaining" class="daily-field" step="0.01" min="0" placeholder="0.00" style="width:110px; flex:none;">
+            </div>
+
+            <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+            <!-- Expenses -->
+            <div class="daily-sec-head" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-size:13.5px; font-weight:800;">🧾 المصروفات</span>
+            </div>
+            <div id="dailyExpenseRows" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <button type="button" class="manage-cat-link" id="dailyAddExpenseBtn" style="margin-top:8px;">+ إضافة بند مصروف آخر</button>
+
+            <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+            <!-- Settlements -->
+            <div class="daily-sec-head" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-size:13.5px; font-weight:800;">💳 موازنات نقاط البيع (مدى / فيزا)</span>
+            </div>
+            <div id="dailySettleRows" style="display:flex; flex-direction:column; gap:7px;"></div>
+            <button type="button" class="manage-cat-link" id="dailyAddSettleBtn" style="margin-top:8px;">+ إضافة موازنة أخرى</button>
+
+            <div style="height:1px; background:var(--border); margin:18px 0;"></div>
+
+            <!-- Bank transfers -->
+            <div class="daily-sec-head" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-size:13.5px; font-weight:800;">🏦 حوالات بنكية</span>
+            </div>
+            <div id="dailyTransferRows" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <button type="button" class="manage-cat-link" id="dailyAddTransferBtn" style="margin-top:8px;">+ إضافة حوالة أخرى</button>
+
+          </div>
+
+          <div id="dailyErrorMsg" class="confirm-msg" style="display:none; background:var(--expense-bg); color:var(--expense);">تحقق من صلاحياتك أو من بيانات القيد.</div>
+          <button type="submit" class="submit" id="dailySubmitBtn" style="margin-top:16px;">حفظ القيد اليومي</button>
+          <div class="confirm-msg" id="dailyConfirmMsg">تم حفظ القيد اليومي ✓</div>
         </form>
       </section>
 
@@ -923,7 +988,8 @@
           <div class="value" id="bankBalanceDisplay" style="font-size:28px; margin-top:4px;">0.00 ر.س</div>
           <div class="audit-note" style="margin-top:6px;">اضغط لعرض تفصيل الرصيد (كل التاريخ)</div>
         </div>
-        <button type="button" id="resetBankBalanceBtn" style="width:100%; margin-bottom:18px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">↺ تصفير الرصيد المعروض (يبقي السجل كاملاً)</button>
+        <button type="button" id="resetBankBalanceBtn" style="width:100%; margin-bottom:8px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">↺ تصفير الرصيد المعروض (يبقي السجل كاملاً)</button>
+        <button type="button" id="toggleFeeRateBtn" style="width:100%; margin-bottom:18px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;"></button>
 
         <h3 class="block-title" id="settleFormToggle" style="cursor:pointer; user-select:none; margin-top:4px;">
           إضافة موازنة يومية
@@ -1165,6 +1231,7 @@
     income: ['الإيرادات', 'كل قيود الدخل على حدة', null],
     expenses: ['المصروفات', 'كل قيود المصروفات على حدة', null],
     new: ['عملية جديدة', 'تسجيل إيراد أو مصروف', null],
+    daily: ['إضافة قيد يومي', 'سجّل عمليات اليوم دفعة واحدة', null],
     more: ['المزيد', 'إعدادات ونظرة إضافية', null],
     bank: ['الحساب البنكي', 'موازنة عمليات نقاط البيع اليومية', null],
     categories: ['التصنيفات', 'أضف أو احذف تصنيفات', 'more'],
@@ -1182,7 +1249,7 @@
     cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات البنكية', 'more'],
   };
 
-  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], bankAdjustment: 0, currentType: 'income', pendingReceipt: null };
+  let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], bankAdjustment: 0, feeRateVersion: 'new', currentType: 'income', pendingReceipt: null };
   let currentPage = 'home';
   let currentSupplierId = null;
 
@@ -1444,6 +1511,12 @@
       if(appIsReady) renderCurrentPage();
     }, (err) => console.error(err));
     unsubscribers.push(bankAdjUnsub);
+
+    const feeRateUnsub = db.collection('meta').doc('feeRateVersion').onSnapshot(snap => {
+      state.feeRateVersion = (snap.exists && snap.data().version) ? snap.data().version : 'new';
+      if(appIsReady) renderCurrentPage();
+    }, (err) => console.error(err));
+    unsubscribers.push(feeRateUnsub);
   }
 
   // ---------------- Local (in-app) notifications ----------------
@@ -1706,6 +1779,7 @@
     window.scrollTo(0,0);
     if(name === 'more') updateNotifStatusUI();
     if(name === 'bank') bankBannerDismissed = false;
+    if(name === 'daily') resetDailyForm();
     renderCurrentPage();
   }
   document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => showPage(btn.getAttribute('data-tab'))));
@@ -1855,9 +1929,21 @@
 
   let editingReceivedIds = new Set();
 
+  // معدّلات الرسوم: القديمة (قبل 2026-10-11) والمصحَّحة بناءً على أمثلة حقيقية
+  // من كشف البنك. يمكن الرجوع للمعدل القديم من زر "استخدام المعادلة القديمة"
+  // بصفحة الحساب البنكي بدون الحاجة لأي نسخة احتياطية — الموازنات المؤكدة
+  // محفوظ فيها الرسوم وقتها فلن تتأثر، فقط الحسابات الجديدة/غير المؤكدة.
+  const VISA_FEE_RATE_OLD = 0.025 * 1.15; // 2.875%
+  const VISA_FEE_RATE_NEW = 0.02876;      // 2.876% — مطابقة لأمثلة حقيقية (1335→1296.61 وغيرها)
+  const MADA_FEE_RATE_OLD = 0.0092;       // 0.92%
+  const MADA_FEE_RATE_NEW = 0.009192;     // 0.9192% — مطابقة تماماً لأمثلة حقيقية (1895→17.42 وغيرها)
+
+  function useOldFeeRates(){ return state.feeRateVersion === 'old'; }
+
   function computeVisaFee(visaAmount){
     if(!visaAmount) return { fee: 0, net: 0 };
-    const feeRaw = visaAmount * 0.025 * 1.15;
+    const rate = useOldFeeRates() ? VISA_FEE_RATE_OLD : VISA_FEE_RATE_NEW;
+    const feeRaw = visaAmount * rate;
     const fee = Math.round(feeRaw * 100) / 100;
     const net = Math.round((visaAmount - fee) * 100) / 100;
     return { fee, net };
@@ -1867,10 +1953,11 @@
     return computeVisaFee(s.visa);
   }
 
-  // مدى: 0.8% + 15% ضريبة = 0.92% من المبلغ المُدخل.
+  // مدى: نسبة معتمدة من أمثلة حقيقية من كشف البنك (0.9192%).
   function computeMadaFee(madaAmount){
     if(!madaAmount) return { fee: 0, net: 0 };
-    const fee = Math.round(madaAmount * 0.0092 * 100) / 100;
+    const rate = useOldFeeRates() ? MADA_FEE_RATE_OLD : MADA_FEE_RATE_NEW;
+    const fee = Math.round(madaAmount * rate * 100) / 100;
     const net = Math.round((madaAmount - fee) * 100) / 100;
     return { fee, net };
   }
@@ -1906,7 +1993,7 @@
         ${isEditing ? `<button type="button" class="cancel-edit-btn" data-cancel-edit="${s.id}">إلغاء التعديل</button>` : ''}`;
     } else {
       const diff = s.bankReceived - expected;
-      const diffText = Math.abs(diff) < 0.005
+      const diffText = Math.abs(diff) <= 0.1
         ? '<span style="color:var(--income);">مطابق تماماً</span>'
         : diff < 0
           ? `<span style="color:var(--expense);">أقل بمقدار ${fmt(Math.abs(diff))}</span>`
@@ -2014,8 +2101,25 @@
 
   function renderBankPage(){
     $('bankBalanceDisplay').textContent = fmt(bankBalanceAllTime());
+    const toggleBtn = $('toggleFeeRateBtn');
+    toggleBtn.textContent = useOldFeeRates()
+      ? '↩ رجوع لمعادلة الرسوم الجديدة (2.876% فيزا / 0.9192% مدى)'
+      : '↩ رجوع لمعادلة الرسوم القديمة (2.875% فيزا / 0.92% مدى)';
     renderBankRecordList();
   }
+
+  $('toggleFeeRateBtn').addEventListener('click', async () => {
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية هذا الإجراء.'); return; }
+    const goingTo = useOldFeeRates() ? 'new' : 'old';
+    const label = goingTo === 'old' ? 'القديمة (2.875% فيزا / 0.92% مدى)' : 'الجديدة (2.876% فيزا / 0.9192% مدى)';
+    if(!confirm(`سيتم التبديل لمعادلة الرسوم ${label}.\n\nهذا يغيّر فقط حساب الموازنات غير المؤكدة بعد — أي موازنة سبق تأكيد استلامها محفوظ فيها رسومها كما كانت ولن تتأثر أبداً. تقدّر ترجع لهذا الزر وتبدّل مرة أخرى في أي وقت. متابعة؟`)) return;
+    try{
+      await db.collection('meta').doc('feeRateVersion').set({
+        version: goingTo, setAt: new Date().toISOString(), setBy: currentUser ? currentUser.email : '',
+      });
+      logActivity('toggle_fee_rate', `بدّل معادلة رسوم مدى/فيزا إلى: ${label}`);
+    }catch(e){ console.error(e); showBanner('تعذّر تبديل المعادلة: ' + e.message); }
+  });
 
   let settleDetailOpen = new Set();
 
@@ -2027,7 +2131,7 @@
       const expected = settlementExpected(s);
       const matched = s.status === 'matched';
       const diff = s.bankReceived - expected;
-      const mismatchTag = Math.abs(diff) >= 0.01
+      const mismatchTag = Math.abs(diff) > 0.1
         ? `<span class="txn-tag" style="${diff < 0 ? 'border-color:var(--expense); color:var(--expense);' : 'border-color:#D9A227; color:#D9A227;'}">${diff < 0 ? 'ناقص ' + fmt(Math.abs(diff)) : 'زائد ' + fmt(diff)}</span>`
         : '';
       return `
@@ -2152,7 +2256,7 @@
     const mismatches = state.settlements.filter(s => {
       if(s.bankReceived == null) return false;
       const { net } = settlementVisaFigures(s);
-      return Math.abs(s.bankReceived - (settlementExpected(s))) >= 0.01;
+      return Math.abs(s.bankReceived - (settlementExpected(s))) > 0.1;
     });
     const bannerEl = $('bankReviewBanner');
     if(mismatches.length && !bankBannerDismissed){
@@ -5026,6 +5130,250 @@
     openInfoModal('تفصيل الحساب البنكي', periodSubtitleHtml() + infoModalRowsHtml(rows));
   });
 
+  // ---------------- Daily entry (قيد يومي موحّد) ----------------
+  // Every record built here has the exact same shape the separate
+  // إيراد/مصروف/موازنة/حوالة/إيداع forms create, using the same uid(),
+  // persist*() and computeVisaFee/computeMadaFee functions — so every
+  // balance, report and calculation elsewhere treats it identically to a
+  // قيد entered the old way, one form at a time. Nothing here recomputes
+  // or changes any existing data.
+
+  function categoryOptionsHtml(type){
+    const opts = state.categories.filter(c => c.type === type).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+    return opts.length ? opts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') : `<option value="">لا توجد تصنيفات — أضف واحدة</option>`;
+  }
+
+  function addDailyIncomeRow(){
+    const row = document.createElement('div');
+    row.className = 'daily-row';
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+      <select class="daily-field daily-income-cat" style="flex:1.6;">${categoryOptionsHtml('income')}</select>
+      <input type="number" class="daily-field daily-income-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
+      <button type="button" class="daily-row-del">✕</button>`;
+    row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
+    $('dailyIncomeRows').appendChild(row);
+  }
+
+  function addDailyExpenseRow(){
+    const row = document.createElement('div');
+    row.className = 'daily-row';
+    row.style.cssText = 'display:flex; flex-direction:column; gap:6px; background:var(--panel-2); border-radius:10px; padding:8px;';
+    row.innerHTML = `
+      <div style="display:flex; gap:6px; align-items:center;">
+        <select class="daily-field daily-expense-cat" style="flex:1.3;">${categoryOptionsHtml('expense')}</select>
+        <input type="text" class="daily-field daily-expense-desc" placeholder="الوصف (اختياري)" style="flex:1.3;">
+        <button type="button" class="daily-row-del">✕</button>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="number" class="daily-field daily-expense-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
+        <select class="daily-field daily-expense-src" style="flex:1.6;">
+          <option value="none">من إيراد اليوم (كاش بدون خصم)</option>
+          <option value="cash">نقد من الخزينة</option>
+          <option value="bank">الحساب البنكي</option>
+        </select>
+      </div>`;
+    row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
+    $('dailyExpenseRows').appendChild(row);
+  }
+
+  function addDailySettleRow(){
+    const row = document.createElement('div');
+    row.className = 'daily-row';
+    row.style.cssText = 'display:flex; gap:6px; align-items:center;';
+    row.innerHTML = `
+      <input type="number" class="daily-field daily-settle-mada" step="0.01" min="0" placeholder="مدى" style="flex:1;">
+      <input type="number" class="daily-field daily-settle-visa" step="0.01" min="0" placeholder="فيزا" style="flex:1;">
+      <select class="daily-field daily-settle-status" style="flex:1.1;">
+        <option value="matched">متوافقة</option>
+        <option value="unmatched">غير متوافقة</option>
+      </select>
+      <button type="button" class="daily-row-del">✕</button>`;
+    row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
+    $('dailySettleRows').appendChild(row);
+  }
+
+  function addDailyTransferRow(){
+    const row = document.createElement('div');
+    row.className = 'daily-row';
+    row.style.cssText = 'display:flex; flex-direction:column; gap:6px; background:var(--panel-2); border-radius:10px; padding:8px;';
+    row.innerHTML = `
+      <div style="display:flex; gap:6px; align-items:center;">
+        <select class="daily-field daily-transfer-dir" style="flex:0.9;">
+          <option value="in">واردة</option>
+          <option value="out">صادرة</option>
+        </select>
+        <input type="number" class="daily-field daily-transfer-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
+        <button type="button" class="daily-row-del">✕</button>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <input type="text" class="daily-field daily-transfer-name" placeholder="الاسم (اختياري)" style="flex:1;">
+        <input type="text" class="daily-field daily-transfer-reason" placeholder="السبب (اختياري)" style="flex:1;">
+      </div>`;
+    row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
+    $('dailyTransferRows').appendChild(row);
+  }
+
+  function resetDailyForm(){
+    $('daily-date').value = todayStr();
+    $('daily-cash-remaining').value = '';
+    $('dailyIncomeRows').innerHTML = '';
+    $('dailyExpenseRows').innerHTML = '';
+    $('dailySettleRows').innerHTML = '';
+    $('dailyTransferRows').innerHTML = '';
+    addDailyIncomeRow();
+    addDailyExpenseRow();
+    addDailySettleRow();
+    addDailyTransferRow();
+    $('dailyErrorMsg').style.display = 'none';
+    $('dailyConfirmMsg').style.display = 'none';
+  }
+
+  $('dailyAddIncomeBtn').addEventListener('click', addDailyIncomeRow);
+  $('dailyAddExpenseBtn').addEventListener('click', addDailyExpenseRow);
+  $('dailyAddSettleBtn').addEventListener('click', addDailySettleRow);
+  $('dailyAddTransferBtn').addEventListener('click', addDailyTransferRow);
+
+  $('dailyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = $('dailySubmitBtn'); btn.disabled = true;
+    $('dailyErrorMsg').style.display = 'none';
+    try{
+      const date = $('daily-date').value || todayStr();
+      const by = currentUser ? currentUser.email : '';
+      const nowIso = new Date().toISOString();
+
+      // Collect every filled row first; nothing is written until everything
+      // is validated, so a bad row or a missing permission never leaves a
+      // half-saved قيد.
+      const incomeRows = [...document.querySelectorAll('#dailyIncomeRows .daily-row')].map(r => ({
+        categoryId: r.querySelector('.daily-income-cat').value,
+        amount: parseFloat(r.querySelector('.daily-income-amt').value) || 0,
+      })).filter(r => r.categoryId && r.amount > 0);
+
+      const expenseRows = [...document.querySelectorAll('#dailyExpenseRows .daily-row')].map(r => ({
+        categoryId: r.querySelector('.daily-expense-cat').value,
+        description: r.querySelector('.daily-expense-desc').value.trim(),
+        amount: parseFloat(r.querySelector('.daily-expense-amt').value) || 0,
+        source: r.querySelector('.daily-expense-src').value,
+      })).filter(r => r.categoryId && r.amount > 0);
+
+      const settleRows = [...document.querySelectorAll('#dailySettleRows .daily-row')].map(r => ({
+        mada: parseFloat(r.querySelector('.daily-settle-mada').value) || 0,
+        visa: parseFloat(r.querySelector('.daily-settle-visa').value) || 0,
+        status: r.querySelector('.daily-settle-status').value,
+      })).filter(r => r.mada > 0 || r.visa > 0);
+
+      const transferRows = [...document.querySelectorAll('#dailyTransferRows .daily-row')].map(r => ({
+        direction: r.querySelector('.daily-transfer-dir').value,
+        amount: parseFloat(r.querySelector('.daily-transfer-amt').value) || 0,
+        name: r.querySelector('.daily-transfer-name').value.trim(),
+        reason: r.querySelector('.daily-transfer-reason').value.trim(),
+      })).filter(r => r.amount > 0);
+
+      const cashRemaining = parseFloat($('daily-cash-remaining').value) || 0;
+
+      if(!incomeRows.length && !expenseRows.length && !settleRows.length && !transferRows.length && !cashRemaining){
+        $('dailyErrorMsg').textContent = 'لم تُدخل أي بند. أضف مبلغاً في قسم واحد على الأقل.';
+        $('dailyErrorMsg').style.display = 'block';
+        return;
+      }
+      if(incomeRows.length && !hasPermission('add_income')){
+        $('dailyErrorMsg').textContent = 'ليست لديك صلاحية إضافة إيراد — راجع بنود الإيرادات.';
+        $('dailyErrorMsg').style.display = 'block'; return;
+      }
+      if(expenseRows.length && !hasPermission('add_expense')){
+        $('dailyErrorMsg').textContent = 'ليست لديك صلاحية إضافة مصروف — راجع بنود المصروفات.';
+        $('dailyErrorMsg').style.display = 'block'; return;
+      }
+      if(settleRows.length && !hasPermission('add_settlement')){
+        $('dailyErrorMsg').textContent = 'ليست لديك صلاحية إضافة موازنة بنكية — راجع بنود الموازنات.';
+        $('dailyErrorMsg').style.display = 'block'; return;
+      }
+      if(transferRows.length && !hasPermission('manage_bank_transfers')){
+        $('dailyErrorMsg').textContent = 'ليست لديك صلاحية تسجيل حوالات بنكية — راجع بنود الحوالات.';
+        $('dailyErrorMsg').style.display = 'block'; return;
+      }
+
+      let savedCount = 0;
+
+      incomeRows.forEach(r => {
+        const catObj = state.categories.find(c => c.id === r.categoryId);
+        const txn = {
+          id: uid(), date, description: '', categoryId: r.categoryId, categoryName: catObj ? catObj.name : '',
+          amount: Math.round(r.amount * 100) / 100, cashAmount: 0, bankAmount: 0,
+          type: 'income', createdAt: nowIso, createdBy: by,
+          isReversal: false, voided: false, receipt: null,
+        };
+        state.transactions.push(txn);
+        persistTransaction(txn);
+        logActivity('add_transaction', `أضاف إيراد بمبلغ ${fmt(txn.amount)} (${txn.categoryName}) — ضمن قيد يومي`);
+        savedCount++;
+      });
+
+      expenseRows.forEach(r => {
+        const catObj = state.categories.find(c => c.id === r.categoryId);
+        const cashAmount = r.source === 'cash' ? r.amount : 0;
+        const bankAmount = r.source === 'bank' ? r.amount : 0;
+        const txn = {
+          id: uid(), date, description: r.description, categoryId: r.categoryId, categoryName: catObj ? catObj.name : '',
+          amount: Math.round(r.amount * 100) / 100,
+          cashAmount: Math.round(cashAmount * 100) / 100, bankAmount: Math.round(bankAmount * 100) / 100,
+          type: 'expense', createdAt: nowIso, createdBy: by,
+          isReversal: false, voided: false, receipt: null,
+        };
+        state.transactions.push(txn);
+        persistTransaction(txn);
+        logActivity('add_transaction', `أضاف مصروف بمبلغ ${fmt(txn.amount)} (${txn.categoryName}) — ضمن قيد يومي`);
+        savedCount++;
+      });
+
+      if(cashRemaining > 0){
+        const deposit = {
+          id: uid(), date, amount: Math.round(cashRemaining * 100) / 100, note: 'كاش متبقي — ضمن قيد يومي', kind: 'cash_in',
+          createdAt: nowIso, createdBy: by,
+        };
+        state.cashDeposits.push(deposit);
+        persistCashDeposit(deposit);
+        logActivity('add_cash_deposit', `أضاف نقداً للخزينة بمبلغ ${fmt(deposit.amount)} — ضمن قيد يومي`);
+        savedCount++;
+      }
+
+      settleRows.forEach(r => {
+        const mada = Math.round(r.mada * 100) / 100, visa = Math.round(r.visa * 100) / 100;
+        const { fee: visaFee, net: visaNet } = computeVisaFee(visa);
+        const { fee: madaFee, net: madaNet } = computeMadaFee(mada);
+        const s = {
+          id: uid(), date, mada, visa, visaFee, visaNet, madaFee, madaNet,
+          status: r.status, bankReceived: null, createdAt: nowIso,
+        };
+        state.settlements.push(s);
+        persistSettlement(s);
+        logActivity('add_settlement', `أضاف موازنة بتاريخ ${date} — ضمن قيد يومي`);
+        savedCount++;
+      });
+
+      transferRows.forEach(r => {
+        const transfer = {
+          id: uid(), date, amount: Math.round(r.amount * 100) / 100, direction: r.direction,
+          name: r.name, reason: r.reason, createdAt: nowIso, createdBy: by,
+        };
+        state.bankTransfers.push(transfer);
+        persistBankTransfer(transfer);
+        logActivity('add_bank_transfer', `سجّل حوالة ${r.direction === 'in' ? 'واردة' : 'صادرة'} بمبلغ ${fmt(transfer.amount)}${r.name ? ' (' + r.name + ')' : ''} — ضمن قيد يومي`);
+        savedCount++;
+      });
+
+      renderCurrentPage();
+      resetDailyForm();
+      $('dailyConfirmMsg').textContent = `تم حفظ القيد اليومي ✓ (${savedCount} بند)`;
+      $('dailyConfirmMsg').style.display = 'block';
+      setTimeout(() => { $('dailyConfirmMsg').style.display = 'none'; }, 2500);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
   // ---------------- Event wiring ----------------
 
   $('typeIncomeBtn').addEventListener('click', () => setType('income'));
@@ -5078,6 +5426,7 @@
   });
 
   $('f-date').value = todayStr();
+  $('daily-date').value = todayStr();
   $('s-date').value = todayStr();
   $('inv-date').value = todayStr();
   $('deposit-date').value = todayStr();
