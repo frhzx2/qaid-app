@@ -453,6 +453,7 @@
           <div class="stat-card" id="dashExpenseCard" style="cursor:pointer;"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
           <div class="stat-card"><div class="label">صافي الفترة</div><div class="value" id="dashNetTotal">0.00</div></div>
           <div class="stat-card"><div class="label">الخزينة النقدية</div><div class="value" id="dashCashTotal" style="color:#D9A227;">0.00</div></div>
+          <div class="stat-card" id="dashBankCard" style="cursor:pointer;"><div class="label">الحساب البنكي</div><div class="value" id="dashBankTotal">0.00</div></div>
           <div class="stat-card"><div class="label">الرواتب الشهرية</div><div class="value" id="dashPayrollTotal" style="color:var(--expense);">0.00</div></div>
         </div>
         <div class="audit-note" style="margin:-10px 0 14px;">اضغط على الإيرادات، المصروفات، أو الحساب البنكي لعرض التفاصيل</div>
@@ -1171,6 +1172,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
       المصروفات
     </button>
+    <button type="button" class="nav-btn" data-tab="bank">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10l9-6 9 6"/><path d="M5 10v9M9 10v9M15 10v9M19 10v9"/><path d="M3 19h18"/></svg>
+      الحساب البنكي
+    </button>
     <button type="button" class="nav-btn" data-tab="more">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg>
       المزيد
@@ -1239,6 +1244,7 @@
     new: ['عملية جديدة', 'تسجيل إيراد أو مصروف', null],
     daily: ['إضافة قيد يومي', 'سجّل عمليات اليوم دفعة واحدة', null],
     more: ['المزيد', 'إعدادات ونظرة إضافية', null],
+    bank: ['الحساب البنكي', 'موازنة عمليات نقاط البيع اليومية', null],
     categories: ['التصنيفات', 'أضف أو احذف تصنيفات', 'more'],
     audit: ['سجل المراجعة', 'التحقق من توازن الدفتر', 'more'],
     suppliers: ['قائمة الموردين', 'إدارة الموردين والمدفوعات', 'more'],
@@ -1788,6 +1794,7 @@
     }
     window.scrollTo(0,0);
     if(name === 'more') updateNotifStatusUI();
+    if(name === 'bank') bankBannerDismissed = false;
     if(name === 'daily') resetDailyForm();
     renderCurrentPage();
   }
@@ -4223,6 +4230,36 @@
     $('dashNetTotal').textContent = fmt(net);
     $('dashNetTotal').style.color = net >= 0 ? 'var(--income)' : 'var(--expense)';
 
+    let bankNet = 0;
+    state.settlements.forEach(s => {
+      if(s.bankReceived == null) return;
+      if(bFrom && s.date < bFrom) return;
+      if(bTo && s.date > bTo) return;
+      bankNet += s.bankReceived;
+    });
+    state.bankTransfers.forEach(t => {
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      bankNet += (t.direction === 'in' ? t.amount : -t.amount);
+    });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount || t.type !== 'expense') return;
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      bankNet -= t.bankAmount;
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      if(bFrom && d.date < bFrom) return;
+      if(bTo && d.date > bTo) return;
+      bankNet += d.amount;
+    });
+    // The reconciliation offset only makes sense against a running (all-time)
+    // balance — apply it here only when the period is unbounded at the start.
+    if(!bFrom) bankNet -= state.bankAdjustment;
+    $('dashBankTotal').textContent = fmt(bankNet);
+    $('dashBankTotal').style.color = bankNet >= 0 ? 'var(--income)' : 'var(--expense)';
+
     renderChart(list);
     renderDashboardActivity(list);
   }
@@ -5072,6 +5109,41 @@
     list.forEach(t => { byCat[rowCatLabel(t)] = (byCat[rowCatLabel(t)] || 0) + t.amount; });
     const top = Object.entries(byCat).sort((a,b) => b[1]-a[1]).slice(0, 3).map(([label,value]) => ({ label, value, color: 'var(--expense)' }));
     openInfoModal('أكبر بنود الصرف', periodSubtitleHtml() + infoModalRowsHtml(top));
+  });
+
+  $('dashBankCard') && $('dashBankCard').addEventListener('click', () => {
+    const bFrom = $('dateFrom').value, bTo = $('dateTo').value;
+    let settleTotal = 0, transferTotal = 0, expenseDebits = 0, depositCredits = 0;
+    state.settlements.forEach(s => {
+      if(s.bankReceived == null) return;
+      if(bFrom && s.date < bFrom) return;
+      if(bTo && s.date > bTo) return;
+      settleTotal += s.bankReceived;
+    });
+    state.bankTransfers.forEach(t => {
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      transferTotal += (t.direction === 'in' ? t.amount : -t.amount);
+    });
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount || t.type !== 'expense') return;
+      if(bFrom && t.date < bFrom) return;
+      if(bTo && t.date > bTo) return;
+      expenseDebits += t.bankAmount;
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      if(bFrom && d.date < bFrom) return;
+      if(bTo && d.date > bTo) return;
+      depositCredits += d.amount;
+    });
+    const rows = [
+      { label: 'مجموع الموازنات المؤكدة', value: settleTotal, color: 'var(--income)' },
+      { label: 'صافي الحوالات البنكية', value: transferTotal, color: transferTotal >= 0 ? 'var(--income)' : 'var(--expense)' },
+      { label: 'إيداعات من الخزينة للبنك', value: depositCredits, color: 'var(--income)' },
+      { label: 'مصروفات مدفوعة من الحساب', value: -expenseDebits, color: 'var(--expense)' },
+    ];
+    openInfoModal('تفصيل الحساب البنكي', periodSubtitleHtml() + infoModalRowsHtml(rows));
   });
 
   // ---------------- Daily entry (قيد يومي موحّد) ----------------
