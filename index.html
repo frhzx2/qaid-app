@@ -236,6 +236,9 @@
   .type-toggle button{ flex:1; font-family:'Cairo',sans-serif; font-size:13.5px; padding:9px; background:transparent; border:none; color:var(--ink-soft); border-radius:10px; cursor:pointer; font-weight:600; }
   .type-toggle button.active.income{ background:var(--income-bg); color:var(--income); }
   .type-toggle button.active.expense{ background:var(--expense-bg); color:var(--expense); }
+  .entry-frame{ border:2px solid var(--border); border-radius:18px; padding:14px; transition:border-color .15s; }
+  .entry-frame.income{ border-color:var(--income); }
+  .entry-frame.expense{ border-color:var(--expense); }
 
   .field{ margin-bottom:14px; }
   .field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:6px; }
@@ -574,6 +577,7 @@
 
       <!-- ============ NEW ENTRY ============ -->
       <section id="page-new" hidden>
+        <div id="entryFrame" class="entry-frame">
         <div class="type-toggle">
           <button type="button" id="typeIncomeBtn" class="income">إيراد</button>
           <button type="button" id="typeExpenseBtn" class="expense">مصروف</button>
@@ -611,6 +615,7 @@
           <button type="submit" class="submit" id="submitBtn">تسجيل القيد</button>
           <div class="confirm-msg" id="confirmMsg">تم تسجيل القيد ✓</div>
         </form>
+        </div>
       </section>
 
       <!-- ============ DAILY ENTRY (قيد يومي موحّد) ============ -->
@@ -1859,6 +1864,8 @@
     state.currentType = type;
     $('typeIncomeBtn').classList.toggle('active', type === 'income');
     $('typeExpenseBtn').classList.toggle('active', type === 'expense');
+    $('entryFrame').classList.toggle('income', type === 'income');
+    $('entryFrame').classList.toggle('expense', type === 'expense');
     $('f-cash-income-wrap').style.display = type === 'income' ? 'block' : 'none';
     $('f-cash-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
     $('f-bank-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
