@@ -5157,8 +5157,7 @@
         </select>
       </div>`;
     const catSel = row.querySelector('.daily-expense-cat');
-    const lastCat = readLastUsed('qayd_lastExpenseCat');
-    if([...catSel.options].some(o => o.value === lastCat)) catSel.value = lastCat;
+    if([...catSel.options].some(o => o.value === 'exp_parts_purchases')) catSel.value = 'exp_parts_purchases';
     const descList = row.querySelector('datalist');
     function refreshDesc(){
       descList.innerHTML = recentDescriptionsForCategory(catSel.value, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
