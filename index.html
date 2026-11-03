@@ -252,9 +252,6 @@
   .daily-field[type=number]{ font-family:'IBM Plex Mono',monospace; text-align:center; direction:ltr; }
   .daily-field[type=date]{ direction:ltr; }
   .daily-row-del{ background:transparent; border:none; color:var(--ink-soft); font-size:14px; cursor:pointer; padding:4px; flex-shrink:0; }
-  .daily-chips{ display:flex; gap:6px; flex-wrap:wrap; }
-  .daily-chip{ font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel); color:var(--ink-soft); cursor:pointer; }
-  .daily-chip:active{ background:var(--panel-2); color:var(--ink); }
   .manage-cat-link{ font-family:'Cairo',sans-serif; font-size:11.5px; color:var(--accent); background:none; border:none; cursor:pointer; white-space:nowrap; }
   .receipt-row{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .receipt-row input[type=file]{ font-family:'Cairo',sans-serif; font-size:12px; color:var(--ink-soft); }
@@ -5094,33 +5091,6 @@
   function readLastUsed(key){ try{ return localStorage.getItem(key) || ''; }catch(e){ return ''; } }
   function writeLastUsed(key, val){ try{ localStorage.setItem(key, val); }catch(e){ /* ignore */ } }
 
-  // Quick-amount chips: the amounts that have actually occurred most often
-  // for this category in your own history — nothing hardcoded or guessed.
-  function commonAmountsForCategory(categoryId, limit){
-    if(!categoryId) return [];
-    const counts = new Map();
-    state.transactions.forEach(t => {
-      if(t.voided || t.categoryId !== categoryId || !t.amount) return;
-      const key = Math.round(t.amount * 100) / 100;
-      const cur = counts.get(key) || { count: 0, lastDate: '' };
-      cur.count++;
-      if(t.date > cur.lastDate) cur.lastDate = t.date;
-      counts.set(key, cur);
-    });
-    return [...counts.entries()]
-      .sort((a, b) => b[1].count - a[1].count || (b[1].lastDate > a[1].lastDate ? 1 : -1))
-      .slice(0, limit)
-      .map(e => e[0]);
-  }
-  function amountChipsHtml(categoryId){
-    return commonAmountsForCategory(categoryId, 4).map(a => `<button type="button" class="daily-chip" data-amt="${a}">${fmt(a)}</button>`).join('');
-  }
-  function wireAmountChips(chipsWrap, amtInput){
-    chipsWrap.querySelectorAll('.daily-chip').forEach(btn => {
-      btn.addEventListener('click', () => { amtInput.value = btn.getAttribute('data-amt'); });
-    });
-  }
-
   // Description suggestions: your own most recent distinct descriptions
   // used under this category, fed through a native <datalist> (so it's a
   // normal browser autocomplete dropdown, not a custom widget to maintain).
@@ -5149,19 +5119,11 @@
         <select class="daily-field daily-income-cat" style="flex:1.6;">${categoryOptionsHtml('income')}</select>
         <input type="number" class="daily-field daily-income-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
         <button type="button" class="daily-row-del">✕</button>
-      </div>
-      <div class="daily-chips"></div>`;
+      </div>`;
     const catSel = row.querySelector('.daily-income-cat');
     const lastCat = readLastUsed('qayd_lastIncomeCat');
     if([...catSel.options].some(o => o.value === lastCat)) catSel.value = lastCat;
-    const chipsWrap = row.querySelector('.daily-chips');
-    const amtInput = row.querySelector('.daily-income-amt');
-    function refresh(){
-      chipsWrap.innerHTML = amountChipsHtml(catSel.value);
-      wireAmountChips(chipsWrap, amtInput);
-    }
-    catSel.addEventListener('change', () => { writeLastUsed('qayd_lastIncomeCat', catSel.value); refresh(); });
-    refresh();
+    catSel.addEventListener('change', () => { writeLastUsed('qayd_lastIncomeCat', catSel.value); });
     row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
     $('dailyIncomeRows').appendChild(row);
   }
@@ -5179,7 +5141,6 @@
         <datalist id="${listId}"></datalist>
         <button type="button" class="daily-row-del">✕</button>
       </div>
-      <div class="daily-chips"></div>
       <div style="display:flex; gap:6px; align-items:center;">
         <input type="number" class="daily-field daily-expense-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
         <select class="daily-field daily-expense-src" style="flex:1.6;">
@@ -5191,16 +5152,12 @@
     const catSel = row.querySelector('.daily-expense-cat');
     const lastCat = readLastUsed('qayd_lastExpenseCat');
     if([...catSel.options].some(o => o.value === lastCat)) catSel.value = lastCat;
-    const chipsWrap = row.querySelector('.daily-chips');
-    const amtInput = row.querySelector('.daily-expense-amt');
     const descList = row.querySelector('datalist');
-    function refresh(){
-      chipsWrap.innerHTML = amountChipsHtml(catSel.value);
-      wireAmountChips(chipsWrap, amtInput);
+    function refreshDesc(){
       descList.innerHTML = recentDescriptionsForCategory(catSel.value, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
     }
-    catSel.addEventListener('change', () => { writeLastUsed('qayd_lastExpenseCat', catSel.value); refresh(); });
-    refresh();
+    catSel.addEventListener('change', () => { writeLastUsed('qayd_lastExpenseCat', catSel.value); refreshDesc(); });
+    refreshDesc();
     row.querySelector('.daily-row-del').addEventListener('click', () => row.remove());
     $('dailyExpenseRows').appendChild(row);
   }
