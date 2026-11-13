@@ -226,6 +226,7 @@
   .txn-main .meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
   .txn-side{ text-align:left; flex-shrink:0; }
   .txn-amt{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:700; direction:ltr; }
+  .txn-amt .cur{ font-family:'Cairo',sans-serif; font-size:10px; font-weight:500; opacity:.7; margin-right:5px; }
   .txn-amt.income{ color:var(--income); }
   .txn-amt.expense{ color:var(--expense); }
   .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:10.5px; padding:3px 9px; border-radius:8px; cursor:pointer; }
@@ -1940,6 +1941,10 @@
       logActivity('add_category', `أضاف فئة ${type === 'income' ? 'إيراد' : 'مصروف'} "${name}"`);
     });
   });
+
+  // Dates are stored as YYYY-MM-DD; inside right-to-left text they render
+  // reversed (DD-MM-YYYY), so they are isolated and always shown left-to-right.
+  function dateHtml(d){ return d ? `<bdi dir="ltr">${escapeHtml(String(d))}</bdi>` : '—'; }
 
   function rowCatLabel(t){
     const live = state.categories.find(c => c.id === t.categoryId);
@@ -3907,7 +3912,7 @@
         results.push({
           kind: t.type,
           title: t.description || rowCatLabel(t),
-          meta: (t.type === 'income' ? 'إيراد' : 'مصروف') + ' · ' + t.date + ' · ' + rowCatLabel(t),
+          metaHtml: (t.type === 'income' ? 'إيراد' : 'مصروف') + ' · ' + dateHtml(t.date) + (t.description ? ' · ' + escapeHtml(rowCatLabel(t)) : ''),
           amount: t.amount,
         });
       }
@@ -3916,7 +3921,7 @@
     (searchScope === 'all' || searchScope === 'supplier' ? state.suppliers : []).forEach(s => {
       const hay = [s.name, s.phone, s.address].filter(Boolean).join(' ').toLowerCase();
       if(hay.includes(query)){
-        results.push({ kind: 'supplier', title: s.name, meta: 'مورد · ' + s.phone, supplierId: s.id });
+        results.push({ kind: 'supplier', title: s.name, metaHtml: 'مورد · <bdi dir="ltr">' + escapeHtml(s.phone || '') + '</bdi>', supplierId: s.id });
       }
     });
 
@@ -3924,7 +3929,7 @@
       const { net } = settlementVisaFigures(s);
       const hay = [s.date, s.mada, s.visa].filter(v => v !== null && v !== undefined).join(' ').toLowerCase();
       if(hay.includes(query)){
-        results.push({ kind: 'settle', title: 'موازنة نقاط بيع', meta: s.date + ' · مدى وفيزا', amount: settlementExpected(s) });
+        results.push({ kind: 'settle', title: 'موازنة نقاط بيع', metaHtml: dateHtml(s.date) + ' · مدى وفيزا', amount: settlementExpected(s) });
       }
     });
 
@@ -3938,9 +3943,9 @@
 
     resultsEl.innerHTML = results.map(r => {
       const amtClass = r.kind === 'income' ? 'income' : (r.kind === 'expense' ? 'expense' : '');
-      const amtHtml = r.amount != null ? `<div class="txn-side"><div class="txn-amt ${amtClass}">${fmt(r.amount)}</div></div>` : '';
+      const amtHtml = r.amount != null ? `<div class="txn-side"><div class="txn-amt ${amtClass}">${fmt(r.amount)}<span class="cur">ر.س</span></div></div>` : '';
       const clickAttr = r.kind === 'supplier' ? ` data-goto-supplier="${r.supplierId}" style="cursor:pointer;"` : '';
-      return `<div class="txn-card"${clickAttr}><div class="txn-main"><div class="desc">${escapeHtml(r.title)}</div><div class="meta">${escapeHtml(r.meta)}</div></div>${amtHtml}</div>`;
+      return `<div class="txn-card"${clickAttr}><div class="txn-main"><div class="desc">${escapeHtml(r.title)}</div><div class="meta">${r.metaHtml}</div></div>${amtHtml}</div>`;
     }).join('');
 
     resultsEl.querySelectorAll('[data-goto-supplier]').forEach(el => {
@@ -4649,7 +4654,7 @@
         ${thumb}
         <div class="txn-main">
           <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
-          <div class="meta">${t.date || '—'}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}${t.cashAmount ? ' · نقد: ' + fmt(t.cashAmount) : ''}</div>
+          <div class="meta">${dateHtml(t.date)}${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}${t.cashAmount ? ' · نقد: ' + fmt(t.cashAmount) : ''}</div>
         </div>
         <div class="txn-side">
           <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
@@ -5137,7 +5142,7 @@
   function periodSubtitleHtml(){
     const from = $('dateFrom').value, to = $('dateTo').value;
     if(!from && !to) return '<div class="audit-note" style="margin:-8px 0 14px;">كل الفترة</div>';
-    return `<div class="audit-note" style="margin:-8px 0 14px;">الفترة: ${from || '—'} إلى ${to || '—'}</div>`;
+    return `<div class="audit-note" style="margin:-8px 0 14px;">الفترة: ${dateHtml(from)} إلى ${dateHtml(to)}</div>`;
   }
 
   $('dashIncomeCard') && $('dashIncomeCard').addEventListener('click', () => {
