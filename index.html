@@ -488,6 +488,12 @@
   svg rect[fill="#C9A227"]{ fill:var(--accent); }
   svg rect[fill="#D9D2BE"]{ fill:var(--ink-soft); }
   svg path[stroke="#EDE6D3"]{ stroke:var(--ink); }
+  .pick-list{ max-height:45vh; overflow:auto; margin-top:10px; -webkit-overflow-scrolling:touch; }
+  .pick-item{ display:block; width:100%; text-align:right; padding:12px 10px; min-height:46px; border:none; border-bottom:1px solid var(--border); background:none; color:var(--ink); font-family:'Cairo',sans-serif; font-size:15px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pick-item:active{ background:var(--panel-2); }
+  .pick-item.new{ color:var(--accent); font-weight:700; }
+  .pick-empty{ padding:18px 8px; text-align:center; color:var(--ink-soft); font-size:13px; }
+  .pick-supplier-btn{ width:100%; min-height:40px; }
 </style>
 </head>
 <body>
@@ -738,7 +744,7 @@
             <div class="field"><label for="f-date">التاريخ</label><input type="date" id="f-date" required></div>
             <div class="field"><label for="f-amt">المبلغ (ر.س)</label><input type="number" inputmode="decimal" enterkeyhint="next" id="f-amt" step="0.01" min="0.01" placeholder="0.00" required></div>
           </div>
-          <div class="field"><label for="f-desc" id="f-desc-label">الوصف (اختياري)</label><input type="text" id="f-desc" list="fDescList" placeholder="مثال: فاتورة رقم ١١٤"><datalist id="fDescList"></datalist></div>
+          <div class="field"><label for="f-desc" id="f-desc-label">الوصف (اختياري)</label><input type="text" id="f-desc" list="fDescList" placeholder="مثال: فاتورة رقم ١١٤"><datalist id="fDescList"></datalist><button type="button" class="chip-btn pick-supplier-btn" id="fPickSupplierBtn" style="display:none; margin-top:8px;">👥 اختيار من الموردين</button></div>
           <div class="field" id="f-cash-income-wrap" style="display:none;">
             <label for="f-cash-income">نقد، إن وجد (ر.س)</label>
             <input type="number" inputmode="decimal" enterkeyhint="next" id="f-cash-income" step="0.01" min="0" placeholder="0.00">
@@ -1281,6 +1287,14 @@
     <div class="sheet-grab"></div>
     <h3 class="block-title" style="margin:6px 0 14px;">المظهر</h3>
     <div class="swatch-grid" id="themeSwatchGrid"></div>
+  </div>
+</div>
+<div class="sheet-overlay" id="supplierPickSheet">
+  <div class="sheet-box" role="dialog" aria-label="اختيار المورد">
+    <div class="sheet-grab"></div>
+    <h3 class="block-title" style="margin:6px 0 10px;">اختر المورد</h3>
+    <input type="text" id="supplierPickSearch" placeholder="ابحث باسم المورد أو اكتب اسماً جديداً" autocomplete="off" style="width:100%; font-family:'Cairo',sans-serif; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink);">
+    <div class="pick-list" id="supplierPickList"></div>
   </div>
 </div>
 <div class="modal-overlay" id="modalOverlay">
@@ -2009,7 +2023,9 @@
     const isParts = cat === PARTS_CATEGORY_ID;
     $('f-desc-label').textContent = isParts ? 'المورد (اختياري)' : 'الوصف (اختياري)';
     $('f-desc').placeholder = isParts ? 'اختر المورد أو اكتب اسمه' : 'مثال: فاتورة رقم ١١٤';
+    $('fPickSupplierBtn').style.display = isParts ? 'block' : 'none';
   }
+  $('fPickSupplierBtn').addEventListener('click', () => openSupplierPicker($('f-desc')));
   $('f-cat').addEventListener('change', refreshEntryDesc);
   $('f-desc').addEventListener('change', () => { $('f-desc').value = canonicalDescription($('f-cat').value, $('f-desc').value); });
   function setType(type){
@@ -4974,6 +4990,36 @@
     return known.find(n => nameKey(n) === key) || cleanName(t);
   }
 
+  // Supplier picker sheet (opened by the «اختيار من الموردين» button next to the field).
+  let supplierPickInput = null;
+  function openSupplierPicker(input){
+    supplierPickInput = input;
+    $('supplierPickSearch').value = '';
+    renderSupplierPick();
+    $('supplierPickSheet').classList.add('open');
+  }
+  function closeSupplierPicker(){ $('supplierPickSheet').classList.remove('open'); supplierPickInput = null; }
+  function renderSupplierPick(){
+    const typed = cleanName($('supplierPickSearch').value);
+    const q = nameKey(typed);
+    const names = descOptionsForCategory(PARTS_CATEGORY_ID).filter(n => !q || nameKey(n).includes(q));
+    const exact = names.some(n => nameKey(n) === q);
+    let html = names.map(n => `<button type="button" class="pick-item" data-pick="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    if(typed && !exact) html += `<button type="button" class="pick-item new" data-pick="${escapeHtml(typed)}">➕ استخدام «${escapeHtml(typed)}» كاسم جديد</button>`;
+    if(!html) html = '<div class="pick-empty">لا يوجد موردون بعد — اكتب الاسم فوق.</div>';
+    $('supplierPickList').innerHTML = html;
+  }
+  $('supplierPickSearch').addEventListener('input', renderSupplierPick);
+  $('supplierPickList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pick]');
+    if(!b || !supplierPickInput) return;
+    supplierPickInput.value = b.getAttribute('data-pick');
+    supplierPickInput.dispatchEvent(new Event('change', { bubbles: true }));
+    closeSupplierPicker();
+  });
+  $('supplierPickSheet').addEventListener('click', (e) => { if(e.target === $('supplierPickSheet')) closeSupplierPicker(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeSupplierPicker(); });
+
   let dailyDatalistCounter = 0;
 
   function addDailyIncomeRow(){
@@ -5008,6 +5054,7 @@
         <datalist id="${listId}"></datalist>
         <button type="button" class="daily-row-del">✕</button>
       </div>
+      <button type="button" class="chip-btn pick-supplier-btn" style="display:none;">👥 اختيار من الموردين</button>
       <div style="display:flex; gap:6px; align-items:center;">
         <input type="number" inputmode="decimal" enterkeyhint="next" class="daily-field daily-expense-amt" step="0.01" min="0" placeholder="المبلغ" style="flex:1;">
         <select class="daily-field daily-expense-src" style="flex:1.6;">
@@ -5022,10 +5069,13 @@
     else if([...catSel.options].some(o => o.value === 'exp_parts_purchases')) catSel.value = 'exp_parts_purchases';
     const descList = row.querySelector('datalist');
     const descInput = row.querySelector('.daily-expense-desc');
+    const pickBtn = row.querySelector('.pick-supplier-btn');
+    pickBtn.addEventListener('click', () => openSupplierPicker(descInput));
     descInput.addEventListener('change', () => { descInput.value = canonicalDescription(catSel.value, descInput.value); });
     function refreshDesc(){
       descList.innerHTML = descOptionsForCategory(catSel.value, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
-      descInput.placeholder = catSel.value === PARTS_CATEGORY_ID ? 'المورد (اختياري)' : 'الوصف (اختياري)';
+      descInput.placeholder = catSel.value === PARTS_CATEGORY_ID ? 'المورد' : 'الوصف (اختياري)';
+      pickBtn.style.display = catSel.value === PARTS_CATEGORY_ID ? 'block' : 'none';
     }
     catSel.addEventListener('change', () => { writeLastUsed('qayd_lastExpenseCat', catSel.value); refreshDesc(); });
     refreshDesc();
