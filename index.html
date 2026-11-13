@@ -2335,7 +2335,8 @@
   });
 
   // ---- Temporary tool: review supplier names/types in bulk ----
-  const KIND_ANY_RE = /(^|\s)(مؤسسة|مؤسسه|موسسة|موسسه|مؤسسـة|شركة|شركه|ورشة|ورشه)(?=\s|$)/;
+  // Lists registered suppliers AND the free-text names typed in old «مشتريات قطع غيار» entries.
+  const KIND_ANY_RE = /(^|\s)(مؤسسة|مؤسسه|موسسة|موسسه|شركة|شركه|ورشة|ورشه)(?=\s|$)/;
   function suggestKind(name){
     const n = cleanName(name), m = n.match(KIND_ANY_RE);
     if(!m) return { kind: '', base: n };
@@ -2344,19 +2345,62 @@
     const base = cleanSpaces(n.replace(m[0], ' ')) || n;
     return { kind, base };
   }
+  function partsTxnNames(){
+    const map = new Map();
+    state.transactions.forEach(t => {
+      if(t.voided || t.categoryId !== PARTS_CATEGORY_ID || !t.description) return;
+      const d = t.description.trim(); if(!d) return;
+      map.set(d, (map.get(d) || 0) + 1);
+    });
+    const regLabels = new Set(state.suppliers.map(supLabel));
+    return [...map.entries()].filter(([d]) => !regLabels.has(d))
+      .sort((a, b) => a[0].localeCompare(b[0], 'ar'));
+  }
+  const KT_SEL = "font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;";
   function renderKindTool(){
-    const rows = state.suppliers.slice().sort((a, b) => supBase(a).localeCompare(supBase(b), 'ar'));
-    $('kindToolRows').innerHTML = rows.map(sp => {
-      const sg = sp.kind ? { kind: sp.kind, base: sp.name } : suggestKind(sp.name);
-      const hl = !sp.kind && sg.kind;
+    const mk = (attrs, original, sg, extra, hl) => {
       const opt = k => `<option value="${k}" ${sg.kind === k ? 'selected' : ''}>${k || '— بدون —'}</option>`;
-      return `<div class="kt-row" data-id="${sp.id}" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding:8px; border-radius:12px; border:1px solid var(--border); ${hl ? 'background:var(--panel-2); border-color:var(--accent);' : ''}">
-        <div style="flex:0 0 100%; font-size:12px; color:var(--ink-soft);">الاسم الأصلي: <b style="color:var(--ink);">${escapeHtml(supLabel(sp))}</b></div>
+      return `<div class="kt-row" ${attrs} style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding:8px; border-radius:12px; border:1px solid var(--border); ${hl ? 'background:var(--panel-2); border-color:var(--accent);' : ''}">
+        <div style="flex:0 0 100%; font-size:12px; color:var(--ink-soft);">الاسم الأصلي: <b style="color:var(--ink);">${escapeHtml(original)}</b>${extra}</div>
         <div class="kt-new" style="flex:0 0 100%; font-size:12.5px; color:var(--ink-soft);">بعد التغيير: <b style="color:var(--accent);"></b></div>
-        <select class="kt-kind" style="flex:0 0 96px; font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;">${['', 'مؤسسة', 'شركة', 'ورشة'].map(opt).join('')}</select>
-        <input type="text" class="kt-name" value="${escapeHtml(sg.base)}" style="flex:1; min-width:0; font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;">
+        <select class="kt-kind" style="flex:0 0 96px; ${KT_SEL}">${['', 'مؤسسة', 'شركة', 'ورشة'].map(opt).join('')}</select>
+        <input type="text" class="kt-name" value="${escapeHtml(sg.base)}" style="flex:1; min-width:0; ${KT_SEL}">
+        ${attrs.includes('data-text') ? `<label style="flex:0 0 100%; font-size:12.5px;"><input type="checkbox" class="kt-skip"> ليس اسم مورد (اتركه كما هو)</label>` : ''}
       </div>`;
-    }).join('') || '<div class="empty">لا يوجد موردون.</div>';
+    };
+    const items = [];
+    state.suppliers.forEach(sp => {
+      const sg = sp.kind ? { kind: sp.kind, base: sp.name } : suggestKind(sp.name);
+      items.push({ base: sg.base, html: mk(`data-id="${sp.id}"`, supLabel(sp), sg, ' · مورد مسجّل', !sp.kind && sg.kind) });
+    });
+    partsTxnNames().forEach(([d, n]) => {
+      const sg = suggestKind(d);
+      items.push({ base: sg.base, html: mk(`data-text="${escapeHtml(d)}"`, d, sg, ` · مكتوب في ${n} قيد`, !!sg.kind) });
+    });
+    // Cluster names that are written almost the same so they sit under each other.
+    const keys = items.map(it => nameKey(it.base)), par = items.map((_, i) => i);
+    const find = i => par[i] === i ? i : (par[i] = find(par[i]));
+    const close = (x, y) => {
+      if(!x || !y) return false;
+      if(x === y || (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x)))) return true;
+      if(Math.abs(x.length - y.length) > 2) return false;
+      const lim = Math.max(1, Math.floor(Math.max(x.length, y.length) * 0.2));
+      let prev = Array.from({ length: y.length + 1 }, (_, k) => k);
+      for(let i = 1; i <= x.length; i++){
+        const cur = [i];
+        for(let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+        prev = cur;
+      }
+      return prev[y.length] <= lim;
+    };
+    for(let i = 0; i < items.length; i++) for(let j = i + 1; j < items.length; j++) if(close(keys[i], keys[j])) par[find(i)] = find(j);
+    const groups = new Map();
+    items.forEach((it, i) => { const r = find(i); (groups.get(r) || groups.set(r, []).get(r)).push(it); });
+    const ordered = [...groups.values()].map(g => g.sort((a, b) => a.base.localeCompare(b.base, 'ar')))
+      .sort((a, b) => (b.length > 1) - (a.length > 1) || a[0].base.localeCompare(b[0].base, 'ar'));
+    $('kindToolRows').innerHTML = ordered.map(g => g.length > 1
+      ? `<div style="border-inline-start:3px solid var(--accent); padding-inline-start:6px; margin-bottom:12px;"><div style="font-size:12px; color:var(--accent); margin-bottom:4px;">أسماء متقاربة (${g.length})</div>${g.map(x => x.html).join('')}</div>`
+      : g[0].html).join('') || '<div class="empty">لا توجد أسماء.</div>';
   }
   function ktPreview(row){
     const p = splitKind(row.querySelector('.kt-name').value), k = row.querySelector('.kt-kind').value || p.kind;
@@ -2372,26 +2416,40 @@
   });
   $('kindToolSave').addEventListener('click', async () => {
     if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
-    const edits = [...document.querySelectorAll('#kindToolRows .kt-row')].map(r => {
-      const sp = state.suppliers.find(x => x.id === r.dataset.id);
+    const rows = [...document.querySelectorAll('#kindToolRows .kt-row')].map(r => {
       const p = splitKind(r.querySelector('.kt-name').value);
-      return { sp, name: p.base, kind: r.querySelector('.kt-kind').value || p.kind };
+      return { id: r.dataset.id, text: r.dataset.text, skip: !!(r.querySelector('.kt-skip') || {}).checked, name: p.base, kind: r.querySelector('.kt-kind').value || p.kind };
     });
-    if(edits.some(e => !e.name)){ alert('يوجد اسم فارغ.'); return; }
+    const supRows = rows.filter(r => r.id), txtRows = rows.filter(r => r.text !== undefined && !r.skip);
+    if([...supRows, ...txtRows].some(r => !r.name)){ alert('يوجد اسم فارغ.'); return; }
     const seen = new Map();
-    for(const e of edits){
-      const k = nameKey(e.name);
-      if(seen.has(k)){ alert(`اسمان متطابقان بعد التعديل: «${seen.get(k)}» و«${e.name}». غيّر أحدهما أو احذف المكرر أولاً.`); return; }
-      seen.set(k, e.name);
+    for(const r of supRows){
+      const k = nameKey(r.name);
+      if(seen.has(k)){ alert(`موردان مسجّلان بنفس الاسم بعد التعديل: «${seen.get(k)}» و«${r.name}». غيّر أحدهما أو احذف المكرر أولاً.`); return; }
+      seen.set(k, r.name);
     }
-    let changed = 0;
-    for(const e of edits){
-      if(e.sp.name !== e.name || (e.sp.kind || '') !== e.kind){ e.sp.name = e.name; e.sp.kind = e.kind; persistSupplier(e.sp); changed++; }
+    const txnCount = txtRows.reduce((n, r) => n + state.transactions.filter(t => !t.voided && t.categoryId === PARTS_CATEGORY_ID && (t.description || '').trim() === r.text).length, 0);
+    if(txtRows.length && !confirm(`سيُسجَّل موردون جدد من الأسماء المكتوبة، ويُوحَّد الاسم في ${txnCount} قيد. هل تريد المتابعة؟`)) return;
+    let changed = 0, added = 0, fixed = 0;
+    for(const r of supRows){
+      const sp = state.suppliers.find(x => x.id === r.id);
+      if(sp && (sp.name !== r.name || (sp.kind || '') !== r.kind)){ sp.name = r.name; sp.kind = r.kind; persistSupplier(sp); changed++; }
     }
-    if(changed) logActivity('bulk_supplier_kinds', `تصنيف الموردين: عدّل ${changed} مورد`);
+    for(const r of txtRows){
+      let sp = state.suppliers.find(x => supKey(x) === nameKey(r.name));
+      if(!sp){
+        sp = { id: uid(), name: r.name, kind: r.kind, phone: '', address: '', createdAt: new Date().toISOString() };
+        state.suppliers.push(sp); persistSupplier(sp); added++;
+      }else if(!sp.kind && r.kind){ sp.kind = r.kind; persistSupplier(sp); changed++; }
+      state.transactions.forEach(t => {
+        if(t.voided || t.categoryId !== PARTS_CATEGORY_ID || (t.description || '').trim() !== r.text) return;
+        t.description = supLabel(sp); persistTransaction(t); fixed++;
+      });
+    }
+    logActivity('bulk_supplier_kinds', `تصنيف الموردين: عدّل ${changed} وأضاف ${added} ووحّد الاسم في ${fixed} قيد`);
     $('kindTool').style.display = 'none';
-    renderSuppliersPage();
-    showBanner(changed ? `تم حفظ تعديل ${changed} مورد.` : 'لا توجد تعديلات.');
+    renderCurrentPage();
+    showBanner(`تم: عُدّل ${changed} مورد، وأُضيف ${added}، ووُحّد الاسم في ${fixed} قيد.`);
   });
 
   // One-time: move a leading مؤسسة/شركة/ورشة from the name into the supplier-type field.
