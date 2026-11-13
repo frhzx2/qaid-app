@@ -11,8 +11,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="قيد">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/cairo-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/cairo-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -77,7 +78,7 @@
   body{
     background: var(--frame);
     color: var(--ink);
-    font-family: 'Cairo', Tahoma, sans-serif;
+    font-family: 'Cairo', 'Segoe UI', Tahoma, system-ui, sans-serif;
     font-size: 15px;
     line-height:1.55;
     display:flex; justify-content:center;
@@ -106,6 +107,7 @@
     padding: 12px 40px 12px 14px; font-size: 12.5px; border-radius:0 0 12px 12px;
     display:none; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
   }
+  .banner.banner-inline{ position:static; transform:none; max-width:none; margin-bottom:16px; padding:12px 14px; border-radius:12px; box-shadow:none; }
   .banner-close{ position:absolute; left:8px; top:6px; background:none; border:none; color:var(--warn-ink); font-size:15px; line-height:1; cursor:pointer; padding:4px 7px; }
   .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
 
@@ -1005,7 +1007,7 @@
 
       <!-- ============ BANK ACCOUNT ============ -->
       <section id="page-bank" hidden>
-        <div class="banner" id="bankReviewBanner" style="display:none;"></div>
+        <div class="banner banner-inline" id="bankReviewBanner" style="display:none;"></div>
 
         <div class="stat-card" id="bankBalanceCard" style="margin-bottom:10px; text-align:center; padding:22px; cursor:pointer;">
           <div class="label">رصيد الحساب البنكي الحالي</div>
@@ -3874,7 +3876,7 @@
     const due = state.reminders.filter(r => daysUntil(r.dueDate) <= r.notifyDaysBefore);
     if(!due.length){ box.innerHTML = ''; return; }
     due.sort((a,b) => a.dueDate.localeCompare(b.dueDate));
-    box.innerHTML = `<div class="banner" style="display:block; margin-bottom:16px;">` +
+    box.innerHTML = `<div class="banner banner-inline" style="display:block;">` +
       due.map(r => {
         const d = daysUntil(r.dueDate);
         const status = d < 0 ? `منتهي منذ ${Math.abs(d)} يوم` : (d === 0 ? 'مستحق اليوم' : `باقي ${d} يوم`);
