@@ -408,7 +408,7 @@
 
   /* Fields: clear focus, same radius everywhere */
   .field input, .field select, .daily-field{ border-radius:12px; transition: border-color .15s ease, box-shadow .15s ease; }
-  .field input:focus, .field select:focus, .daily-field:focus, #globalSearchInput:focus, #botInput:focus{
+  .field input:focus, .field select:focus, .daily-field:focus, #globalSearchInput:focus{
     outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
   }
   :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
@@ -550,14 +550,6 @@
         <div id="reminderAlertBox"></div>
 
         <button type="button" class="submit" data-goto="daily" style="margin-bottom:14px;">📝 إضافة قيد يومي</button>
-
-        <div style="margin-bottom:14px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:12px;">
-          <form id="botForm" style="display:flex; gap:8px;">
-            <input type="text" id="botInput" class="daily-field" placeholder="مثال: سجل مصروف فحمات فرامل 100 ريال، أو: صافي الشهر" style="flex:1;">
-            <button type="submit" class="submit" style="width:auto; padding:0 16px; margin-top:0;">تنفيذ</button>
-          </form>
-          <div id="botResponse" style="font-size:12.5px; margin-top:8px; display:none;"></div>
-        </div>
 
         <div class="stat-row">
           <div class="stat-card" id="dashIncomeCard" style="cursor:pointer;"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
@@ -5575,139 +5567,6 @@
     } finally {
       btn.disabled = false;
     }
-  });
-
-  // ---------------- Quick command box (بوت بقواعد ثابتة — بدون أي اتصال خارجي) ----------------
-  // لا يتصل بأي خدمة ذكاء اصطناعي ولا يُرسل بياناتك لأي جهة؛ يفهم فقط صيغاً
-  // محددة سلفاً (تسجيل سريع، أو سؤال عن أرقام جاهزة). أي تسجيل يُنشئ نفس
-  // القيد العادي تمامًا بنفس الشكل والدوال المستخدمة بكل مكان آخر بالتطبيق.
-
-  function showBotResponse(text, isError){
-    const el = $('botResponse');
-    el.textContent = text;
-    el.style.color = isError ? 'var(--expense)' : 'var(--ink-soft)';
-    el.style.display = 'block';
-  }
-
-  function extractAmount(text){
-    const m = text.match(/(\d+(?:[.,]\d+)?)/);
-    if(!m) return { amount: 0, rest: text };
-    const amount = parseFloat(m[1].replace(',', '.'));
-    const rest = (text.slice(0, m.index) + ' ' + text.slice(m.index + m[1].length)).trim();
-    return { amount, rest };
-  }
-
-  function stripWords(text, words){
-    let out = text;
-    words.forEach(w => { out = out.replace(new RegExp(w, 'g'), ' '); });
-    return out.replace(/\s+/g, ' ').trim();
-  }
-
-  function matchCategoryInText(text, type){
-    const cats = state.categories.filter(c => c.type === type);
-    let best = null;
-    cats.forEach(c => {
-      if(c.name && text.includes(c.name) && (!best || c.name.length > best.name.length)) best = c;
-    });
-    return best;
-  }
-
-  function monthToDateNet(){
-    const ym = todayStr().slice(0, 7);
-    const { income, expense } = monthTotals(ym);
-    let payroll = 0;
-    state.payrollEntries.forEach(p => { if(p.month === ym) payroll += p.salary + p.commission - p.deduction; });
-    return { income, expense, payroll, net: income - expense - payroll };
-  }
-
-  function todayTotals(){
-    const d = todayStr();
-    let income = 0, expense = 0;
-    state.transactions.forEach(t => {
-      if(t.voided || t.date !== d) return;
-      if(t.type === 'income') income += t.amount; else expense += t.amount;
-    });
-    return { income, expense, net: income - expense };
-  }
-
-  function handleBotAdd(type, rawRest){
-    const neededPerm = type === 'income' ? 'add_income' : 'add_expense';
-    if(!hasPermission(neededPerm)){
-      return { error: `ليست لديك صلاحية إضافة ${type === 'income' ? 'إيراد' : 'مصروف'}.` };
-    }
-    const { amount, rest } = extractAmount(rawRest);
-    if(!amount || amount <= 0){
-      return { error: 'ما قدرت أميّز مبلغ صحيح بالجملة. جرّب مثلاً: "سجل مصروف فحمات فرامل 100".' };
-    }
-    const cleanedRest = stripWords(rest, ['مصروفات', 'مصروف', 'إيرادات', 'ايرادات', 'إيراد', 'ايراد', 'ريال', 'ر\\.س', 'سجل', 'اضف', 'أضف']);
-    const matchedCat = matchCategoryInText(cleanedRest, type);
-    const lastKey = type === 'income' ? 'qayd_lastIncomeCat' : 'qayd_lastExpenseCat';
-    let catObj = matchedCat;
-    let description = cleanedRest;
-    if(matchedCat){
-      description = cleanedRest.replace(matchedCat.name, '').replace(/\s+/g, ' ').trim();
-    } else {
-      const lastId = readLastUsed(lastKey);
-      catObj = state.categories.find(c => c.id === lastId && c.type === type) || null;
-    }
-    if(!catObj){
-      const anyCat = state.categories.find(c => c.type === type);
-      if(!anyCat) return { error: `ما عندك تصنيفات ${type === 'income' ? 'إيرادات' : 'مصروفات'} بعد — أضف تصنيف أول من "التصنيفات".` };
-      catObj = anyCat;
-    }
-    const txn = {
-      id: uid(), date: todayStr(), description, categoryId: catObj.id, categoryName: catObj.name,
-      amount: Math.round(amount * 100) / 100, cashAmount: 0, bankAmount: 0,
-      type, createdAt: new Date().toISOString(), createdBy: currentUser ? currentUser.email : '',
-      isReversal: false, voided: false, receipt: null,
-    };
-    state.transactions.push(txn);
-    persistTransaction(txn);
-    writeLastUsed(lastKey, catObj.id);
-    logActivity('add_transaction', `أضاف ${type === 'income' ? 'إيراد' : 'مصروف'} بمبلغ ${fmt(txn.amount)} (${txn.categoryName}) — عن طريق أمر سريع`);
-    renderCurrentPage();
-    return { ok: `تم ✓ — ${type === 'income' ? 'إيراد' : 'مصروف'} بمبلغ ${fmt(txn.amount)} على تصنيف "${catObj.name}"${description ? ' (' + description + ')' : ''}.` };
-  }
-
-  function handleBotQuery(text){
-    if(text.includes('صافي') && text.includes('شهر')){
-      const { income, expense, payroll, net } = monthToDateNet();
-      return `صافي الشهر الحالي: ${fmt(net)} ر.س (إيرادات ${fmt(income)} − مصروفات ${fmt(expense)}${payroll ? ' − رواتب ' + fmt(payroll) : ''}).`;
-    }
-    if(text.includes('بنك')){
-      return `رصيد الحساب البنكي الحالي: ${fmt(bankBalanceAllTime())} ر.س.`;
-    }
-    if(text.includes('خزين') || text.includes('كاش') || text.includes('نقد')){
-      return `رصيد الخزينة النقدية الحالي: ${fmt(cashBalanceAllTime())} ر.س.`;
-    }
-    if(text.includes('صافي') || text.includes('اليوم')){
-      const { income, expense, net } = todayTotals();
-      return `صافي اليوم: ${fmt(net)} ر.س (إيرادات ${fmt(income)} − مصروفات ${fmt(expense)}).`;
-    }
-    return null;
-  }
-
-  $('botForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = $('botInput').value.trim();
-    if(!text) return;
-    try{
-      if(/^(سجل|اضف|أضف)/.test(text) && text.includes('مصروف')){
-        const res = handleBotAdd('expense', text);
-        showBotResponse(res.ok || res.error, !!res.error);
-      } else if(/^(سجل|اضف|أضف)/.test(text) && (text.includes('ايراد') || text.includes('إيراد'))){
-        const res = handleBotAdd('income', text);
-        showBotResponse(res.ok || res.error, !!res.error);
-      } else {
-        const answer = handleBotQuery(text);
-        if(answer) showBotResponse(answer, false);
-        else showBotResponse('ما فهمت الطلب. جرّب مثلاً: "سجل مصروف فحمات فرامل 100 ريال"، أو: "صافي الشهر"، أو: "رصيد البنك".', true);
-      }
-    } catch(e){
-      console.error(e);
-      showBotResponse('حدث خطأ غير متوقع — بياناتك سليمة، جرّب صياغة أخرى.', true);
-    }
-    $('botInput').value = '';
   });
 
   // ---------------- Event wiring ----------------
