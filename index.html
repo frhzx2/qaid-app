@@ -1175,6 +1175,12 @@
           <button type="submit" class="submit" id="supplierSubmitBtn">حفظ المورد</button>
         </form>
 
+        <button type="button" class="manage-cat-link" id="kindToolBtn" style="margin-bottom:12px; display:block;">🧹 أداة تصنيف الموردين (مؤقتة)</button>
+        <div id="kindTool" style="display:none; margin-bottom:16px;">
+          <div class="banner banner-inline" style="display:block; margin-bottom:10px;">الأسماء المظلّلة فيها كلمة قريبة من مؤسسة/شركة/ورشة وقد اقترحتُ نوعها. عدّل ما تريد ثم اضغط حفظ الكل.</div>
+          <div id="kindToolRows"></div>
+          <button type="button" class="submit" id="kindToolSave">حفظ الكل</button>
+        </div>
         <div class="banner banner-inline" id="supplierSimilarBox" style="display:none;"></div>
         <div id="suppliersList"></div>
         <div id="suppliersEmpty" class="empty" style="display:none;">لا يوجد موردون بعد.</div>
@@ -2326,6 +2332,66 @@
     persistSupplier(sup);
     if(before !== supLabel(sup)) logActivity('edit_supplier', `غيّر اسم المورد "${before}" إلى "${supLabel(sup)}"`);
     else logActivity('edit_supplier', `عدّل بيانات المورد "${before}"`);
+  });
+
+  // ---- Temporary tool: review supplier names/types in bulk ----
+  const KIND_ANY_RE = /(^|\s)(مؤسسة|مؤسسه|موسسة|موسسه|مؤسسـة|شركة|شركه|ورشة|ورشه)(?=\s|$)/;
+  function suggestKind(name){
+    const n = cleanName(name), m = n.match(KIND_ANY_RE);
+    if(!m) return { kind: '', base: n };
+    const w = m[2].replace(/[هة]$/, 'ة');
+    const kind = w.startsWith('ش') ? 'شركة' : w.startsWith('و') ? 'ورشة' : 'مؤسسة';
+    const base = cleanSpaces(n.replace(m[0], ' ')) || n;
+    return { kind, base };
+  }
+  function renderKindTool(){
+    const rows = state.suppliers.slice().sort((a, b) => supBase(a).localeCompare(supBase(b), 'ar'));
+    $('kindToolRows').innerHTML = rows.map(sp => {
+      const sg = sp.kind ? { kind: sp.kind, base: sp.name } : suggestKind(sp.name);
+      const hl = !sp.kind && sg.kind;
+      const opt = k => `<option value="${k}" ${sg.kind === k ? 'selected' : ''}>${k || '— بدون —'}</option>`;
+      return `<div class="kt-row" data-id="${sp.id}" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding:8px; border-radius:12px; border:1px solid var(--border); ${hl ? 'background:var(--panel-2); border-color:var(--accent);' : ''}">
+        <div style="flex:0 0 100%; font-size:12px; color:var(--ink-soft);">الاسم الأصلي: <b style="color:var(--ink);">${escapeHtml(supLabel(sp))}</b></div>
+        <div class="kt-new" style="flex:0 0 100%; font-size:12.5px; color:var(--ink-soft);">بعد التغيير: <b style="color:var(--accent);"></b></div>
+        <select class="kt-kind" style="flex:0 0 96px; font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;">${['', 'مؤسسة', 'شركة', 'ورشة'].map(opt).join('')}</select>
+        <input type="text" class="kt-name" value="${escapeHtml(sg.base)}" style="flex:1; min-width:0; font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;">
+      </div>`;
+    }).join('') || '<div class="empty">لا يوجد موردون.</div>';
+  }
+  function ktPreview(row){
+    const p = splitKind(row.querySelector('.kt-name').value), k = row.querySelector('.kt-kind').value || p.kind;
+    row.querySelector('.kt-new b').textContent = (k ? k + ' ' : '') + p.base;
+  }
+  $('kindToolRows').addEventListener('input', e => { const r = e.target.closest('.kt-row'); if(r) ktPreview(r); });
+  $('kindToolRows').addEventListener('change', e => { const r = e.target.closest('.kt-row'); if(r) ktPreview(r); });
+  $('kindToolBtn').addEventListener('click', () => {
+    const box = $('kindTool');
+    if(box.style.display === 'block'){ box.style.display = 'none'; return; }
+    renderKindTool(); box.style.display = 'block';
+    document.querySelectorAll('#kindToolRows .kt-row').forEach(ktPreview);
+  });
+  $('kindToolSave').addEventListener('click', async () => {
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
+    const edits = [...document.querySelectorAll('#kindToolRows .kt-row')].map(r => {
+      const sp = state.suppliers.find(x => x.id === r.dataset.id);
+      const p = splitKind(r.querySelector('.kt-name').value);
+      return { sp, name: p.base, kind: r.querySelector('.kt-kind').value || p.kind };
+    });
+    if(edits.some(e => !e.name)){ alert('يوجد اسم فارغ.'); return; }
+    const seen = new Map();
+    for(const e of edits){
+      const k = nameKey(e.name);
+      if(seen.has(k)){ alert(`اسمان متطابقان بعد التعديل: «${seen.get(k)}» و«${e.name}». غيّر أحدهما أو احذف المكرر أولاً.`); return; }
+      seen.set(k, e.name);
+    }
+    let changed = 0;
+    for(const e of edits){
+      if(e.sp.name !== e.name || (e.sp.kind || '') !== e.kind){ e.sp.name = e.name; e.sp.kind = e.kind; persistSupplier(e.sp); changed++; }
+    }
+    if(changed) logActivity('bulk_supplier_kinds', `تصنيف الموردين: عدّل ${changed} مورد`);
+    $('kindTool').style.display = 'none';
+    renderSuppliersPage();
+    showBanner(changed ? `تم حفظ تعديل ${changed} مورد.` : 'لا توجد تعديلات.');
   });
 
   // One-time: move a leading مؤسسة/شركة/ورشة from the name into the supplier-type field.
