@@ -183,6 +183,8 @@
   .filterbar{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
   .pill{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
   .pill.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
+  .scope-chip{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
+  .scope-chip.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
   .filter-dates{ display:flex; gap:8px; margin-bottom:12px; }
   .filter-dates input[type=date]{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 9px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); direction:ltr; }
 
@@ -966,6 +968,13 @@
       <!-- ============ GLOBAL SEARCH ============ -->
       <section id="page-search" hidden>
         <input type="text" id="globalSearchInput" placeholder="ابحث في الإيرادات، المصروفات، الموردين…" style="width:100%; font-family:'Cairo',sans-serif; font-size:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:16px;">
+        <div id="searchScopeBar" style="display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 16px;">
+          <button type="button" class="scope-chip active" data-scope="all">الكل</button>
+          <button type="button" class="scope-chip" data-scope="income">الإيرادات</button>
+          <button type="button" class="scope-chip" data-scope="expense">المصروفات</button>
+          <button type="button" class="scope-chip" data-scope="supplier">الموردين</button>
+          <button type="button" class="scope-chip" data-scope="settle">الموازنات</button>
+        </div>
         <div id="globalSearchResults"></div>
         <div id="globalSearchEmpty" class="empty" style="display:none;">اكتب شيئاً للبحث عنه.</div>
       </section>
@@ -3871,6 +3880,15 @@
 
   // ---------------- Global search ----------------
 
+  // Search scope: limits the search to one section (all / income / expense / ...).
+  const SEARCH_SCOPES = { all: 'الكل', income: 'الإيرادات', expense: 'المصروفات', supplier: 'الموردين', settle: 'الموازنات' };
+  let searchScope = 'all';
+
+  function setSearchScope(scope){
+    searchScope = SEARCH_SCOPES[scope] ? scope : 'all';
+    document.querySelectorAll('#searchScopeBar .scope-chip').forEach(b => b.classList.toggle('active', b.getAttribute('data-scope') === searchScope));
+  }
+
   function renderGlobalSearch(){
     const query = $('globalSearchInput').value.trim().toLowerCase();
     const resultsEl = $('globalSearchResults');
@@ -3883,7 +3901,7 @@
 
     const results = [];
 
-    state.transactions.filter(t => !t.voided).forEach(t => {
+    state.transactions.filter(t => !t.voided && (searchScope === 'all' || searchScope === t.type)).forEach(t => {
       const hay = [t.description, rowCatLabel(t), t.date, t.amount].filter(v => v !== null && v !== undefined && v !== '').join(' ').toLowerCase();
       if(hay.includes(query)){
         results.push({
@@ -3895,14 +3913,14 @@
       }
     });
 
-    state.suppliers.forEach(s => {
+    (searchScope === 'all' || searchScope === 'supplier' ? state.suppliers : []).forEach(s => {
       const hay = [s.name, s.phone, s.address].filter(Boolean).join(' ').toLowerCase();
       if(hay.includes(query)){
         results.push({ kind: 'supplier', title: s.name, meta: 'مورد · ' + s.phone, supplierId: s.id });
       }
     });
 
-    state.settlements.forEach(s => {
+    (searchScope === 'all' || searchScope === 'settle' ? state.settlements : []).forEach(s => {
       const { net } = settlementVisaFigures(s);
       const hay = [s.date, s.mada, s.visa].filter(v => v !== null && v !== undefined).join(' ').toLowerCase();
       if(hay.includes(query)){
@@ -3933,6 +3951,10 @@
     });
   }
   $('globalSearchInput').addEventListener('input', () => { if(currentPage === 'search') renderGlobalSearch(); });
+  document.querySelectorAll('#searchScopeBar .scope-chip').forEach(btn => btn.addEventListener('click', () => {
+    setSearchScope(btn.getAttribute('data-scope'));
+    renderGlobalSearch();
+  }));
 
   // ---------------- Full JSON backup export ----------------
 
