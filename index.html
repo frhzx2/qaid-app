@@ -1175,12 +1175,6 @@
           <button type="submit" class="submit" id="supplierSubmitBtn">حفظ المورد</button>
         </form>
 
-        <button type="button" class="manage-cat-link" id="kindToolBtn" style="margin-bottom:12px; display:block;">🧹 أداة تصنيف الموردين (مؤقتة)</button>
-        <div id="kindTool" style="display:none; margin-bottom:16px;">
-          <div class="banner banner-inline" style="display:block; margin-bottom:10px;">الأسماء المظلّلة فيها كلمة قريبة من مؤسسة/شركة/ورشة وقد اقترحتُ نوعها. عدّل ما تريد ثم اضغط حفظ الكل.</div>
-          <div id="kindToolRows"></div>
-          <button type="button" class="submit" id="kindToolSave">حفظ الكل</button>
-        </div>
         <div class="banner banner-inline" id="supplierSimilarBox" style="display:none;"></div>
         <div id="suppliersList"></div>
         <div id="suppliersEmpty" class="empty" style="display:none;">لا يوجد موردون بعد.</div>
@@ -1591,7 +1585,7 @@
     else renderCurrentPage();
     ensureBankTransferCategory();
     checkBackupReminder();
-    cleanSupplierNamesOnce().then(moveSupplierKindsOnce);
+    cleanSupplierNamesOnce();
   }
 
   // Adds the "مبيعات حوالات بنكية" category once for existing accounts. A meta
@@ -2342,141 +2336,6 @@
     if(before !== supLabel(sup)) logActivity('edit_supplier', `غيّر اسم المورد "${before}" إلى "${supLabel(sup)}"`);
     else logActivity('edit_supplier', `عدّل بيانات المورد "${before}"`);
   });
-
-  // ---- Temporary tool: review supplier names/types in bulk ----
-  // Lists registered suppliers AND the free-text names typed in old «مشتريات قطع غيار» entries.
-  const KIND_ANY_RE = /(^|\s)(مؤسسة|مؤسسه|موسسة|موسسه|شركة|شركه|ورشة|ورشه)(?=\s|$)/;
-  function suggestKind(name){
-    const n = cleanName(name), m = n.match(KIND_ANY_RE);
-    if(!m) return { kind: '', base: n };
-    const w = m[2].replace(/[هة]$/, 'ة');
-    const kind = w.startsWith('ش') ? 'شركة' : w.startsWith('و') ? 'ورشة' : 'مؤسسة';
-    const base = cleanSpaces(n.replace(m[0], ' ')) || n;
-    return { kind, base };
-  }
-  function partsTxnNames(){
-    const map = new Map();
-    state.transactions.forEach(t => {
-      if(t.voided || t.categoryId !== PARTS_CATEGORY_ID || !t.description) return;
-      const d = t.description.trim(); if(!d) return;
-      map.set(d, (map.get(d) || 0) + 1);
-    });
-    const regLabels = new Set(state.suppliers.map(supLabel));
-    return [...map.entries()].filter(([d]) => !regLabels.has(d))
-      .sort((a, b) => a[0].localeCompare(b[0], 'ar'));
-  }
-  const KT_SEL = "font-family:'Cairo',sans-serif; background:var(--panel-2); color:var(--ink); border:1px solid var(--border); border-radius:10px; padding:8px;";
-  function renderKindTool(){
-    const mk = (attrs, original, sg, extra, hl) => {
-      const opt = k => `<option value="${k}" ${sg.kind === k ? 'selected' : ''}>${k || '— بدون —'}</option>`;
-      return `<div class="kt-row" ${attrs} style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; padding:8px; border-radius:12px; border:1px solid var(--border); ${hl ? 'background:var(--panel-2); border-color:var(--accent);' : ''}">
-        <div style="flex:0 0 100%; font-size:12px; color:var(--ink-soft);">الاسم الأصلي: <b style="color:var(--ink);">${escapeHtml(original)}</b>${extra}</div>
-        <div class="kt-new" style="flex:0 0 100%; font-size:12.5px; color:var(--ink-soft);">بعد التغيير: <b style="color:var(--accent);"></b></div>
-        <select class="kt-kind" style="flex:0 0 96px; ${KT_SEL}">${['', 'مؤسسة', 'شركة', 'ورشة'].map(opt).join('')}</select>
-        <input type="text" class="kt-name" value="${escapeHtml(sg.base)}" style="flex:1; min-width:0; ${KT_SEL}">
-        ${attrs.includes('data-text') ? `<label style="flex:0 0 100%; font-size:12.5px;"><input type="checkbox" class="kt-skip"> ليس اسم مورد (اتركه كما هو)</label>` : ''}
-      </div>`;
-    };
-    const items = [];
-    state.suppliers.forEach(sp => {
-      const sg = sp.kind ? { kind: sp.kind, base: sp.name } : suggestKind(sp.name);
-      items.push({ base: sg.base, html: mk(`data-id="${sp.id}"`, supLabel(sp), sg, ' · مورد مسجّل', !sp.kind && sg.kind) });
-    });
-    partsTxnNames().forEach(([d, n]) => {
-      const sg = suggestKind(d);
-      items.push({ base: sg.base, html: mk(`data-text="${escapeHtml(d)}"`, d, sg, ` · مكتوب في ${n} قيد`, !!sg.kind) });
-    });
-    // Cluster names that are written almost the same so they sit under each other.
-    const keys = items.map(it => nameKey(it.base)), par = items.map((_, i) => i);
-    const find = i => par[i] === i ? i : (par[i] = find(par[i]));
-    const close = (x, y) => {
-      if(!x || !y) return false;
-      if(x === y || (Math.min(x.length, y.length) >= 4 && (x.includes(y) || y.includes(x)))) return true;
-      if(Math.abs(x.length - y.length) > 2) return false;
-      const lim = Math.max(1, Math.floor(Math.max(x.length, y.length) * 0.2));
-      let prev = Array.from({ length: y.length + 1 }, (_, k) => k);
-      for(let i = 1; i <= x.length; i++){
-        const cur = [i];
-        for(let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
-        prev = cur;
-      }
-      return prev[y.length] <= lim;
-    };
-    for(let i = 0; i < items.length; i++) for(let j = i + 1; j < items.length; j++) if(close(keys[i], keys[j])) par[find(i)] = find(j);
-    const groups = new Map();
-    items.forEach((it, i) => { const r = find(i); (groups.get(r) || groups.set(r, []).get(r)).push(it); });
-    const ordered = [...groups.values()].map(g => g.sort((a, b) => a.base.localeCompare(b.base, 'ar')))
-      .sort((a, b) => (b.length > 1) - (a.length > 1) || a[0].base.localeCompare(b[0].base, 'ar'));
-    $('kindToolRows').innerHTML = ordered.map(g => g.length > 1
-      ? `<div style="border-inline-start:3px solid var(--accent); padding-inline-start:6px; margin-bottom:12px;"><div style="font-size:12px; color:var(--accent); margin-bottom:4px;">أسماء متقاربة (${g.length})</div>${g.map(x => x.html).join('')}</div>`
-      : g[0].html).join('') || '<div class="empty">لا توجد أسماء.</div>';
-  }
-  function ktPreview(row){
-    const p = splitKind(row.querySelector('.kt-name').value), k = row.querySelector('.kt-kind').value || p.kind;
-    row.querySelector('.kt-new b').textContent = (k ? k + ' ' : '') + p.base;
-  }
-  $('kindToolRows').addEventListener('input', e => { const r = e.target.closest('.kt-row'); if(r) ktPreview(r); });
-  $('kindToolRows').addEventListener('change', e => { const r = e.target.closest('.kt-row'); if(r) ktPreview(r); });
-  $('kindToolBtn').addEventListener('click', () => {
-    const box = $('kindTool');
-    if(box.style.display === 'block'){ box.style.display = 'none'; return; }
-    renderKindTool(); box.style.display = 'block';
-    document.querySelectorAll('#kindToolRows .kt-row').forEach(ktPreview);
-  });
-  $('kindToolSave').addEventListener('click', async () => {
-    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
-    const rows = [...document.querySelectorAll('#kindToolRows .kt-row')].map(r => {
-      const p = splitKind(r.querySelector('.kt-name').value);
-      return { id: r.dataset.id, text: r.dataset.text, skip: !!(r.querySelector('.kt-skip') || {}).checked, name: p.base, kind: r.querySelector('.kt-kind').value || p.kind };
-    });
-    const supRows = rows.filter(r => r.id), txtRows = rows.filter(r => r.text !== undefined && !r.skip);
-    if([...supRows, ...txtRows].some(r => !r.name)){ alert('يوجد اسم فارغ.'); return; }
-    const seen = new Map();
-    for(const r of supRows){
-      const k = nameKey(r.name);
-      if(seen.has(k)){ alert(`موردان مسجّلان بنفس الاسم بعد التعديل: «${seen.get(k)}» و«${r.name}». غيّر أحدهما أو احذف المكرر أولاً.`); return; }
-      seen.set(k, r.name);
-    }
-    const txnCount = txtRows.reduce((n, r) => n + state.transactions.filter(t => !t.voided && t.categoryId === PARTS_CATEGORY_ID && (t.description || '').trim() === r.text).length, 0);
-    if(txtRows.length && !confirm(`سيُسجَّل موردون جدد من الأسماء المكتوبة، ويُوحَّد الاسم في ${txnCount} قيد. هل تريد المتابعة؟`)) return;
-    let changed = 0, added = 0, fixed = 0;
-    for(const r of supRows){
-      const sp = state.suppliers.find(x => x.id === r.id);
-      if(sp && (sp.name !== r.name || (sp.kind || '') !== r.kind)){ sp.name = r.name; sp.kind = r.kind; persistSupplier(sp); changed++; }
-    }
-    for(const r of txtRows){
-      let sp = state.suppliers.find(x => supKey(x) === nameKey(r.name));
-      if(!sp){
-        sp = { id: uid(), name: r.name, kind: r.kind, phone: '', address: '', createdAt: new Date().toISOString() };
-        state.suppliers.push(sp); persistSupplier(sp); added++;
-      }else if(!sp.kind && r.kind){ sp.kind = r.kind; persistSupplier(sp); changed++; }
-      state.transactions.forEach(t => {
-        if(t.voided || t.categoryId !== PARTS_CATEGORY_ID || (t.description || '').trim() !== r.text) return;
-        t.description = supLabel(sp); persistTransaction(t); fixed++;
-      });
-    }
-    logActivity('bulk_supplier_kinds', `تصنيف الموردين: عدّل ${changed} وأضاف ${added} ووحّد الاسم في ${fixed} قيد`);
-    $('kindTool').style.display = 'none';
-    renderCurrentPage();
-    showBanner(`تم: عُدّل ${changed} مورد، وأُضيف ${added}، ووُحّد الاسم في ${fixed} قيد.`);
-  });
-
-  // One-time: move a leading مؤسسة/شركة/ورشة from the name into the supplier-type field.
-  async function moveSupplierKindsOnce(){
-    if(!hasPermission('manage_suppliers')) return;
-    try{
-      const flagRef = db.collection('meta').doc('supplierKindV1');
-      if((await flagRef.get()).exists) return;
-      let changed = 0;
-      for(const sp of state.suppliers){
-        if(sp.kind) continue;
-        const { kind, base } = splitKind(sp.name);
-        if(kind){ sp.kind = kind; sp.name = base; await persistSupplier(sp); changed++; }
-      }
-      await flagRef.set({ done: true, changed, at: new Date().toISOString() });
-      if(changed){ logActivity('move_supplier_kinds', `نقل نوع المورد (مؤسسة/شركة/ورشة) من الاسم إلى خانة النوع لـ ${changed} مورد`); renderCurrentPage(); }
-    }catch(e){ console.error('supplier kind migration failed', e); }
-  }
 
   $('supplierForm').addEventListener('submit', async (e) => {
     e.preventDefault();
