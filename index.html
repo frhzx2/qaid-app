@@ -156,8 +156,6 @@
   .login-box .field input, .login-box .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
   .login-box .field select{ direction:rtl; }
   .login-box button.submit{ width:100%; margin-top:4px; }
-  .login-toggle{ text-align:center; margin-top:14px; font-size:12.5px; color:var(--ink-soft); }
-  .login-toggle button{ background:none; border:none; color:var(--accent); cursor:pointer; font-family:'Cairo',sans-serif; font-size:12.5px; text-decoration:underline; padding:0; }
   .login-error{ background:var(--expense-bg); color:var(--expense); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
   .topbar-user{ display:flex; align-items:center; gap:10px; margin-inline-start:auto; }
   .topbar-user .email{ font-size:11px; color:var(--ink-soft); direction:ltr; }
@@ -166,21 +164,6 @@
   .err{ color: var(--expense); }
 
   /* ---------- Balance hero (home) ---------- */
-  .hero-card{
-    background: linear-gradient(135deg, #17301F, #0F1320 70%);
-    border:1px solid var(--border);
-    border-radius:22px; padding: 22px 22px 20px; margin: 14px 0 18px;
-    position:relative; overflow:hidden;
-  }
-  .hero-card::after{ content:''; position:absolute; top:-60px; left:-40px; width:200px; height:200px; background: radial-gradient(circle, rgba(34,230,160,0.18), transparent 70%); }
-  .hero-card .label{ font-size:12.5px; color:var(--ink-soft); position:relative; z-index:1; }
-  .hero-card .big{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; direction:ltr; text-align:right; margin:8px 0 16px; position:relative; z-index:1; }
-  .hero-mini{ display:flex; gap:10px; position:relative; z-index:1; }
-  .hero-mini .chip{ flex:1; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
-  .hero-mini .chip .k{ font-size:11px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; }
-  .hero-mini .chip .v{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:600; direction:ltr; text-align:right; margin-top:3px; }
-  .hero-mini .chip.income .v{ color: var(--income); }
-  .hero-mini .chip.expense .v{ color: var(--expense); }
 
   /* ---------- Filter pills ---------- */
   .filterbar{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
@@ -207,17 +190,7 @@
   .stat-card{ flex:1; min-width:125px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:13px 14px; }
   .stat-card .label{ font-size:11px; color:var(--ink-soft); margin-bottom:5px; }
   .stat-card .value{ font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:700; direction:ltr; text-align:right; }
-  .stat-card .value.small-txt{ font-family:'Cairo',sans-serif; direction:rtl; text-align:right; font-size:13px; }
 
-  .breakdown{ background: var(--panel); border:1px solid var(--border); border-radius:16px; padding:14px 16px; }
-  .bd-row{ display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
-  .bd-row:last-child{ border-bottom:none; }
-  .bd-name{ width:120px; flex-shrink:0; font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bd-bar-track{ flex:1; background:rgba(255,255,255,0.06); border-radius:3px; height:8px; overflow:hidden; }
-  .bd-bar-fill{ height:100%; border-radius:3px; }
-  .bd-bar-fill.income{ background:var(--income); }
-  .bd-bar-fill.expense{ background:var(--expense); }
-  .bd-amt{ width:100px; flex-shrink:0; text-align:left; direction:ltr; font-family:'IBM Plex Mono',monospace; font-size:12px; }
 
   /* ---------- Transaction cards ---------- */
   .txn-card{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:13px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px; }
@@ -446,7 +419,7 @@
 
   /* Number cards: content centred; header: a long email never squeezes the page title */
   .stat-card{ text-align:center; }
-  .stat-card .label, .stat-card .value, .stat-card .value.small-txt{ text-align:center; }
+  .stat-card .label, .stat-card .value{ text-align:center; }
   .topbar-user .email{ display:none; } /* the account email lives on the «المزيد» page so titles keep the width */
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 </style>
@@ -2279,7 +2252,6 @@
     const isConfirmed = s.bankReceived != null;
     if(!isConfirmed) return settlementCardHtml(s);
     if(!settleDetailOpen.has(s.id)){
-      const { net } = settlementVisaFigures(s);
       const expected = settlementExpected(s);
       const matched = s.status === 'matched';
       const diff = s.bankReceived - expected;
@@ -2407,12 +2379,11 @@
 
     const mismatches = state.settlements.filter(s => {
       if(s.bankReceived == null) return false;
-      const { net } = settlementVisaFigures(s);
       return Math.abs(s.bankReceived - (settlementExpected(s))) > 0.1;
     });
     const bannerEl = $('bankReviewBanner');
     if(mismatches.length && !bankBannerDismissed){
-      const shortCount = mismatches.filter(s => { const { net } = settlementVisaFigures(s); return s.bankReceived < (settlementExpected(s)); }).length;
+      const shortCount = mismatches.filter(s => { return s.bankReceived < (settlementExpected(s)); }).length;
       const overCount = mismatches.length - shortCount;
       const parts = [];
       if(shortCount) parts.push(`${shortCount} ${shortCount === 1 ? 'موازنة وصلها' : 'موازنات وصلها'} مبلغ أقل من المتوقع`);
@@ -2716,7 +2687,7 @@
   function renderSupplierDetail(){
     const sup = state.suppliers.find(s => s.id === currentSupplierId);
     if(!sup){ showPage('suppliers'); return; }
-    const { totalInvoiced, totalPaid, due } = supplierTotals(sup.id);
+    const { totalPaid, due } = supplierTotals(sup.id);
 
     $('supplierInfoCard').innerHTML = `
       <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${escapeHtml(sup.name)}</span></div>
@@ -4028,7 +3999,6 @@
     });
 
     (searchScope === 'all' || searchScope === 'settle' ? state.settlements : []).forEach(s => {
-      const { net } = settlementVisaFigures(s);
       const hay = [s.date, s.mada, s.visa].filter(v => v !== null && v !== undefined).join(' ').toLowerCase();
       if(hay.includes(query)){
         results.push({ kind: 'settle', title: 'موازنة نقاط بيع', metaHtml: dateHtml(s.date) + ' · مدى وفيزا', amount: settlementExpected(s) });
@@ -4350,7 +4320,6 @@
 
   // ---------------- Accounting math ----------------
 
-  function cashBalance(list){ let cash = 0; for(const t of list){ if(t.voided) continue; cash += t.type === 'income' ? t.amount : -t.amount; } return cash; }
   function totals(list){ let income = 0, expense = 0; for(const t of list){ if(t.voided) continue; if(t.type === 'income') income += t.amount; else expense += t.amount; } return { income, expense }; }
 
   // ---------------- Home ----------------
@@ -4398,7 +4367,6 @@
       sortKey: t.date + '_' + (t.createdAt || ''),
     }));
     const settleItems = filteredSettlements().map(s => {
-      const { net } = settlementVisaFigures(s);
       return {
         kind: 'settle',
         label: 'موازنة نقاط بيع',
@@ -4722,7 +4690,6 @@
 
   async function bulkDeleteSelected(type){
     if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية حذف القيود نهائياً.'); return; }
-    const ids = typeIds(type);
     const selected = selectedForDelete[type];
     const list = filterEntries(type).filter(t => selected.has(t.id));
     if(!list.length) return;
