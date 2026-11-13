@@ -381,7 +381,7 @@
   .chip-btn:active{ transform:scale(.97); background:var(--panel-2); color:var(--ink); }
   .chip-btn.danger{ color:var(--expense); }
   .chip-btn:disabled{ opacity:.45; cursor:not-allowed; }
-  .pill, .scope-chip{ display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 14px; border-radius:999px; font-weight:600; transition: transform .12s ease, background .15s ease; }
+  .pill, .scope-chip{ display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 10px; border-radius:999px; white-space:nowrap; font-weight:600; transition: transform .12s ease, background .15s ease; }
   .scope-chip{ padding:0 4px; }
   .pill:active, .scope-chip:active{ transform:scale(.97); }
   .pill.active, .scope-chip.active{ background: var(--grad-accent); color: var(--accent-ink); border-color:transparent; font-weight:800; box-shadow: inset 0 1px 0 rgba(255,255,255,.28); }
@@ -443,6 +443,11 @@
     transition: transform .12s ease;
   }
   .nav-fab:active{ transform: translateX(-50%) scale(.94); }
+
+  /* Number cards: content centred; header: a long email never squeezes the page title */
+  .stat-card{ text-align:center; }
+  .stat-card .label, .stat-card .value, .stat-card .value.small-txt{ text-align:center; }
+  .topbar-user .email{ display:none; } /* the account email lives on the «المزيد» page so titles keep the width */
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 </style>
 </head>
@@ -786,6 +791,7 @@
 
       <!-- ============ MORE ============ -->
       <section id="page-more" hidden>
+        <div class="audit-note" id="moreAccountLine" style="direction:ltr; text-align:center; margin-bottom:12px;"></div>
         <div class="list-menu">
           <div class="list-row" data-goto="categories">
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11l8-8h7a2 2 0 012 2v7l-8 8a2 2 0 01-3 0l-6-6a2 2 0 010-3z"/><circle cx="15" cy="7" r="1.2" fill="currentColor" stroke="none"/></svg> التصنيفات</span>
@@ -1877,6 +1883,7 @@
       if(user){
         currentUser = user;
         $('currentUserEmail').textContent = user.email;
+        $('moreAccountLine').textContent = user.email;
         $('loginScreen').style.display = 'none';
         // appShell stays hidden — the splash alone stays on screen until
         // checkAllLoaded() reveals it, so the two are never visible together.
