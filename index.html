@@ -1184,7 +1184,15 @@
       <section id="page-supplier-detail" hidden>
         <button type="button" class="manage-cat-link" id="backToSuppliersBtn" style="margin-bottom:10px; display:block;">‹ قائمة الموردين</button>
 
-        <div class="audit-card" id="supplierInfoCard" style="margin-bottom:16px;"></div>
+        <div class="audit-card" id="supplierInfoCard" style="margin-bottom:10px;"></div>
+        <button type="button" class="manage-cat-link" id="editSupplierBtn" style="margin-bottom:12px; display:block;">✎ تعديل بيانات المورد</button>
+        <form id="supplierEditForm" style="display:none; margin-bottom:16px;">
+          <div class="field"><label for="supe-kind">نوع المورد</label><select id="supe-kind"><option value="">— بدون —</option><option value="مؤسسة">مؤسسة</option><option value="شركة">شركة</option><option value="ورشة">ورشة</option></select></div>
+          <div class="field"><label for="supe-name">اسم المورد *</label><input type="text" id="supe-name" required></div>
+          <div class="field"><label for="supe-phone">رقم المورد</label><input type="tel" id="supe-phone"></div>
+          <div class="field"><label for="supe-address">العنوان</label><input type="text" id="supe-address"></div>
+          <button type="submit" class="submit">حفظ التعديل</button>
+        </form>
 
         <div class="stat-row">
           <div class="stat-card"><div class="label">إجمالي المسدد</div><div class="value income" id="supPaidTotal">0.00</div></div>
@@ -2288,6 +2296,37 @@
       if(changed){ logActivity('clean_supplier_names', `ترتيب مسافات أسماء ${changed} مورد`); renderCurrentPage(); }
     }catch(e){ console.error('supplier names cleanup failed', e); }
   }
+
+  $('editSupplierBtn').addEventListener('click', () => {
+    const sup = state.suppliers.find(x => x.id === currentSupplierId);
+    if(!sup) return;
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إدارة الموردين.'); return; }
+    const f = $('supplierEditForm');
+    if(f.style.display === 'block'){ f.style.display = 'none'; return; }
+    $('supe-kind').value = sup.kind || ''; $('supe-name').value = supBase(sup);
+    $('supe-phone').value = sup.phone || ''; $('supe-address').value = sup.address || '';
+    f.style.display = 'block';
+  });
+  $('supplierEditForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const sup = state.suppliers.find(x => x.id === currentSupplierId);
+    if(!sup || !hasPermission('manage_suppliers')) return;
+    const parsed = splitKind($('supe-name').value);
+    const name = parsed.base;
+    if(!name) return;
+    const kind = $('supe-kind').value || parsed.kind;
+    const clash = state.suppliers.find(x => x.id !== sup.id && supKey(x) === nameKey(name));
+    if(clash){ alert(`يوجد مورد بنفس الاسم: «${supLabel(clash)}».`); return; }
+    const before = supLabel(sup);
+    sup.name = name; sup.kind = kind;
+    sup.phone = $('supe-phone').value.trim(); sup.address = cleanSpaces($('supe-address').value);
+    $('supplierEditForm').style.display = 'none';
+    $('topTitle').textContent = supLabel(sup);
+    renderCurrentPage();
+    persistSupplier(sup);
+    if(before !== supLabel(sup)) logActivity('edit_supplier', `غيّر اسم المورد "${before}" إلى "${supLabel(sup)}"`);
+    else logActivity('edit_supplier', `عدّل بيانات المورد "${before}"`);
+  });
 
   // One-time: move a leading مؤسسة/شركة/ورشة from the name into the supplier-type field.
   async function moveSupplierKindsOnce(){
