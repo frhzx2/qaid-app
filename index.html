@@ -463,8 +463,10 @@
   .topbar-user{ gap:6px; }
   .topbar-user .logout-btn{ padding:6px 9px; }
   .topbar .brand-logo{ width:34px; height:29px; }
-  .theme-quick-btn{ width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; background:var(--panel); border:1px solid var(--border); color:var(--ink-soft); border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; -webkit-tap-highlight-color:transparent; }
-  .theme-quick-btn:active{ transform:scale(.94); color:var(--accent); }
+  .theme-quick-btn{ position:relative; width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; background:conic-gradient(from 200deg, #22E6A0, #4D9FFF, #B79CFF, #BC3C5A, #F5C542, #C4B38A, #22E6A0); border:none; color:var(--ink); border-radius:50%; cursor:pointer; padding:0; flex-shrink:0; -webkit-tap-highlight-color:transparent; box-shadow:0 4px 12px -4px rgba(0,0,0,.45); }
+  .theme-quick-btn::after{ content:''; position:absolute; inset:3px; border-radius:50%; background:var(--panel); }
+  .theme-quick-btn svg{ position:relative; z-index:1; }
+  .theme-quick-btn:active{ transform:scale(.94); }
   .sheet-overlay{ position:fixed; inset:0; z-index:70; display:none; align-items:flex-end; justify-content:center; background:rgba(0,0,0,.55); -webkit-tap-highlight-color:transparent; }
   .sheet-overlay.open{ display:flex; }
   .sheet-box{ width:100%; max-width:460px; background:var(--panel); border:1px solid var(--border); border-bottom:none; border-radius:26px 26px 0 0; padding:10px 18px calc(22px + env(safe-area-inset-bottom)); box-shadow:0 -18px 40px -16px rgba(0,0,0,.6); animation:sheetUp .22s ease-out; }
