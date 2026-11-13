@@ -4973,21 +4973,34 @@
   // supplier list, and write the name the same way every time.
   const PARTS_CATEGORY_ID = 'exp_parts_purchases';
   function descOptionsForCategory(categoryId, limit){
-    const recent = recentDescriptionsForCategory(categoryId, 60);
-    if(categoryId !== PARTS_CATEGORY_ID) return recent.slice(0, limit);
+    if(categoryId !== PARTS_CATEGORY_ID) return recentDescriptionsForCategory(categoryId, limit);
+    // Only registered suppliers — never free-text descriptions from old entries.
     const seen = new Set(), out = [];
-    [...state.suppliers.map(sp => sp.name).sort((a, b) => a.localeCompare(b, 'ar')), ...recent].forEach(n => {
+    state.suppliers.map(sp => sp.name).sort((a, b) => a.localeCompare(b, 'ar')).forEach(n => {
       const k = nameKey(n); if(!k || seen.has(k)) return; seen.add(k); out.push(n);
     });
     return out;
   }
-  // Same name ignoring hamza/ta-marbuta/spaces → reuse the existing spelling (suppliers first, then earlier entries).
+  // Same name ignoring hamza/ta-marbuta/spaces → use the registered supplier's spelling.
   function canonicalDescription(categoryId, text){
     const t = String(text || '').trim();
     if(categoryId !== PARTS_CATEGORY_ID || !t) return t;
     const key = nameKey(t);
-    const known = [...state.suppliers.map(sp => sp.name), ...recentDescriptionsForCategory(categoryId, 500)];
-    return known.find(n => nameKey(n) === key) || cleanName(t);
+    const hit = state.suppliers.find(sp => nameKey(sp.name) === key);
+    return hit ? hit.name : cleanName(t);
+  }
+  // Registers a brand-new supplier (name only; the phone can be added later from the suppliers page).
+  function addSupplierFromName(rawName){
+    const name = cleanName(rawName);
+    if(!name) return null;
+    const same = state.suppliers.find(sp => nameKey(sp.name) === nameKey(name));
+    if(same) return same.name;
+    if(!hasPermission('manage_suppliers')){ alert('ليست لديك صلاحية إضافة مورد جديد.'); return null; }
+    const sp = { id: uid(), name, phone: '', address: '', createdAt: new Date().toISOString() };
+    state.suppliers.push(sp);
+    persistSupplier(sp);
+    logActivity('add_supplier', `أضاف مورداً جديداً: "${sp.name}" (من قيد مشتريات)`);
+    return sp.name;
   }
 
   // Supplier picker sheet (opened by the «اختيار من الموردين» button next to the field).
@@ -5006,15 +5019,17 @@
     const exact = names.some(n => nameKey(n) === q);
     let html = (supplierPickInput && supplierPickInput.value && !q) ? '<button type="button" class="pick-item" data-pick="" style="color:var(--ink-soft);">✕ بدون مورد</button>' : '';
     html += names.map(n => `<button type="button" class="pick-item" data-pick="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
-    if(typed && !exact) html += `<button type="button" class="pick-item new" data-pick="${escapeHtml(typed)}">➕ استخدام «${escapeHtml(typed)}» كاسم جديد</button>`;
-    if(!html) html = '<div class="pick-empty">لا يوجد موردون بعد — اكتب الاسم فوق.</div>';
+    if(typed && !exact) html += `<button type="button" class="pick-item new" data-pick="${escapeHtml(typed)}" data-new="1">➕ إضافة «${escapeHtml(typed)}» كمورد جديد</button>`;
+    if(!html) html = '<div class="pick-empty">لا يوجد موردون بعد — اكتب اسم المورد فوق لإضافته.</div>';
     $('supplierPickList').innerHTML = html;
   }
   $('supplierPickSearch').addEventListener('input', renderSupplierPick);
   $('supplierPickList').addEventListener('click', (e) => {
     const b = e.target.closest('[data-pick]');
     if(!b || !supplierPickInput) return;
-    supplierPickInput.value = b.getAttribute('data-pick');
+    let chosen = b.getAttribute('data-pick');
+    if(b.getAttribute('data-new')){ chosen = addSupplierFromName(chosen); if(chosen === null) return; }
+    supplierPickInput.value = chosen;
     supplierPickInput.dispatchEvent(new Event('change', { bubbles: true }));
     closeSupplierPicker();
   });
