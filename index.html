@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>قيد</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0F1320">
+<meta name="theme-color" content="#0A0A0B">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -491,9 +491,16 @@
 <body>
 <script>
   try{
-    const savedTheme = localStorage.getItem('qayd_theme');
-    if(savedTheme && savedTheme !== 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
-  }catch(e){}
+    // Default theme is «عنابي داكن». A one-time switch (qayd_theme_v2) moves
+    // everyone to it once; after that the saved choice is respected.
+    let savedTheme = localStorage.getItem('qayd_theme');
+    if(!localStorage.getItem('qayd_theme_v2')){
+      savedTheme = 'crimson';
+      localStorage.setItem('qayd_theme', 'crimson');
+      localStorage.setItem('qayd_theme_v2', '1');
+    }else if(!savedTheme){ savedTheme = 'crimson'; }
+    if(savedTheme !== 'dark') document.documentElement.setAttribute('data-theme', savedTheme);
+  }catch(e){ document.documentElement.setAttribute('data-theme', 'crimson'); }
 </script>
 
 <div id="authChecking" class="loading" style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;">
