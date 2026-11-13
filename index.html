@@ -183,7 +183,7 @@
   .filterbar{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
   .pill{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
   .pill.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
-  .scope-chip{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
+  .scope-chip{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 4px; border-radius:20px; cursor:pointer; flex:1; text-align:center; white-space:nowrap; }
   .scope-chip.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
   .filter-dates{ display:flex; gap:8px; margin-bottom:12px; }
   .filter-dates input[type=date]{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 9px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); direction:ltr; }
@@ -968,7 +968,7 @@
       <!-- ============ GLOBAL SEARCH ============ -->
       <section id="page-search" hidden>
         <input type="text" id="globalSearchInput" placeholder="ابحث في الإيرادات، المصروفات، الموردين…" style="width:100%; font-family:'Cairo',sans-serif; font-size:14px; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:var(--panel); color:var(--ink); margin-bottom:16px;">
-        <div id="searchScopeBar" style="display:flex; gap:8px; flex-wrap:wrap; margin:-4px 0 16px;">
+        <div id="searchScopeBar" style="display:flex; gap:6px; margin:-4px 0 16px;">
           <button type="button" class="scope-chip active" data-scope="all">الكل</button>
           <button type="button" class="scope-chip" data-scope="income">الإيرادات</button>
           <button type="button" class="scope-chip" data-scope="expense">المصروفات</button>
