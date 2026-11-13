@@ -460,7 +460,8 @@
   @media (min-width:500px){ .app-shell{ min-height:calc(100vh - 48px); min-height:calc(100dvh - 48px); } }
   /* Theme picker: quick button in the header + bottom sheet with colour swatches */
   .topbar-text h2{ font-size:clamp(15px, 4.8vw, 19px); }
-  .logout-btn{ height:36px; color:var(--danger); background:var(--danger-bg); border:1px solid color-mix(in srgb, var(--danger) 55%, transparent); font-weight:700; }
+  .logout-btn{ height:36px; color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, var(--panel)); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); font-weight:700; }
+  :root[data-theme="forest-light"] .logout-btn, :root[data-theme="crimson-light"] .logout-btn{ color:var(--accent-deep); }
   .topbar-user{ gap:6px; }
   .topbar-user .logout-btn{ padding:6px 9px; }
   .topbar .brand-logo{ width:34px; height:29px; }
