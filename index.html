@@ -521,6 +521,7 @@
       <!-- ============ HOME / DASHBOARD ============ -->
       <section id="page-home">
         <div id="reminderAlertBox"></div>
+        <div class="banner banner-inline" id="backupReminderBanner" style="display:none;"></div>
 
         <button type="button" class="submit" data-goto="daily" style="margin-bottom:14px;">📝 إضافة قيد يومي</button>
 
@@ -1539,6 +1540,7 @@
     if(requestedPage && PAGES[requestedPage]) showPage(requestedPage);
     else renderCurrentPage();
     ensureBankTransferCategory();
+    checkBackupReminder();
   }
 
   // Adds the "مبيعات حوالات بنكية" category once for existing accounts. A meta
@@ -4035,7 +4037,82 @@
 
   // ---------------- Full JSON backup export ----------------
 
-  $('exportBackupBtn').addEventListener('click', () => {
+  // ---- Backup encryption (AES-256-GCM, key derived from a password with PBKDF2) ----
+  const BACKUP_KDF_ITER = 250000;
+  const b64enc = buf => { let s = ''; const u = new Uint8Array(buf); for(let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+  const b64dec = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+  async function backupKey(password, salt, iter){
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  }
+  async function encryptBackup(jsonText, password){
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await backupKey(password, salt, BACKUP_KDF_ITER);
+    const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(jsonText));
+    return JSON.stringify({ qaydBackup: 2, encrypted: true, kdf: 'PBKDF2-SHA256', iter: BACKUP_KDF_ITER, salt: b64enc(salt), iv: b64enc(iv), data: b64enc(enc) });
+  }
+  // Reads a backup file (plain or encrypted). Returns the data object, or null
+  // after telling the person what was wrong.
+  async function readBackupFile(file){
+    let data;
+    try{ data = JSON.parse(await file.text()); }
+    catch(e){ alert('تعذّرت قراءة الملف — تأكد أنه ملف النسخة الاحتياطية الصحيح (JSON).'); return null; }
+    if(data && data.encrypted){
+      if(!(window.crypto && crypto.subtle)){ alert('المتصفح لا يدعم فك التشفير هنا — افتح البرنامج عبر رابطه الآمن (https).'); return null; }
+      const pw = prompt('هذي النسخة مشفّرة. اكتب كلمة السر:');
+      if(pw === null) return null;
+      try{
+        const key = await backupKey(pw, b64dec(data.salt), data.iter);
+        const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64dec(data.iv) }, key, b64dec(data.data));
+        data = JSON.parse(new TextDecoder().decode(plain));
+      }catch(e){ alert('كلمة السر غير صحيحة أو الملف تالف.'); return null; }
+    }
+    if(!data || typeof data !== 'object' || Array.isArray(data)){ alert('هذا الملف ليس نسخة احتياطية لبرنامج قيد.'); return null; }
+    return data;
+  }
+  // Counts what a backup holds per collection so it can be reviewed before use.
+  const BACKUP_LABELS = { categories:'فئات', transactions:'قيود', settlements:'موازنات', suppliers:'موردين', supplierInvoices:'فواتير موردين', supplierReceipts:'سندات موردين', supplierReturns:'مرتجعات', reminders:'تذكيرات', activityLog:'سجل نشاط', employees:'موظفين', payrollEntries:'رواتب', cashDeposits:'حركات خزينة', bankTransfers:'حوالات' };
+  function summarizeBackup(data){
+    const lines = []; let total = 0, bad = 0;
+    for(const key of RESTORABLE_COLLECTIONS){
+      const arr = data[key];
+      if(!Array.isArray(arr) || !arr.length) continue;
+      const good = arr.filter(r => r && typeof r.id === 'string' && r.id && !r.id.includes('/'));
+      bad += arr.length - good.length; total += good.length;
+      lines.push(`• ${BACKUP_LABELS[key] || key}: ${good.length}`);
+    }
+    return { lines, total, bad };
+  }
+
+  // Remembers when the last backup was taken (shared across devices) so the
+  // home page can nudge when a week has gone by.
+  const BACKUP_REMIND_DAYS = 7;
+  async function markBackupDone(){
+    const at = new Date().toISOString();
+    try{ localStorage.setItem('qayd_lastBackupAt', at); }catch(e){ /* ignore */ }
+    try{ await db.collection('meta').doc('lastBackup').set({ at, by: (currentUser && currentUser.email) || '' }); }catch(e){ console.error('lastBackup save failed', e); }
+    renderBackupReminder(at);
+  }
+  async function checkBackupReminder(){
+    if(!hasPermission('export_backup')) return;
+    let at = null;
+    try{ const snap = await db.collection('meta').doc('lastBackup').get(); if(snap.exists) at = snap.data().at; }catch(e){ /* fall back to local value */ }
+    if(!at){ try{ at = localStorage.getItem('qayd_lastBackupAt'); }catch(e){ /* ignore */ } }
+    renderBackupReminder(at);
+  }
+  function renderBackupReminder(at){
+    const box = $('backupReminderBanner');
+    if(!box) return;
+    const days = at ? Math.floor((Date.now() - new Date(at).getTime()) / 86400000) : null;
+    if(days !== null && days < BACKUP_REMIND_DAYS){ box.style.display = 'none'; return; }
+    box.innerHTML = (days === null ? 'ما فيه نسخة احتياطية مسجّلة.' : `آخر نسخة احتياطية قبل ${days} يوم.`) + ' <button type="button" class="chip-btn" data-goto="more" style="margin-inline-start:8px;">نزّل نسخة الحين</button>';
+    box.style.display = 'block';
+    const goBtn = box.querySelector('[data-goto]');
+    if(goBtn) goBtn.addEventListener('click', () => showPage('more'));
+  }
+
+  $('exportBackupBtn').addEventListener('click', async () => {
     if(!hasPermission('export_backup')){ alert('ليست لديك صلاحية تصدير نسخة احتياطية.'); return; }
     const backup = {
       exportedAt: new Date().toISOString(),
@@ -4054,15 +4131,26 @@
       cashDeposits: state.cashDeposits,
       bankTransfers: state.bankTransfers,
     };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    let text = JSON.stringify(backup, null, 2), encrypted = false;
+    const pw = prompt('كلمة سر لتشفير النسخة (٦ أحرف أو أكثر).\nاتركها فارغة لتنزيل نسخة بدون تشفير.\n\nتنبيه: إذا نسيت الكلمة ما أحد يقدر يفتح النسخة.');
+    if(pw === null) return;
+    if(pw !== ''){
+      if(pw.length < 6){ alert('كلمة السر قصيرة — لازم ٦ أحرف على الأقل. لم يتم تنزيل شي.'); return; }
+      if(prompt('أعد كتابة كلمة السر للتأكيد:') !== pw){ alert('الكلمتان غير متطابقتين. لم يتم تنزيل شي.'); return; }
+      if(!(window.crypto && crypto.subtle)){ alert('المتصفح لا يدعم التشفير هنا — افتح البرنامج عبر رابطه الآمن (https).'); return; }
+      try{ text = await encryptBackup(text, pw); encrypted = true; }
+      catch(e){ console.error(e); alert('تعذّر تشفير النسخة. لم يتم تنزيل شي.'); return; }
+    }
+    const blob = new Blob([text], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `qayd-backup-${todayStr()}.json`;
+    a.download = `qayd-backup-${todayStr()}${encrypted ? '-encrypted' : ''}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    markBackupDone();
   });
 
   // Collections safe to restore automatically. Deliberately excludes
@@ -4085,15 +4173,12 @@
     const file = $('restoreBackupFile').files[0];
     $('restoreBackupFile').value = '';
     if(!file) return;
-    let data;
-    try{
-      data = JSON.parse(await file.text());
-    }catch(e){
-      alert('تعذّرت قراءة الملف — تأكد أنه ملف النسخة الاحتياطية الصحيح (JSON).');
-      return;
-    }
+    const data = await readBackupFile(file);
+    if(!data) return;
+    const sum = summarizeBackup(data);
+    if(!sum.total){ alert('الملف لا يحتوي أي سجلات قابلة للاستعادة.'); return; }
     const exportedLabel = data.exportedAt ? new Date(data.exportedAt).toLocaleString('ar-SA') : 'غير معروف';
-    if(!confirm(`سيتم استعادة بيانات هذا الملف (تاريخ التصدير: ${exportedLabel}) إلى قاعدة البيانات الحالية.\n\nأي قيد موجود حالياً بنفس المعرّف سيُستبدل بنسخة الملف. القيود غير الموجودة بالملف لن تُحذف.\n\nملاحظة: لا يشمل هذا استعادة المستخدمين وصلاحياتهم — تلك تُدار يدوياً فقط. هل تريد المتابعة؟`)) return;
+    if(!confirm(`سيتم استعادة بيانات هذا الملف (تاريخ التصدير: ${exportedLabel}) إلى قاعدة البيانات الحالية.\n\nمحتوى النسخة (${sum.total} سجل):\n${sum.lines.join('\n')}${sum.bad ? `\nسيتم تجاهل ${sum.bad} سجل غير صالح.` : ''}\n\nأي قيد موجود حالياً بنفس المعرّف سيُستبدل بنسخة الملف. القيود غير الموجودة بالملف لن تُحذف.\n\nملاحظة: لا يشمل هذا استعادة المستخدمين وصلاحياتهم — تلك تُدار يدوياً فقط. هل تريد المتابعة؟`)) return;
 
     let total = 0, failed = 0;
     for(const key of RESTORABLE_COLLECTIONS){
@@ -4129,9 +4214,8 @@
     const file = $('cleanupSinceBackupFile').files[0];
     $('cleanupSinceBackupFile').value = '';
     if(!file) return;
-    let data;
-    try{ data = JSON.parse(await file.text()); }
-    catch(e){ alert('تعذّرت قراءة الملف — تأكد أنه ملف النسخة الاحتياطية الصحيح (JSON).'); return; }
+    const data = await readBackupFile(file);
+    if(!data) return;
 
     const backupTxnIds = new Set((Array.isArray(data.transactions) ? data.transactions : []).map(t => t.id));
     const newSince = state.transactions
