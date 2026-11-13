@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>قيد</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1320">
@@ -423,6 +423,17 @@
   .stat-card .label, .stat-card .value{ text-align:center; }
   .topbar-user .email{ display:none; } /* the account email lives on the «المزيد» page so titles keep the width */
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
+  /* Full-screen app behaviour (home-screen / standalone mode on iPhone):
+     no rubber-band drag of the whole page, page height equals the real screen,
+     and everything respects the notch / status bar / home-indicator areas. */
+  html{ overscroll-behavior-y:none; -webkit-text-size-adjust:100%; background:var(--frame); }
+  body{ overscroll-behavior-y:none; }
+  .app-shell{ min-height:100vh; min-height:100dvh; padding-bottom:calc(116px + env(safe-area-inset-bottom)); }
+  .topbar{ padding-top:calc(22px + env(safe-area-inset-top)); }
+  .banner{ padding-top:calc(12px + env(safe-area-inset-top)); }
+  .banner.banner-inline{ padding-top:12px; }
+  .login-wrap{ min-height:100vh; min-height:100dvh; padding-top:calc(24px + env(safe-area-inset-top)); padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+  @media (min-width:500px){ .app-shell{ min-height:calc(100vh - 48px); min-height:calc(100dvh - 48px); } }
 </style>
 </head>
 <body>
