@@ -738,7 +738,7 @@
             <div class="field"><label for="f-date">التاريخ</label><input type="date" id="f-date" required></div>
             <div class="field"><label for="f-amt">المبلغ (ر.س)</label><input type="number" inputmode="decimal" enterkeyhint="next" id="f-amt" step="0.01" min="0.01" placeholder="0.00" required></div>
           </div>
-          <div class="field"><label for="f-desc">الوصف (اختياري)</label><input type="text" id="f-desc" placeholder="مثال: فاتورة رقم ١١٤"></div>
+          <div class="field"><label for="f-desc" id="f-desc-label">الوصف (اختياري)</label><input type="text" id="f-desc" list="fDescList" placeholder="مثال: فاتورة رقم ١١٤"><datalist id="fDescList"></datalist></div>
           <div class="field" id="f-cash-income-wrap" style="display:none;">
             <label for="f-cash-income">نقد، إن وجد (ر.س)</label>
             <input type="number" inputmode="decimal" enterkeyhint="next" id="f-cash-income" step="0.01" min="0" placeholder="0.00">
@@ -2000,7 +2000,18 @@
     const sel = $('f-cat');
     const opts = state.categories.filter(c => c.type === state.currentType);
     sel.innerHTML = opts.length ? opts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('') : `<option value="">لا توجد تصنيفات — أضف واحدة</option>`;
+    refreshEntryDesc();
   }
+  // Quick entry: for «مشتريات قطع غيار» the description box becomes the supplier picker.
+  function refreshEntryDesc(){
+    const cat = $('f-cat').value;
+    $('fDescList').innerHTML = descOptionsForCategory(cat, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
+    const isParts = cat === PARTS_CATEGORY_ID;
+    $('f-desc-label').textContent = isParts ? 'المورد (اختياري)' : 'الوصف (اختياري)';
+    $('f-desc').placeholder = isParts ? 'اختر المورد أو اكتب اسمه' : 'مثال: فاتورة رقم ١١٤';
+  }
+  $('f-cat').addEventListener('change', refreshEntryDesc);
+  $('f-desc').addEventListener('change', () => { $('f-desc').value = canonicalDescription($('f-cat').value, $('f-desc').value); });
   function setType(type){
     state.currentType = type;
     $('typeIncomeBtn').classList.toggle('active', type === 'income');
@@ -4942,6 +4953,27 @@
     return out.slice(0, limit);
   }
 
+  // For «مشتريات قطع غيار» the description box holds the supplier's name: offer the
+  // supplier list, and write the name the same way every time.
+  const PARTS_CATEGORY_ID = 'exp_parts_purchases';
+  function descOptionsForCategory(categoryId, limit){
+    const recent = recentDescriptionsForCategory(categoryId, 60);
+    if(categoryId !== PARTS_CATEGORY_ID) return recent.slice(0, limit);
+    const seen = new Set(), out = [];
+    [...state.suppliers.map(sp => sp.name).sort((a, b) => a.localeCompare(b, 'ar')), ...recent].forEach(n => {
+      const k = nameKey(n); if(!k || seen.has(k)) return; seen.add(k); out.push(n);
+    });
+    return out;
+  }
+  // Same name ignoring hamza/ta-marbuta/spaces → reuse the existing spelling (suppliers first, then earlier entries).
+  function canonicalDescription(categoryId, text){
+    const t = String(text || '').trim();
+    if(categoryId !== PARTS_CATEGORY_ID || !t) return t;
+    const key = nameKey(t);
+    const known = [...state.suppliers.map(sp => sp.name), ...recentDescriptionsForCategory(categoryId, 500)];
+    return known.find(n => nameKey(n) === key) || cleanName(t);
+  }
+
   let dailyDatalistCounter = 0;
 
   function addDailyIncomeRow(){
@@ -4989,8 +5021,11 @@
     if([...catSel.options].some(o => o.value === lastExpCat)) catSel.value = lastExpCat;
     else if([...catSel.options].some(o => o.value === 'exp_parts_purchases')) catSel.value = 'exp_parts_purchases';
     const descList = row.querySelector('datalist');
+    const descInput = row.querySelector('.daily-expense-desc');
+    descInput.addEventListener('change', () => { descInput.value = canonicalDescription(catSel.value, descInput.value); });
     function refreshDesc(){
-      descList.innerHTML = recentDescriptionsForCategory(catSel.value, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
+      descList.innerHTML = descOptionsForCategory(catSel.value, 8).map(d => `<option value="${escapeHtml(d)}"></option>`).join('');
+      descInput.placeholder = catSel.value === PARTS_CATEGORY_ID ? 'المورد (اختياري)' : 'الوصف (اختياري)';
     }
     catSel.addEventListener('change', () => { writeLastUsed('qayd_lastExpenseCat', catSel.value); refreshDesc(); });
     refreshDesc();
@@ -5085,7 +5120,7 @@
 
       const expenseRows = [...document.querySelectorAll('#dailyExpenseRows .daily-row')].map(r => ({
         categoryId: r.querySelector('.daily-expense-cat').value,
-        description: r.querySelector('.daily-expense-desc').value.trim(),
+        description: canonicalDescription(r.querySelector('.daily-expense-cat').value, r.querySelector('.daily-expense-desc').value),
         amount: parseFloat(r.querySelector('.daily-expense-amt').value) || 0,
         source: r.querySelector('.daily-expense-src').value,
       })).filter(r => r.categoryId && r.amount > 0);
@@ -5221,8 +5256,8 @@
     const btn = $('submitBtn'); btn.disabled = true;
     try{
       const date = $('f-date').value || todayStr();
-      const description = $('f-desc').value.trim();
       const categoryId = $('f-cat').value;
+      const description = canonicalDescription(categoryId, $('f-desc').value);
       const amount = parseFloat($('f-amt').value);
       const showEntryError = (msg) => {
         const el = $('entryErrorMsg'); el.textContent = msg; el.style.display = 'block';
