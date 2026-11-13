@@ -31,8 +31,8 @@
     --accent-deep: #17B57F;
     --income: #22E6A0;
     --income-bg: rgba(34,230,160,0.12);
-    --expense: #FF5C7A;
-    --expense-bg: rgba(255,92,122,0.14);
+    --expense: #F5C542; --danger: #FF5C7A;
+    --expense-bg: rgba(245,197,66,0.14); --danger-bg: rgba(255,92,122,0.14); --cash: #4FB8F0;
     --void: #8A93A8;
     --warn-bg: #3A2E12;
     --warn-ink: #F2C572;
@@ -49,8 +49,8 @@
     --accent-deep: #0B6D77;
     --income: #087A55;
     --income-bg: rgba(14,159,110,0.12);
-    --expense: #BE1E1E;
-    --expense-bg: rgba(220,38,38,0.10);
+    --expense: #9A6700; --danger: #BE1E1E;
+    --expense-bg: rgba(154,103,0,0.10); --danger-bg: rgba(220,38,38,0.10); --cash: #1D6FD6;
     --void: #6B7280;
     --warn-bg: #FEF3C7;
     --warn-ink: #92400E;
@@ -67,8 +67,8 @@
     --accent-deep: #2F7FE0;
     --income: #3FD6A3;
     --income-bg: rgba(63,214,163,0.12);
-    --expense: #FF6B81;
-    --expense-bg: rgba(255,107,129,0.14);
+    --expense: #F5C542; --danger: #FF6B81;
+    --expense-bg: rgba(245,197,66,0.14); --danger-bg: rgba(255,107,129,0.14); --cash: #22D3EE;
     --void: #8A93A8;
     --warn-bg: #3A2E12;
     --warn-ink: #F2C572;
@@ -76,25 +76,25 @@
   :root[data-theme="forest"]{
     --bg:#1A2A24; --frame:#0E1713; --panel:#243B32; --panel-2:#2D483D; --border:rgba(243,238,230,0.10);
     --ink:#F3EEE6; --ink-soft:#A7B09A; --accent:#C4B38A; --accent-deep:#A89660; --accent-ink:#1A2A24;
-    --income:#98D6A8; --income-bg:rgba(152,214,168,0.12); --expense:#F2907F; --expense-bg:rgba(242,144,127,0.14);
+    --income:#98D6A8; --income-bg:rgba(152,214,168,0.12); --expense: #F5C542; --danger: #F2907F; --expense-bg: rgba(245,197,66,0.14); --danger-bg: rgba(242,144,127,0.14); --cash: #4FB8F0;
     --void:#98A38C; --warn-bg:#3A3012; --warn-ink:#F2C572;
   }
   :root[data-theme="forest-light"]{
     --bg:#F3EEE6; --frame:#E4DDCF; --panel:#FCFAF6; --panel-2:#ECE6DA; --border:rgba(36,59,50,0.14);
     --ink:#1F332B; --ink-soft:#5B6858; --accent:#2B473C; --accent-deep:#1D3329; --accent-ink:#F3EEE6;
-    --income:#2F6B45; --income-bg:rgba(47,107,69,0.12); --expense:#AE3B2B; --expense-bg:rgba(174,59,43,0.10);
+    --income:#2F6B45; --income-bg:rgba(47,107,69,0.12); --expense: #9A6700; --danger: #AE3B2B; --expense-bg: rgba(154,103,0,0.10); --danger-bg: rgba(174,59,43,0.10); --cash: #1D6FD6;
     --void:#6E7A66; --warn-bg:#FEF3C7; --warn-ink:#92400E;
   }
   :root[data-theme="crimson"]{
     --bg:#0A0A0B; --frame:#000000; --panel:#161618; --panel-2:#202023; --border:rgba(255,255,255,0.09);
     --ink:#EDEDED; --ink-soft:#9B9BA1; --accent:#BC3C5A; --accent-deep:#9C2D49; --accent-ink:#FFFFFF;
-    --income:#5ED3A0; --income-bg:rgba(94,211,160,0.12); --expense:#FF9A5C; --expense-bg:rgba(255,154,92,0.14);
+    --income:#5ED3A0; --income-bg:rgba(94,211,160,0.12); --expense: #F5C542; --danger: #FF9A5C; --expense-bg: rgba(245,197,66,0.14); --danger-bg: rgba(255,154,92,0.14); --cash: #4FB8F0;
     --void:#8E8E94; --warn-bg:#3A3012; --warn-ink:#F2C572;
   }
   :root[data-theme="crimson-light"]{
     --bg:#EDEDED; --frame:#DCDCDC; --panel:#FAFAFA; --panel-2:#E2E2E2; --border:rgba(0,0,0,0.12);
     --ink:#0A0A0B; --ink-soft:#585860; --accent:#B3304F; --accent-deep:#8F2540; --accent-ink:#FFFFFF;
-    --income:#17784F; --income-bg:rgba(23,120,79,0.12); --expense:#C2410C; --expense-bg:rgba(194,65,12,0.10);
+    --income:#17784F; --income-bg:rgba(23,120,79,0.12); --expense: #9A6700; --danger: #C2410C; --expense-bg: rgba(154,103,0,0.10); --danger-bg: rgba(194,65,12,0.10); --cash: #1D6FD6;
     --void:#6B6B73; --warn-bg:#FEF3C7; --warn-ink:#92400E;
   }
   *{box-sizing:border-box;}
@@ -180,12 +180,12 @@
   .login-box .field input, .login-box .field select{ width:100%; font-family:'Cairo',sans-serif; font-size:14.5px; padding:11px 12px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
   .login-box .field select{ direction:rtl; }
   .login-box button.submit{ width:100%; margin-top:4px; }
-  .login-error{ background:var(--expense-bg); color:var(--expense); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
+  .login-error{ background:var(--danger-bg); color:var(--danger); font-size:12.5px; padding:9px 12px; border-radius:10px; margin-bottom:14px; display:none; }
   .topbar-user{ display:flex; align-items:center; gap:10px; margin-inline-start:auto; }
   .topbar-user .email{ font-size:11px; color:var(--ink-soft); direction:ltr; }
   .logout-btn{ background:var(--panel); border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:11.5px; padding:6px 12px; border-radius:9px; cursor:pointer; }
-  .logout-btn:hover{ border-color:var(--expense); color:var(--expense); }
-  .err{ color: var(--expense); }
+  .logout-btn:hover{ border-color:var(--danger); color:var(--danger); }
+  .err{ color: var(--danger); }
 
   /* ---------- Balance hero (home) ---------- */
 
@@ -229,7 +229,7 @@
   .txn-amt.income{ color:var(--income); }
   .txn-amt.expense{ color:var(--expense); }
   .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:11px; min-height:38px; padding:6px 14px; border-radius:10px; cursor:pointer; }
-  .txn-void-btn.danger{ color:var(--expense); }
+  .txn-void-btn.danger{ color:var(--danger); }
   .txn-tag{ display:inline-block; font-size:10.5px; color:var(--void); border:1px solid var(--border); padding:3px 9px; border-radius:10px; }
   .empty{ padding:40px 10px; text-align:center; color:var(--ink-soft); font-size:13px; font-style:italic; }
 
@@ -284,7 +284,7 @@
   .cat-row .name{ font-weight:600; }
   .cat-row .meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
   .cat-row .del-btn{ border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); border-radius:8px; padding:5px 11px; font-size:11.5px; cursor:pointer; font-family:'Cairo', sans-serif; }
-  .cat-row .del-btn:hover{ border-color:var(--expense); color:var(--expense); }
+  .cat-row .del-btn:hover{ border-color:var(--danger); color:var(--danger); }
   .cat-empty{ padding:16px; text-align:center; color:var(--ink-soft); font-size:12.5px; font-style:italic; }
   .add-cat-row{ display:flex; gap:8px; margin-bottom:20px; }
   .add-cat-row input{ flex:1; font-family:'Cairo',sans-serif; font-size:13px; padding:10px 11px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); }
@@ -311,7 +311,7 @@
   .checksum{ display:flex; justify-content:space-between; align-items:center; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-top:14px; font-size:12.5px; font-weight:700; flex-wrap:wrap; gap:6px; }
   .checksum .figures{ font-family:'IBM Plex Mono',monospace; direction:ltr; font-weight:500; color:var(--ink-soft); }
   .checksum.balanced .verdict{ color:var(--income); }
-  .checksum.unbalanced .verdict{ color:var(--expense); }
+  .checksum.unbalanced .verdict{ color:var(--danger); }
 
   /* ---------- Bottom nav ---------- */
   .bottom-nav{
@@ -378,7 +378,7 @@
     transition: transform .12s ease, background .15s ease, color .15s ease;
   }
   .chip-btn:active{ transform:scale(.97); background:var(--panel-2); color:var(--ink); }
-  .chip-btn.danger{ color:var(--expense); }
+  .chip-btn.danger{ color:var(--danger); }
   .chip-btn:disabled{ opacity:.45; cursor:not-allowed; }
   .pill, .scope-chip{ display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 10px; border-radius:999px; white-space:nowrap; font-weight:600; transition: transform .12s ease, background .15s ease; }
   .scope-chip{ padding:0 4px; }
@@ -396,6 +396,7 @@
   .stat-card:has([style*="var(--income)"]), .stat-card:has(.value.income){ --tone:var(--income); }
   .stat-card:has([style*="var(--expense)"]), .stat-card:has(.value.expense){ --tone:var(--expense); }
   .stat-card:has([style*="#D9A227"]){ --tone:var(--brass); }
+  .stat-card:has([style*="var(--cash)"]){ --tone:var(--cash); }
   .stat-card .label{ font-size:11.5px; margin-bottom:6px; }
   .stat-card .value{ font-size:15px; white-space:nowrap; }
   .txn-card{ border-radius:16px; padding:14px; }
@@ -585,7 +586,7 @@
           <div class="stat-card" id="dashIncomeCard" style="cursor:pointer;"><div class="label">الإيرادات</div><div class="value" id="dashIncomeTotal" style="color:var(--income);">0.00</div></div>
           <div class="stat-card" id="dashExpenseCard" style="cursor:pointer;"><div class="label">المصروفات</div><div class="value" id="dashExpenseTotal" style="color:var(--expense);">0.00</div></div>
           <div class="stat-card"><div class="label">صافي الفترة</div><div class="value" id="dashNetTotal">0.00</div></div>
-          <div class="stat-card"><div class="label">الخزينة النقدية</div><div class="value" id="dashCashTotal" style="color:#D9A227;">0.00</div></div>
+          <div class="stat-card"><div class="label">الخزينة النقدية</div><div class="value" id="dashCashTotal" style="color:var(--cash);">0.00</div></div>
           <div class="stat-card"><div class="label">الرواتب الشهرية</div><div class="value" id="dashPayrollTotal" style="color:var(--expense);">0.00</div></div>
         </div>
         <div class="audit-note" style="margin:-10px 0 14px;">اضغط على الإيرادات، المصروفات، أو الحساب البنكي لعرض التفاصيل</div>
@@ -745,7 +746,7 @@
             <span class="receipt-status" id="receiptStatus"></span>
             <div id="receiptPreview"></div>
           </div>
-          <div id="entryErrorMsg" class="confirm-msg" style="display:none; background:var(--expense-bg); color:var(--expense);"></div>
+          <div id="entryErrorMsg" class="confirm-msg" style="display:none; background:var(--danger-bg); color:var(--danger);"></div>
           <button type="submit" class="submit" id="submitBtn">تسجيل القيد</button>
           <div class="confirm-msg" id="confirmMsg">تم تسجيل القيد ✓</div>
         </form>
@@ -805,7 +806,7 @@
           </div>
 
           <div id="dailyTotals" class="audit-note" style="display:flex; justify-content:space-between; margin-top:14px;"></div>
-          <div id="dailyErrorMsg" class="confirm-msg" style="display:none; background:var(--expense-bg); color:var(--expense);">تحقق من صلاحياتك أو من بيانات القيد.</div>
+          <div id="dailyErrorMsg" class="confirm-msg" style="display:none; background:var(--danger-bg); color:var(--danger);">تحقق من صلاحياتك أو من بيانات القيد.</div>
           <button type="submit" class="submit" id="dailySubmitBtn" style="margin-top:16px;">حفظ القيد اليومي</button>
           <div class="confirm-msg" id="dailyConfirmMsg">تم حفظ القيد اليومي ✓</div>
         </form>
@@ -1062,7 +1063,7 @@
             <div id="newUserPermsBox" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px;"></div>
           </div>
           <button type="submit" class="submit" id="userSubmitBtn">إضافة المستخدم</button>
-          <div class="confirm-msg" id="userErrorMsg" style="color:var(--expense);"></div>
+          <div class="confirm-msg" id="userErrorMsg" style="color:var(--danger);"></div>
         </form>
 
         <div id="usersList"></div>
@@ -2740,7 +2741,7 @@
     const expChange = pctChange(ta.expense, tb.expense);
     const rowHtml = (label, va, vb, change, goodIsUp) => {
       const improved = goodIsUp ? change >= 0 : change <= 0;
-      const color = change === 0 ? 'var(--ink-soft)' : (improved ? 'var(--income)' : 'var(--expense)');
+      const color = change === 0 ? 'var(--ink-soft)' : (improved ? 'var(--income)' : 'var(--danger)');
       return `
         <div class="arow"><span class="acc">${label} — ${escapeHtml(monthLabel(a))}</span><span class="amt">${fmt(va)}</span></div>
         <div class="arow"><span class="acc">${label} — ${escapeHtml(monthLabel(b))}</span><span class="amt">${fmt(vb)}</span></div>
@@ -3017,7 +3018,7 @@
   function renderCashPage(){
     const balance = cashBalanceAllTime();
     $('cashBalanceDisplay').textContent = fmt(balance);
-    $('cashBalanceDisplay').style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+    $('cashBalanceDisplay').style.color = balance >= 0 ? 'var(--cash)' : 'var(--danger)';
 
     const events = cashEvents();
     const groups = {};
@@ -3048,14 +3049,14 @@
               <div class="desc">${escapeHtml(i.label)}</div>
               <div class="meta">${dateHtml(i.date)} · ${tagLabel}</div>
             </div>
-            <div class="txn-side"><div class="txn-amt ${colorClass}" style="${isDeposit ? 'color:#D9A227;' : ''}">${sign} ${fmt(i.amount)}</div>${deleteBtn}</div>
+            <div class="txn-side"><div class="txn-amt ${colorClass}" style="${isDeposit ? 'color:var(--cash);' : ''}">${sign} ${fmt(i.amount)}</div>${deleteBtn}</div>
           </div>`;
       }).join('');
       return `
         <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-cash="${m}">
             <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
-            <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--expense)'};">${fmt(monthNet)}</span>
+            <span class="txn-amt" style="color:${monthNet >= 0 ? 'var(--income)' : 'var(--danger)'};">${fmt(monthNet)}</span>
           </div>
           <div class="meta" style="margin-top:2px; cursor:pointer;" data-toggle-cash="${m}">${items.length} حركة نقدية هذا الشهر</div>
           ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${rows}</div>` : ''}
@@ -3329,7 +3330,7 @@
               <span>نسبة: ${fmt(p.commission)}</span>
               <span>خصم: ${fmt(p.deduction)}</span>
             </div>
-            ${p.deductionReason ? `<div style="font-size:11.5px; color:var(--expense); margin-top:4px;">سبب الخصم: ${escapeHtml(p.deductionReason)}</div>` : ''}
+            ${p.deductionReason ? `<div style="font-size:11.5px; color:var(--danger); margin-top:4px;">سبب الخصم: ${escapeHtml(p.deductionReason)}</div>` : ''}
             <button type="button" class="txn-void-btn danger" style="margin-top:8px;" data-hard-delete-payroll="${p.id}">حذف نهائي</button>
           </div>`;
       }).join('');
@@ -3421,7 +3422,7 @@
     listEl.innerHTML = rows.map(r => {
       const d = daysUntil(r.dueDate);
       let statusHtml;
-      if(d < 0) statusHtml = `<span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">منتهي منذ ${Math.abs(d)} يوم</span>`;
+      if(d < 0) statusHtml = `<span class="txn-tag" style="border-color:var(--danger); color:var(--danger);">منتهي منذ ${Math.abs(d)} يوم</span>`;
       else if(d <= r.notifyDaysBefore) statusHtml = `<span class="txn-tag" style="border-color:#D9A227; color:#D9A227;">باقي ${d} يوم</span>`;
       else statusHtml = `<span class="txn-tag">باقي ${d} يوم</span>`;
       return `
@@ -3759,7 +3760,7 @@
     const total = items.reduce((s,t) => s + t.amount, 0);
     const rows = items.map(t => `
       <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
-        <input type="checkbox" data-cleanup-cb="${t.id}" checked style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
+        <input type="checkbox" data-cleanup-cb="${t.id}" checked style="width:17px; height:17px; flex-shrink:0; accent-color:var(--danger);">
         <span>${t.type === 'income' ? 'إيراد' : 'مصروف'} · ${escapeHtml(rowCatLabel(t))} · ${fmt(t.amount)} · ${dateHtml(t.date)}${t.description ? ' · ' + escapeHtml(t.description) : ''}</span>
       </label>`).join('');
     const body = `
@@ -3767,7 +3768,7 @@
         النسخة الاحتياطية بتاريخ تصدير ${exportedLabel}. لقيت ${items.length} قيد مضاف بعدها (بمجموع ${fmt(total)}) — كلها محددة افتراضياً. راجعها وشيل أي قيد سليم تبي تحتفظ فيه (مثلاً شي سجّلته صح بعد أخذ النسخة وقبل رفع الملف الغلط) قبل ما تحذف.
       </div>
       <div id="cleanupList" style="max-height:45vh; overflow-y:auto; margin-bottom:12px;">${rows}</div>
-      <button type="button" class="submit" id="cleanupDeleteBtn" style="width:100%; background:var(--expense);">حذف المحدد (<span id="cleanupSelCount">${items.length}</span>)</button>
+      <button type="button" class="submit" id="cleanupDeleteBtn" style="width:100%; background:var(--danger);">حذف المحدد (<span id="cleanupSelCount">${items.length}</span>)</button>
     `;
     openInfoModal('تنظيف منذ النسخة الاحتياطية', body);
     document.querySelectorAll('[data-cleanup-cb]').forEach(cb => {
@@ -3953,7 +3954,7 @@
     // الرواتب تُحسب مصروفاً أيضاً، فصافي الفترة يطرحها زي ما تُطرح المصروفات العادية.
     const net = income - expense - payrollTotal;
     $('dashNetTotal').textContent = fmt(net);
-    $('dashNetTotal').style.color = net >= 0 ? 'var(--income)' : 'var(--expense)';
+    $('dashNetTotal').style.color = net >= 0 ? 'var(--income)' : 'var(--danger)';
 
     renderChart(list);
     renderDashboardActivity(list);
@@ -4323,7 +4324,7 @@
     const canVoid = !t.voided && !t.isReversal;
     const thumb = t.receipt ? `<button type="button" class="txn-thumb" style="background-image:url('${t.receipt}')" data-view="${t.id}" title="عرض صورة الفاتورة"></button>` : '<div class="txn-thumb" style="opacity:0.25;"></div>';
     const checkbox = hasPermission('delete_entries')
-      ? `<input type="checkbox" class="bulk-select-cb" data-bulk-select="${t.id}" ${selectedForDelete[t.type].has(t.id) ? 'checked' : ''} style="width:19px; height:19px; align-self:center; flex-shrink:0; accent-color:var(--expense);">`
+      ? `<input type="checkbox" class="bulk-select-cb" data-bulk-select="${t.id}" ${selectedForDelete[t.type].has(t.id) ? 'checked' : ''} style="width:19px; height:19px; align-self:center; flex-shrink:0; accent-color:var(--danger);">`
       : '';
     return `
       <div class="txn-card${t.voided ? ' void-card' : ''}">
@@ -4619,7 +4620,7 @@
       const sorted = [...g].sort((a,b) => a.createdAt.localeCompare(b.createdAt));
       const rows = sorted.map((t,i) => `
         <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
-          <input type="checkbox" data-dup-cb="${t.id}" style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
+          <input type="checkbox" data-dup-cb="${t.id}" style="width:17px; height:17px; flex-shrink:0; accent-color:var(--danger);">
           <span>${escapeHtml(t.description || rowCatLabel(t))} — ${dateHtml(t.date)}${i === 0 ? ' (الأقدم)' : ''}</span>
         </label>`).join('');
       return `
@@ -4634,7 +4635,7 @@
         لقيت ${dupGroups.length} مجموعة بنفس المبلغ والتصنيف (${totalDupCount} قيد إجمالي). ما حدد لك شي تلقائياً — راجع كل وصف وحدّد يدوياً اللي تأكدت إنه تكرار فعلي قبل الحذف.
       </div>
       <div id="dupGroupsList" style="max-height:40vh; overflow-y:auto; margin-bottom:12px;">${groupsHtml}</div>
-      <button type="button" class="submit" id="dupDeleteBtn" style="width:100%; background:var(--expense);">حذف المحدد (<span id="dupSelCount">${dupSelectedIds.size}</span>)</button>
+      <button type="button" class="submit" id="dupDeleteBtn" style="width:100%; background:var(--danger);">حذف المحدد (<span id="dupSelCount">${dupSelectedIds.size}</span>)</button>
     `;
     openInfoModal('نتائج كشف التكرارات', body);
     document.querySelectorAll('[data-dup-cb]').forEach(cb => {
