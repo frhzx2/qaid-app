@@ -1198,6 +1198,11 @@
           <div class="field"><label for="supe-phone">رقم المورد</label><input type="tel" id="supe-phone"></div>
           <div class="field"><label for="supe-address">العنوان</label><input type="text" id="supe-address"></div>
           <button type="submit" class="submit">حفظ التعديل</button>
+          <div class="field" style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--border);">
+            <label for="supe-del-confirm" style="color:var(--danger);">لحذف المورد نهائياً اكتب كلمة «حذف»</label>
+            <input type="text" id="supe-del-confirm" placeholder="حذف" autocomplete="off">
+          </div>
+          <button type="button" class="txn-void-btn danger" id="supplierDeleteBtn" style="width:100%; opacity:.4;" disabled>حذف المورد نهائياً</button>
         </form>
 
         <div class="stat-row">
@@ -2210,25 +2215,18 @@
         <div class="txn-card">
           <div class="txn-main" data-open-supplier="${s.id}" style="cursor:pointer;">
             <div class="desc">${escapeHtml(supLabel(s))}</div>
-            <div class="meta">${escapeHtml(s.phone)}${s.address ? ' · ' + escapeHtml(s.address) : ''}</div>
+            ${(s.phone || s.address) ? `<div class="meta">${escapeHtml(s.phone || '')}${s.phone && s.address ? ' · ' : ''}${escapeHtml(s.address || '')}</div>` : ''}
           </div>
-          <div class="txn-side">
+          ${Math.abs(due) > 0.004 ? `<div class="txn-side">
             <div class="txn-amt ${due > 0 ? 'expense' : 'income'}">${fmt(due)}</div>
-            <span class="txn-tag">مستحق</span>
-            <button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-supplier="${s.id}">حذف نهائي</button>
-          </div>
+            <span class="txn-tag">${due > 0 ? 'مستحق' : 'رصيد لنا'}</span>
+          </div>` : ''}
         </div>`;
     }).join('');
     listEl.querySelectorAll('[data-open-supplier]').forEach(el => {
       el.addEventListener('click', () => {
         currentSupplierId = el.getAttribute('data-open-supplier');
         showPage('supplier-detail');
-      });
-    });
-    listEl.querySelectorAll('[data-hard-delete-supplier]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        hardDeleteSupplier(btn.getAttribute('data-hard-delete-supplier'));
       });
     });
   }
@@ -2311,7 +2309,18 @@
     if(f.style.display === 'block'){ f.style.display = 'none'; return; }
     $('supe-kind').value = sup.kind || ''; $('supe-name').value = supBase(sup);
     $('supe-phone').value = sup.phone || ''; $('supe-address').value = sup.address || '';
+    $('supe-del-confirm').value = ''; $('supplierDeleteBtn').disabled = true; $('supplierDeleteBtn').style.opacity = '.4';
     f.style.display = 'block';
+  });
+  $('supe-del-confirm').addEventListener('input', () => {
+    const ok = $('supe-del-confirm').value.trim() === 'حذف';
+    $('supplierDeleteBtn').disabled = !ok; $('supplierDeleteBtn').style.opacity = ok ? '1' : '.4';
+  });
+  $('supplierDeleteBtn').addEventListener('click', async () => {
+    if($('supe-del-confirm').value.trim() !== 'حذف') return;
+    const id = currentSupplierId;
+    await hardDeleteSupplier(id);
+    if(!state.suppliers.some(x => x.id === id)) showPage('suppliers');
   });
   $('supplierEditForm').addEventListener('submit', async (e) => {
     e.preventDefault();
