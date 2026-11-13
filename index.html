@@ -93,8 +93,9 @@
   .topbar{ display:flex; align-items:center; gap:12px; padding: 22px 20px 4px; }
   .topbar .back{ background:var(--panel); border:none; color:var(--ink); width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
   .topbar .back svg{ width:16px; height:16px; }
-  .topbar-text h2{ margin:0; font-size:19px; font-weight:800; }
-  .topbar-text .sub{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; }
+  .topbar-text{ min-width:0; }
+  .topbar-text h2{ margin:0; font-size:19px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .topbar-text .sub{ font-size:11.5px; color:var(--ink-soft); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   main.pages{ padding: 6px 20px 20px; }
 
@@ -183,7 +184,7 @@
   .filterbar{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
   .pill{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 14px; border-radius:20px; cursor:pointer; }
   .pill.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
-  .scope-chip{ font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 4px; border-radius:20px; cursor:pointer; flex:1; text-align:center; white-space:nowrap; }
+  .scope-chip{ min-height:36px; font-family:'Cairo', sans-serif; font-size:12px; background: var(--panel); border:1px solid var(--border); color: var(--ink-soft); padding:7px 4px; border-radius:20px; cursor:pointer; flex:1; text-align:center; white-space:nowrap; }
   .scope-chip.active{ background: var(--accent); color:#05130D; border-color:var(--accent); font-weight:700; }
   .filter-dates{ display:flex; gap:8px; margin-bottom:12px; }
   .filter-dates input[type=date]{ flex:1; font-family:'IBM Plex Mono',monospace; font-size:12px; padding:8px 9px; border-radius:10px; border:1px solid var(--border); background:var(--panel); color:var(--ink); direction:ltr; }
@@ -228,9 +229,9 @@
   .txn-amt{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:700; direction:ltr; }
   .txn-amt.income{ color:var(--income); }
   .txn-amt.expense{ color:var(--expense); }
-  .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:10.5px; padding:3px 9px; border-radius:8px; cursor:pointer; }
-  .txn-void-btn:hover{ border-color:var(--expense); color:var(--expense); }
-  .txn-tag{ font-size:10px; color:var(--void); border:1px solid var(--border); padding:2px 7px; border-radius:8px; }
+  .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:11px; min-height:32px; padding:5px 12px; border-radius:10px; cursor:pointer; }
+  .txn-void-btn.danger{ color:var(--expense); }
+  .txn-tag{ display:inline-block; font-size:10.5px; color:var(--void); border:1px solid var(--border); padding:3px 9px; border-radius:10px; }
   .empty{ padding:40px 10px; text-align:center; color:var(--ink-soft); font-size:13px; font-style:italic; }
 
   /* ---------- New entry form ---------- */
@@ -1250,25 +1251,25 @@
   ];
   // page -> [title, subtitle, parent-for-back-button-or-null]
   const PAGES = {
-    home: ['قيد', 'البرنامج المحاسبي الخاص بالهزاع', null],
+    home: ['قيد', 'المحاسبة الخاصة بالهزاع', null],
     income: ['الإيرادات', 'كل قيود الدخل على حدة', null],
     expenses: ['المصروفات', 'كل قيود المصروفات على حدة', null],
     new: ['عملية جديدة', 'تسجيل إيراد أو مصروف', null],
-    daily: ['إضافة قيد يومي', 'سجّل عمليات اليوم دفعة واحدة', null],
+    daily: ['إضافة قيد يومي', 'عمليات اليوم دفعة واحدة', null],
     more: ['المزيد', 'إعدادات ونظرة إضافية', null],
     categories: ['التصنيفات', 'أضف أو احذف تصنيفات', 'more'],
     audit: ['سجل المراجعة', 'التحقق من توازن الدفتر', 'more'],
     suppliers: ['قائمة الموردين', 'إدارة الموردين والمدفوعات', 'more'],
     'supplier-detail': ['المورد', '', 'suppliers'],
     search: ['بحث شامل', 'دوّر في كل بيانات التطبيق', 'more'],
-    reminders: ['التذكيرات', 'تذكيرات الاستحقاقات والرسوم', 'more'],
-    users: ['المستخدمون', 'إدارة حسابات الدخول والصلاحيات', 'more'],
-    vat: ['ضريبة القيمة المضافة', 'احسب الضريبة لفترة وفئات محددة', 'more'],
+    reminders: ['التذكيرات', 'الاستحقاقات والرسوم', 'more'],
+    users: ['المستخدمون', 'الحسابات والصلاحيات', 'more'],
+    vat: ['ضريبة القيمة المضافة', 'الضريبة لفترة وفئات محددة', 'more'],
     compare: ['مقارنة الأشهر', 'قارن أداء شهرين ببعض', 'more'],
-    activitylog: ['سجل النشاط الكامل', 'كل إجراء بالتطبيق، من ومتى', 'more'],
-    reports: ['التقارير', 'تصدير تقرير Excel أو PDF لفترة محددة', 'more'],
-    payroll: ['سجل الرواتب', 'الرواتب والنسب والخصومات لكل موظف', 'more'],
-    cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات البنكية', 'more'],
+    activitylog: ['سجل النشاط', 'كل إجراء، من ومتى', 'more'],
+    reports: ['التقارير', 'تصدير Excel أو PDF لفترة', 'more'],
+    payroll: ['سجل الرواتب', 'الرواتب والخصومات', 'more'],
+    cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات', 'more'],
   };
 
   let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], bankAdjustment: 0, feeRateVersion: 'new', currentType: 'income', pendingReceipt: null };
@@ -2065,14 +2066,14 @@
 
     return `
       <div class="audit-card">
-        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${s.date}</span>${statusTag}</div>
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${dateHtml(s.date)}</span>${statusTag}</div>
         <div class="arow"><span class="acc">عمليات مدى</span><span class="amt">${fmt(s.mada)}</span></div>
         ${madaLines}
         <div class="arow"><span class="acc">عمليات فيزا</span><span class="amt">${fmt(s.visa)}</span></div>
         ${visaLines}
         <div class="arow"><span class="acc">الإجمالي المتوقع</span><span class="amt">${fmt(expected)}</span></div>
         ${receivedBlock}
-        <button type="button" class="txn-void-btn" style="margin-top:10px; border-color:var(--expense); color:var(--expense);" data-hard-delete-settle="${s.id}">حذف نهائي</button>
+        <button type="button" class="txn-void-btn danger" style="margin-top:10px;" data-hard-delete-settle="${s.id}">حذف نهائي</button>
       </div>`;
   }
 
@@ -2186,7 +2187,7 @@
       return `
         <div class="audit-card" style="cursor:pointer;" data-toggle-settle-detail="${s.id}">
           <div class="arow" style="margin-top:0;">
-            <span style="font-weight:700;">${s.date}</span>
+            <span style="font-weight:700;">${dateHtml(s.date)}</span>
             <span style="display:flex; gap:6px;">
               <span class="txn-tag" style="${matched ? 'border-color:var(--income); color:var(--income);' : 'border-color:var(--expense); color:var(--expense);'}">${matched ? 'متوافقة' : 'غير متوافقة'}</span>
               ${mismatchTag}
@@ -2231,7 +2232,7 @@
   function bankDebitCardHtml(t){
     return `
       <div class="audit-card">
-        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${t.date}</span><span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">مصروف من الحساب</span></div>
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${dateHtml(t.date)}</span><span class="txn-tag" style="border-color:var(--expense); color:var(--expense);">مصروف من الحساب</span></div>
         <div class="arow"><span class="acc">${escapeHtml(rowCatLabel(t))}</span><span class="amt expense">\u2212 ${fmt(t.bankAmount)}</span></div>
         ${t.description ? `<div class="meta">${escapeHtml(t.description)}</div>` : ''}
         ${t.bankAmount < t.amount ? `<div class="meta">من إجمالي المصروف ${fmt(t.amount)}</div>` : ''}
@@ -2241,7 +2242,7 @@
   function bankDepositCardHtml(d){
     return `
       <div class="audit-card">
-        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${d.date}</span><span class="txn-tag" style="border-color:var(--income); color:var(--income);">إيداع من الخزينة</span></div>
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${dateHtml(d.date)}</span><span class="txn-tag" style="border-color:var(--income); color:var(--income);">إيداع من الخزينة</span></div>
         <div class="arow"><span class="acc">${escapeHtml(d.note || 'إيداع بنكي')}</span><span class="amt income">+ ${fmt(d.amount)}</span></div>
         <div class="meta" style="margin-top:4px;">يُدار من صفحة الخزينة النقدية</div>
       </div>`;
@@ -2271,7 +2272,7 @@
         }
         const inAmt = i.amount > 0 ? i.amount : 0, outAmt = i.amount < 0 ? -i.amount : 0;
         totalIn += inAmt; totalOut += outAmt;
-        return `<tr><td>${i.date}</td><td>${label}</td><td>${escapeHtml(details)}</td><td>${inAmt ? fmt(inAmt) : '—'}</td><td>${outAmt ? fmt(outAmt) : '—'}</td></tr>`;
+        return `<tr><td>${dateHtml(i.date)}</td><td>${label}</td><td>${escapeHtml(details)}</td><td>${inAmt ? fmt(inAmt) : '—'}</td><td>${outAmt ? fmt(outAmt) : '—'}</td></tr>`;
       }).join('');
       const now = new Date();
       return `
@@ -2422,11 +2423,11 @@
     const isIn = t.direction === 'in';
     return `
       <div class="audit-card">
-        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${t.date}</span><span class="txn-tag" style="${isIn ? 'border-color:var(--income); color:var(--income);' : 'border-color:var(--expense); color:var(--expense);'}">${isIn ? 'واردة' : 'صادرة'}</span></div>
+        <div class="arow" style="margin-top:0;"><span style="font-weight:700;">${dateHtml(t.date)}</span><span class="txn-tag" style="${isIn ? 'border-color:var(--income); color:var(--income);' : 'border-color:var(--expense); color:var(--expense);'}">${isIn ? 'واردة' : 'صادرة'}</span></div>
         ${t.name ? `<div class="arow"><span class="acc">الاسم</span><span class="amt">${escapeHtml(t.name)}</span></div>` : ''}
         ${t.reason ? `<div class="arow"><span class="acc">السبب</span><span class="amt">${escapeHtml(t.reason)}</span></div>` : ''}
         <div class="arow"><span class="acc">المبلغ</span><span class="amt ${isIn ? 'income' : 'expense'}">${isIn ? '+' : '\u2212'} ${fmt(t.amount)}</span></div>
-        <button type="button" class="txn-void-btn" style="margin-top:10px; border-color:var(--expense); color:var(--expense);" data-hard-delete-transfer="${t.id}">حذف نهائي</button>
+        <button type="button" class="txn-void-btn danger" style="margin-top:10px;" data-hard-delete-transfer="${t.id}">حذف نهائي</button>
       </div>`;
   }
 
@@ -2547,7 +2548,7 @@
           <div class="txn-side">
             <div class="txn-amt ${due > 0 ? 'expense' : 'income'}">${fmt(due)}</div>
             <span class="txn-tag">مستحق</span>
-            <button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-supplier="${s.id}">حذف نهائي</button>
+            <button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-supplier="${s.id}">حذف نهائي</button>
           </div>
         </div>`;
     }).join('');
@@ -2634,11 +2635,11 @@
           ${attachmentPreviewHtml(i.attachment, i.id)}
           <div class="txn-main">
             <div class="desc">فاتورة رقم ${escapeHtml(i.invoiceNumber)}</div>
-            <div class="meta">${i.date}</div>
+            <div class="meta">${dateHtml(i.date)}</div>
           </div>
           <div class="txn-side">
             <div class="txn-amt expense">${fmt(i.amount)}</div>
-            <button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-invoice="${i.id}">حذف نهائي</button>
+            <button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-invoice="${i.id}">حذف نهائي</button>
           </div>
         </div>`).join('');
       wireAttachmentViewers(invListEl, invoices);
@@ -2657,11 +2658,11 @@
           ${attachmentPreviewHtml(r.attachment, r.id)}
           <div class="txn-main">
             <div class="desc">سداد ${r.method === 'transfer' ? 'تحويل' : 'نقد'}</div>
-            <div class="meta">${r.date}</div>
+            <div class="meta">${dateHtml(r.date)}</div>
           </div>
           <div class="txn-side">
             <div class="txn-amt income">${fmt(r.amount)}</div>
-            <button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-receipt="${r.id}">حذف نهائي</button>
+            <button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-receipt="${r.id}">حذف نهائي</button>
           </div>
         </div>`).join('');
       wireAttachmentViewers(rcptListEl, receipts);
@@ -2688,7 +2689,7 @@
           </div>
           <div class="txn-side">
             <div class="txn-amt" style="color:#D9A227;">${fmt(r.amount)}</div>
-            <button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-return="${r.id}">حذف نهائي</button>
+            <button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-return="${r.id}">حذف نهائي</button>
           </div>
         </div>`).join('');
       retListEl.querySelectorAll('[data-hard-delete-return]').forEach(btn => {
@@ -3046,7 +3047,7 @@
     const fastCreatorName = t => t.createdBy ? (userMap[t.createdBy] || t.createdBy) : '';
     const tableRows = rows.map(t => `
       <tr>
-        <td>${t.date}</td>
+        <td>${dateHtml(t.date)}</td>
         <td>${t.type === 'income' ? 'إيراد' : 'مصروف'}</td>
         <td>${escapeHtml(fastCatLabel(t))}</td>
         <td>${escapeHtml(t.description || '')}</td>
@@ -3296,7 +3297,7 @@
 
       const txnRows = list => list.map(t => {
         const v = vatOf(t.amount);
-        return `<tr><td>${t.date}</td><td>${escapeHtml(catName(t))}</td><td>${escapeHtml(t.description || '')}</td><td>${fmt(t.amount)}</td><td>${fmt(r2(t.amount - v))}</td><td>${fmt(v)}</td></tr>`;
+        return `<tr><td>${dateHtml(t.date)}</td><td>${escapeHtml(catName(t))}</td><td>${escapeHtml(t.description || '')}</td><td>${fmt(t.amount)}</td><td>${fmt(r2(t.amount - v))}</td><td>${fmt(v)}</td></tr>`;
       }).join('');
       const txnSection = (title, list, vatTotal, typeLabel) => `
         <div style="font-size:13px; font-weight:700; margin:22px 0 8px;">${title}</div>
@@ -3309,7 +3310,7 @@
       let posSection = '';
       if(posSelected){
         const rows = d.posRows.map(r => `
-          <tr><td>موازنة يوم ${r.date}</td>
+          <tr><td>موازنة يوم ${dateHtml(r.date)}</td>
           <td>${fmt(r2(r.mada + r.visa))}<div style="font-size:10px; color:#888;">مدى ${fmt(r.mada)} · فيزا ${fmt(r.visa)}</div></td>
           <td>${fmt(r.fee)}</td><td>${fmt(r.before)}</td><td>${fmt(r.vat)}</td></tr>`).join('');
         const tFee = r2(d.posRows.reduce((s,r) => s + r.fee, 0));
@@ -3441,12 +3442,12 @@
         const colorClass = isDeposit ? '' : (i.kind === 'in' || isCashIn ? 'income' : 'expense');
         const sign = isDeposit ? '\u2212' : '+';
         const tagLabel = isDeposit ? 'إيداع بنكي' : isCashIn ? 'إضافة نقد للخزينة' : (i.kind === 'in' ? 'نقد وارد' : 'نقد صادر');
-        const deleteBtn = (isDeposit || isCashIn) ? `<button type="button" class="txn-void-btn" style="margin-top:4px; border-color:var(--expense); color:var(--expense);" data-hard-delete-deposit="${i.id}">حذف نهائي</button>` : '';
+        const deleteBtn = (isDeposit || isCashIn) ? `<button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-deposit="${i.id}">حذف نهائي</button>` : '';
         return `
           <div class="txn-card">
             <div class="txn-main">
               <div class="desc">${escapeHtml(i.label)}</div>
-              <div class="meta">${i.date} · ${tagLabel}</div>
+              <div class="meta">${dateHtml(i.date)} · ${tagLabel}</div>
             </div>
             <div class="txn-side"><div class="txn-amt ${colorClass}" style="${isDeposit ? 'color:#D9A227;' : ''}">${sign} ${fmt(i.amount)}</div>${deleteBtn}</div>
           </div>`;
@@ -3515,7 +3516,7 @@
       else totalDeposit += e.amount;
       const label = e.kind === 'in' ? 'نقد وارد' : e.kind === 'out' ? 'نقد صادر' : e.kind === 'cashin' ? 'إضافة نقد للخزينة' : 'إيداع بنكي';
       const sign = (e.kind === 'in' || e.kind === 'cashin') ? '+' : '\u2212';
-      return `<tr><td>${e.date}</td><td>${escapeHtml(e.label)}</td><td>${label}</td><td>${sign} ${fmt(e.amount)}</td></tr>`;
+      return `<tr><td>${dateHtml(e.date)}</td><td>${escapeHtml(e.label)}</td><td>${label}</td><td>${sign} ${fmt(e.amount)}</td></tr>`;
     }).join('');
     const endBalance = startBalance + totalIn + totalCashIn - totalOut - totalDeposit;
 
@@ -3714,7 +3715,7 @@
                 <span style="font-weight:700;">${escapeHtml(p.employeeName)}</span>
                 <span class="txn-tag" style="border-color:#D9A227; color:#D9A227;">إجازة</span>
               </div>
-              <button type="button" class="txn-void-btn" style="margin-top:8px; border-color:var(--expense); color:var(--expense);" data-hard-delete-payroll="${p.id}">حذف نهائي</button>
+              <button type="button" class="txn-void-btn danger" style="margin-top:8px;" data-hard-delete-payroll="${p.id}">حذف نهائي</button>
             </div>`;
         }
         const net = p.salary + p.commission - p.deduction;
@@ -3730,7 +3731,7 @@
               <span>خصم: ${fmt(p.deduction)}</span>
             </div>
             ${p.deductionReason ? `<div style="font-size:11.5px; color:var(--expense); margin-top:4px;">سبب الخصم: ${escapeHtml(p.deductionReason)}</div>` : ''}
-            <button type="button" class="txn-void-btn" style="margin-top:8px; border-color:var(--expense); color:var(--expense);" data-hard-delete-payroll="${p.id}">حذف نهائي</button>
+            <button type="button" class="txn-void-btn danger" style="margin-top:8px;" data-hard-delete-payroll="${p.id}">حذف نهائي</button>
           </div>`;
       }).join('');
       return `
@@ -3828,7 +3829,7 @@
         <div class="txn-card">
           <div class="txn-main">
             <div class="desc">${escapeHtml(r.title)}</div>
-            <div class="meta">استحقاق ${r.dueDate}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
+            <div class="meta">استحقاق ${dateHtml(r.dueDate)}${r.notes ? ' · ' + escapeHtml(r.notes) : ''}</div>
           </div>
           <div class="txn-side">${statusHtml}<button type="button" class="txn-void-btn" style="margin-top:6px;" data-del-reminder="${r.id}">حذف</button></div>
         </div>`;
@@ -4079,7 +4080,7 @@
     const rows = items.map(t => `
       <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
         <input type="checkbox" data-cleanup-cb="${t.id}" checked style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
-        <span>${t.type === 'income' ? 'إيراد' : 'مصروف'} · ${escapeHtml(rowCatLabel(t))} · ${fmt(t.amount)} · ${t.date}${t.description ? ' · ' + escapeHtml(t.description) : ''}</span>
+        <span>${t.type === 'income' ? 'إيراد' : 'مصروف'} · ${escapeHtml(rowCatLabel(t))} · ${fmt(t.amount)} · ${dateHtml(t.date)}${t.description ? ' · ' + escapeHtml(t.description) : ''}</span>
       </label>`).join('');
     const body = `
       <div class="audit-note" style="margin-bottom:12px;">
@@ -4658,9 +4659,9 @@
         <div class="txn-side">
           <div class="txn-amt ${amtClass}">${sign} ${fmt(t.amount)}</div>
           <div style="font-size:10px; color:var(--ink-soft); direction:ltr;">ض.ق.م ١٥٪: ${fmt(vatOf(t.amount))}</div>
-          <div style="display:flex; gap:4px; margin-top:4px; justify-content:flex-end; flex-wrap:wrap;">
+          <div style="display:flex; gap:8px; margin-top:4px; justify-content:flex-end; flex-wrap:wrap;">
             ${canVoid ? `<button class="txn-void-btn" data-void="${t.id}">إلغاء</button>` : (t.voided ? `<span class="txn-tag">ملغى</span>` : `<span class="txn-tag">عكسي</span>`)}
-            <button class="txn-void-btn" style="border-color:var(--expense); color:var(--expense);" data-hard-delete="${t.id}">حذف نهائي</button>
+            <button class="txn-void-btn danger" data-hard-delete="${t.id}">حذف نهائي</button>
           </div>
         </div>
       </div>`;
@@ -4764,7 +4765,7 @@
 
     const tableRows = entries.map(t => `
       <tr>
-        <td>${t.date}</td>
+        <td>${dateHtml(t.date)}</td>
         <td>${escapeHtml(rowCatLabel(t))}</td>
         <td>${escapeHtml(t.description || '')}</td>
         <td>${fmt(t.amount)}</td>
@@ -4801,7 +4802,7 @@
     rows.sort((a,b) => (b.txn.date + b.txn.createdAt).localeCompare(a.txn.date + a.txn.createdAt));
     $('auditList').innerHTML = rows.length ? rows.map(r => `
       <div class="audit-card">
-        <div style="color:var(--ink-soft); font-size:11px;">${r.txn.date} — ${escapeHtml(r.txn.description)}</div>
+        <div style="color:var(--ink-soft); font-size:11px;">${dateHtml(r.txn.date)} — ${escapeHtml(r.txn.description)}</div>
         <div class="arow"><span class="acc">${escapeHtml(r.account)}</span><span class="amt">${r.debit ? 'مدين ' + fmt(r.debit) : 'دائن ' + fmt(r.credit)}</span></div>
       </div>`).join('') : '<div class="empty">لا توجد قيود ضمن الفترة.</div>';
     const balanced = Math.abs(totalDebit - totalCredit) < 0.005;
@@ -4942,7 +4943,7 @@
       const rows = sorted.map((t,i) => `
         <label style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12.5px; cursor:pointer; border-bottom:1px solid var(--border);">
           <input type="checkbox" data-dup-cb="${t.id}" style="width:17px; height:17px; flex-shrink:0; accent-color:var(--expense);">
-          <span>${escapeHtml(t.description || rowCatLabel(t))} — ${t.date}${i === 0 ? ' (الأقدم)' : ''}</span>
+          <span>${escapeHtml(t.description || rowCatLabel(t))} — ${dateHtml(t.date)}${i === 0 ? ' (الأقدم)' : ''}</span>
         </label>`).join('');
       return `
         <div class="audit-card" style="margin-bottom:10px;">
