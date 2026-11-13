@@ -226,7 +226,6 @@
   .txn-main .meta{ font-size:11px; color:var(--ink-soft); margin-top:2px; }
   .txn-side{ text-align:left; flex-shrink:0; }
   .txn-amt{ font-family:'IBM Plex Mono',monospace; font-size:14.5px; font-weight:700; direction:ltr; }
-  .txn-amt .cur{ font-family:'Cairo',sans-serif; font-size:10px; font-weight:500; opacity:.7; margin-right:5px; }
   .txn-amt.income{ color:var(--income); }
   .txn-amt.expense{ color:var(--expense); }
   .txn-void-btn{ margin-top:4px; background:none; border:1px solid var(--border); color:var(--ink-soft); font-family:'Cairo',sans-serif; font-size:10.5px; padding:3px 9px; border-radius:8px; cursor:pointer; }
@@ -3943,7 +3942,7 @@
 
     resultsEl.innerHTML = results.map(r => {
       const amtClass = r.kind === 'income' ? 'income' : (r.kind === 'expense' ? 'expense' : '');
-      const amtHtml = r.amount != null ? `<div class="txn-side"><div class="txn-amt ${amtClass}">${fmt(r.amount)}<span class="cur">ر.س</span></div></div>` : '';
+      const amtHtml = r.amount != null ? `<div class="txn-side"><div class="txn-amt ${amtClass}">${fmt(r.amount)}</div></div>` : '';
       const clickAttr = r.kind === 'supplier' ? ` data-goto-supplier="${r.supplierId}" style="cursor:pointer;"` : '';
       return `<div class="txn-card"${clickAttr}><div class="txn-main"><div class="desc">${escapeHtml(r.title)}</div><div class="meta">${r.metaHtml}</div></div>${amtHtml}</div>`;
     }).join('');
