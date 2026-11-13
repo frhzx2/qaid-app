@@ -343,6 +343,107 @@
   input[type=number]{ -moz-appearance:textfield; appearance:textfield; }
   .theme-btn.active{ border-color:var(--accent); color:var(--accent); font-weight:700; }
 
+
+  /* ================= Design layer =================
+     One shared look for buttons, cards, fields and the bottom bar. Placed last so
+     it wins over the older per-screen rules; every screen inherits it. */
+  :root{
+    --accent:#1FD18F; --accent-deep:#12A56E; --accent-ink:#04150E;
+    --brass:#D9A227;
+    --r-sm:10px; --r-md:14px; --r-lg:20px;
+    --lift: inset 0 1px 0 rgba(255,255,255,.06), 0 10px 26px -14px rgba(0,0,0,.6);
+    --glow: 0 10px 24px -10px color-mix(in srgb, var(--accent) 70%, transparent);
+    --grad-accent: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent-deep));
+  }
+  :root[data-theme="light"]{ --accent-ink:#FFFFFF; --lift: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 22px -14px rgba(20,30,60,.35); }
+
+  .app-shell{ background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(255,255,255,.022) 31px, rgba(255,255,255,.022) 32px); }
+  :root[data-theme="light"] .app-shell{ background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(0,0,0,.035) 31px, rgba(0,0,0,.035) 32px); }
+
+  /* Buttons: primary / secondary / gold / expense, plus small chips */
+  button, .pill, .scope-chip, .chip-btn, .list-row, .nav-btn{ -webkit-tap-highlight-color:transparent; }
+  button.submit{
+    min-height:52px; font-size:15.5px; font-weight:800; letter-spacing:.01em;
+    background: var(--grad-accent); color: var(--accent-ink); border:none; border-radius:16px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.28), var(--glow);
+    transition: transform .12s ease, box-shadow .2s ease, filter .2s ease;
+  }
+  button.submit:active{ transform: translateY(1px) scale(.985); filter:brightness(.95); }
+  button.submit:disabled{ background:var(--panel-2); color:var(--ink-soft); box-shadow:none; }
+  button.submit.secondary{ background:var(--panel-2); color:var(--ink); border:1px solid var(--border); box-shadow: var(--lift); }
+  button.submit.gold{ background: linear-gradient(180deg,#F2C752,#C98F1E); color:#2A1E05; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 10px 24px -10px rgba(217,162,39,.6); }
+  button.submit.expense{ background: linear-gradient(180deg,#FF8299,#E8405F); color:#2A0A10; box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 10px 24px -10px rgba(255,92,122,.55); }
+  .chip-btn{
+    font-family:'Cairo',sans-serif; font-size:12px; font-weight:600; min-height:36px; padding:0 14px; border-radius:999px;
+    border:1px solid var(--border); background:var(--panel); color:var(--ink-soft); cursor:pointer;
+    transition: transform .12s ease, background .15s ease, color .15s ease;
+  }
+  .chip-btn:active{ transform:scale(.97); background:var(--panel-2); color:var(--ink); }
+  .chip-btn.danger{ color:var(--expense); }
+  .chip-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .pill, .scope-chip{ display:inline-flex; align-items:center; justify-content:center; min-height:36px; padding:0 14px; border-radius:999px; font-weight:600; transition: transform .12s ease, background .15s ease; }
+  .scope-chip{ padding:0 4px; }
+  .pill:active, .scope-chip:active{ transform:scale(.97); }
+  .pill.active, .scope-chip.active{ background: var(--grad-accent); color: var(--accent-ink); border-color:transparent; font-weight:800; box-shadow: inset 0 1px 0 rgba(255,255,255,.28); }
+  .txn-void-btn{ border-radius:999px; }
+
+  /* Cards: layered surface, light top edge, soft depth */
+  .stat-card, .txn-card, .audit-card, .list-menu{
+    background: linear-gradient(180deg, color-mix(in srgb, var(--panel) 94%, #fff), var(--panel));
+    box-shadow: var(--lift);
+  }
+  .stat-card{ position:relative; overflow:hidden; border-radius:var(--r-lg); padding:14px 16px 14px 12px; }
+  .stat-card::before{ content:''; position:absolute; inset-block:14px; inset-inline-start:0; width:3px; border-radius:3px; background:var(--tone, transparent); }
+  .stat-card:has([style*="var(--income)"]), .stat-card:has(.value.income){ --tone:var(--income); }
+  .stat-card:has([style*="var(--expense)"]), .stat-card:has(.value.expense){ --tone:var(--expense); }
+  .stat-card:has([style*="#D9A227"]){ --tone:var(--brass); }
+  .stat-card .label{ font-size:11.5px; margin-bottom:6px; }
+  .stat-card .value{ font-size:15px; white-space:nowrap; }
+  .txn-card{ border-radius:16px; padding:14px; }
+  .audit-card{ border-radius:14px; }
+  .list-menu{ border-radius:18px; }
+  .list-row{ transition: background .15s ease; }
+  .list-row:active{ background: var(--panel-2); }
+  .empty{ font-style:normal; }
+
+  /* Fields: clear focus, same radius everywhere */
+  .field input, .field select, .daily-field{ border-radius:12px; transition: border-color .15s ease, box-shadow .15s ease; }
+  .field input:focus, .field select:focus, .daily-field:focus, #globalSearchInput:focus, #botInput:focus{
+    outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .confirm-msg{ animation: pop-in .18s ease-out; }
+  @keyframes pop-in{ from{ opacity:0; transform:scale(.96); } to{ opacity:1; transform:none; } }
+
+  /* File pickers match the rest of the form */
+  input[type=file]{ font-family:'Cairo',sans-serif; font-size:12px; color:var(--ink-soft); }
+  input[type=file]::file-selector-button{
+    font-family:'Cairo',sans-serif; font-size:12px; font-weight:600; background:var(--panel-2); color:var(--ink);
+    border:1px solid var(--border); border-radius:999px; padding:7px 14px; margin-inline-end:10px; cursor:pointer;
+  }
+
+  /* Bottom bar: floating, blurred, with a clear marker for the current page */
+  .app-shell{ padding-bottom:116px; }
+  .bottom-nav{
+    bottom:calc(10px + env(safe-area-inset-bottom)); width:calc(100% - 24px); max-width:436px; padding:6px;
+    border:1px solid var(--border); border-radius:28px;
+    background: color-mix(in srgb, var(--panel) 84%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: 0 16px 36px -12px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.07);
+  }
+  .nav-btn{ position:relative; min-height:48px; justify-content:center; font-weight:600; transition: color .15s ease; }
+  .nav-btn.active{ font-weight:800; }
+  .nav-btn.active::before{
+    content:''; position:absolute; top:-7px; width:26px; height:3px; border-radius:0 0 3px 3px; background:var(--accent);
+    box-shadow:0 3px 10px color-mix(in srgb, var(--accent) 75%, transparent);
+  }
+  .nav-fab{
+    top:-32px; width:58px; height:58px; background: var(--grad-accent); color: var(--accent-ink);
+    box-shadow: 0 0 0 6px var(--bg), var(--glow), inset 0 1px 0 rgba(255,255,255,.35);
+    transition: transform .12s ease;
+  }
+  .nav-fab:active{ transform: translateX(-50%) scale(.94); }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; animation:none !important; } }
 </style>
 </head>
 <body>
@@ -494,7 +595,7 @@
       <!-- ============ INCOME ============ -->
       <section id="page-income" hidden>
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
-          <button type="button" id="incomeFilterToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔍 تصفية</button>
+          <button type="button" id="incomeFilterToggleBtn" class="chip-btn">🔍 تصفية</button>
         </div>
         <div id="incomeFilterPanel" class="entry-panel" style="display:none; margin-bottom:20px;">
           <div class="presets" id="incomeFilterPresets" style="margin-bottom:14px;">
@@ -517,7 +618,7 @@
           <div class="field">
             <label style="display:flex; justify-content:space-between; align-items:center;">
               <span>التصنيفات</span>
-              <button type="button" id="incomeFilterSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+              <button type="button" id="incomeFilterSelectAllBtn" class="chip-btn">تحديد الكل</button>
             </label>
             <div id="incomeFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
@@ -536,10 +637,10 @@
       <!-- ============ EXPENSES ============ -->
       <section id="page-expenses" hidden>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
-          <button type="button" id="importExcelBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">⬆ استيراد من Excel</button>
+          <button type="button" id="importExcelBtn" class="chip-btn">⬆ استيراد من Excel</button>
           <span style="display:flex; gap:8px;">
-            <button type="button" id="findDuplicatesBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔁 كشف التكرارات</button>
-            <button type="button" id="expenseFilterToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🔍 تصفية</button>
+            <button type="button" id="findDuplicatesBtn" class="chip-btn">🔁 كشف التكرارات</button>
+            <button type="button" id="expenseFilterToggleBtn" class="chip-btn">🔍 تصفية</button>
           </span>
         </div>
         <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="display:none;">
@@ -564,7 +665,7 @@
           <div class="field">
             <label style="display:flex; justify-content:space-between; align-items:center;">
               <span>التصنيفات</span>
-              <button type="button" id="expenseFilterSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+              <button type="button" id="expenseFilterSelectAllBtn" class="chip-btn">تحديد الكل</button>
             </label>
             <div id="expenseFilterCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:220px; overflow-y:auto;"></div>
           </div>
@@ -744,11 +845,11 @@
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
-        <button type="button" class="submit" id="restoreBackupBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">⬆ استعادة من نسخة احتياطية</button>
+        <button type="button" class="submit secondary" id="restoreBackupBtn" style="margin-top:10px;">⬆ استعادة من نسخة احتياطية</button>
         <input type="file" id="restoreBackupFile" accept="application/json" style="display:none;">
-        <button type="button" class="submit" id="cleanupSinceBackupBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🧹 حذف كل ما أُضيف بعد نسخة احتياطية</button>
+        <button type="button" class="submit secondary" id="cleanupSinceBackupBtn" style="margin-top:10px;">🧹 حذف كل ما أُضيف بعد نسخة احتياطية</button>
         <input type="file" id="cleanupSinceBackupFile" accept="application/json" style="display:none;">
-        <button type="button" class="submit" id="notifToggleBtn" style="margin-top:10px; background:var(--panel-2); color:var(--ink);">🔔 تفعيل تنبيهات المتصفح</button>
+        <button type="button" class="submit secondary" id="notifToggleBtn" style="margin-top:10px;">🔔 تفعيل تنبيهات المتصفح</button>
         <div class="audit-note" id="notifStatusNote" style="margin-top:8px;"></div>
       </section>
 
@@ -760,7 +861,7 @@
         </div>
 
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
-          <button type="button" id="cashReportToggleBtn" style="font-family:'Cairo',sans-serif; font-size:12px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">🖨 تقرير PDF لفترة محددة</button>
+          <button type="button" id="cashReportToggleBtn" class="chip-btn">🖨 تقرير PDF لفترة محددة</button>
         </div>
         <div id="cashReportPanel" style="display:none; margin-bottom:18px; background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:14px 16px;">
           <div class="row2">
@@ -832,7 +933,7 @@
         </h3>
         <div id="repCatPanel" style="display:none; margin-bottom:18px;">
           <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
-            <button type="button" id="repCatSelectAllBtn" style="font-family:'Cairo',sans-serif; font-size:11px; padding:4px 10px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+            <button type="button" id="repCatSelectAllBtn" class="chip-btn">تحديد الكل</button>
           </div>
           <div class="field"><label>فئات الإيرادات</label>
             <div id="repIncomeCats" style="background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 14px; max-height:180px; overflow-y:auto;"></div>
@@ -851,7 +952,7 @@
 
         <div style="display:flex; gap:10px; margin-bottom:16px;">
           <button type="button" class="submit" style="flex:1; padding:12px;" id="exportExcelBtn">⬇ تصدير Excel</button>
-          <button type="button" class="submit" style="flex:1; padding:12px; background:#D9A227; color:#2A1E05;" id="printReportBtn">🖨 طباعة / حفظ PDF</button>
+          <button type="button" class="submit gold" style="flex:1; padding:12px;" id="printReportBtn">🖨 طباعة / حفظ PDF</button>
         </div>
 
         <div id="repRowCount" class="audit-note"></div>
@@ -895,7 +996,7 @@
         </h3>
         <div id="vatIncomeWrap" style="display:none; margin-bottom:18px;">
           <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
-            <button type="button" id="vatIncomeSelectAll" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 12px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+            <button type="button" id="vatIncomeSelectAll" class="chip-btn">تحديد الكل</button>
           </div>
           <div id="vatIncomeCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px;"></div>
         </div>
@@ -906,7 +1007,7 @@
         </h3>
         <div id="vatExpenseWrap" style="display:none; margin-bottom:18px;">
           <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
-            <button type="button" id="vatExpenseSelectAll" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 12px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">تحديد الكل</button>
+            <button type="button" id="vatExpenseSelectAll" class="chip-btn">تحديد الكل</button>
           </div>
           <div id="vatExpenseCats" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:10px 14px;"></div>
         </div>
@@ -1014,8 +1115,8 @@
           <div class="value" id="bankBalanceDisplay" style="font-size:28px; margin-top:4px;">0.00 ر.س</div>
           <div class="audit-note" style="margin-top:6px;">اضغط لعرض تفصيل الرصيد (كل التاريخ)</div>
         </div>
-        <button type="button" id="resetBankBalanceBtn" style="width:100%; margin-bottom:8px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;">↺ تصفير الرصيد المعروض (يبقي السجل كاملاً)</button>
-        <button type="button" id="toggleFeeRateBtn" style="width:100%; margin-bottom:18px; font-family:'Cairo',sans-serif; font-size:12px; padding:8px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--ink-soft); cursor:pointer;"></button>
+        <button type="button" id="resetBankBalanceBtn" class="chip-btn" style="width:100%; margin-bottom:8px;">↺ تصفير الرصيد المعروض (يبقي السجل كاملاً)</button>
+        <button type="button" id="toggleFeeRateBtn" class="chip-btn" style="width:100%; margin-bottom:18px;"></button>
 
         <h3 class="block-title" id="settleFormToggle" style="cursor:pointer; user-select:none; margin-top:4px;">
           إضافة موازنة يومية
@@ -1104,8 +1205,8 @@
 
         <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
           <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px;" id="toggleAddInvoiceBtn">+ إضافة فاتورة</button>
-          <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px; background:var(--expense); color:#2A0A10;" id="toggleAddReceiptBtn">+ إضافة إيصال سداد</button>
-          <button type="button" class="submit" style="flex:1; padding:11px; min-width:120px; background:#D9A227; color:#2A1E05;" id="toggleAddReturnBtn">+ إضافة فاتورة مرتجع</button>
+          <button type="button" class="submit expense" style="flex:1; padding:11px; min-width:120px;" id="toggleAddReceiptBtn">+ إضافة إيصال سداد</button>
+          <button type="button" class="submit gold" style="flex:1; padding:11px; min-width:120px;" id="toggleAddReturnBtn">+ إضافة فاتورة مرتجع</button>
         </div>
 
         <form id="invoiceForm" style="display:none; margin-bottom:20px;">
@@ -1134,7 +1235,7 @@
           <div class="field"><label for="rcpt-amount">مبلغ السداد (ر.س) *</label><input type="number" inputmode="decimal" enterkeyhint="next" id="rcpt-amount" step="0.01" min="0.01" required></div>
           <div class="field"><label for="rcpt-file">صورة أو ملف إيصال السداد *</label><input type="file" accept="image/*,application/pdf" id="rcpt-file" required></div>
           <span class="receipt-status" id="rcptFileStatus"></span>
-          <button type="submit" class="submit" id="receiptSubmitBtn" style="background:var(--expense); color:#2A0A10;">حفظ الإيصال</button>
+          <button type="submit" class="submit expense" id="receiptSubmitBtn" >حفظ الإيصال</button>
         </form>
 
         <form id="returnForm" style="display:none; margin-bottom:20px;">
@@ -1153,7 +1254,7 @@
               <option value="yes">نعم</option>
             </select>
           </div>
-          <button type="submit" class="submit" id="returnSubmitBtn" style="background:#D9A227; color:#2A1E05;">حفظ المرتجع</button>
+          <button type="submit" class="submit gold" id="returnSubmitBtn" >حفظ المرتجع</button>
         </form>
 
         <h3 class="block-title">الفواتير</h3>
@@ -4563,9 +4664,9 @@
       <div class="audit-note" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px; flex-wrap:wrap;">
         <span>${selectedCount} محدد من ${list.length}${selectedCount ? ' (' + fmt(selectedTotal) + ')' : ''}</span>
         <span style="display:flex; gap:6px;">
-          <button type="button" data-bulk-select-all="${type}" style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 11px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink-soft); cursor:pointer;">${allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل'}</button>
-          <button type="button" data-bulk-move-selected="${type}" ${selectedCount ? '' : 'disabled'} style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 11px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); cursor:pointer; opacity:${selectedCount ? '1' : '0.45'};">نقل المحدد إلى فئة</button>
-          <button type="button" data-bulk-delete-selected="${type}" ${selectedCount ? '' : 'disabled'} style="font-family:'Cairo',sans-serif; font-size:11.5px; padding:5px 11px; border-radius:14px; border:1px solid var(--expense); background:transparent; color:var(--expense); cursor:pointer; opacity:${selectedCount ? '1' : '0.45'};">حذف المحدد</button>
+          <button type="button" data-bulk-select-all="${type}" class="chip-btn">${allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل'}</button>
+          <button type="button" data-bulk-move-selected="${type}" ${selectedCount ? '' : 'disabled'} class="chip-btn">نقل المحدد إلى فئة</button>
+          <button type="button" data-bulk-delete-selected="${type}" ${selectedCount ? '' : 'disabled'} class="chip-btn danger">حذف المحدد</button>
         </span>
       </div>`;
     $(ids.bulkBar).querySelector('[data-bulk-select-all]').addEventListener('click', () => bulkSelectAllToggle(type));
