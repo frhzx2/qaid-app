@@ -73,6 +73,30 @@
     --warn-bg: #3A2E12;
     --warn-ink: #F2C572;
   }
+  :root[data-theme="forest"]{
+    --bg:#1A2A24; --frame:#0E1713; --panel:#243B32; --panel-2:#2D483D; --border:rgba(243,238,230,0.10);
+    --ink:#F3EEE6; --ink-soft:#A7B09A; --accent:#C4B38A; --accent-deep:#A89660; --accent-ink:#1A2A24;
+    --income:#98D6A8; --income-bg:rgba(152,214,168,0.12); --expense:#F2907F; --expense-bg:rgba(242,144,127,0.14);
+    --void:#98A38C; --warn-bg:#3A3012; --warn-ink:#F2C572;
+  }
+  :root[data-theme="forest-light"]{
+    --bg:#F3EEE6; --frame:#E4DDCF; --panel:#FCFAF6; --panel-2:#ECE6DA; --border:rgba(36,59,50,0.14);
+    --ink:#1F332B; --ink-soft:#5B6858; --accent:#2B473C; --accent-deep:#1D3329; --accent-ink:#F3EEE6;
+    --income:#2F6B45; --income-bg:rgba(47,107,69,0.12); --expense:#AE3B2B; --expense-bg:rgba(174,59,43,0.10);
+    --void:#6E7A66; --warn-bg:#FEF3C7; --warn-ink:#92400E;
+  }
+  :root[data-theme="crimson"]{
+    --bg:#0A0A0B; --frame:#000000; --panel:#161618; --panel-2:#202023; --border:rgba(255,255,255,0.09);
+    --ink:#EDEDED; --ink-soft:#9B9BA1; --accent:#BC3C5A; --accent-deep:#9C2D49; --accent-ink:#FFFFFF;
+    --income:#5ED3A0; --income-bg:rgba(94,211,160,0.12); --expense:#FF9A5C; --expense-bg:rgba(255,154,92,0.14);
+    --void:#8E8E94; --warn-bg:#3A3012; --warn-ink:#F2C572;
+  }
+  :root[data-theme="crimson-light"]{
+    --bg:#EDEDED; --frame:#DCDCDC; --panel:#FAFAFA; --panel-2:#E2E2E2; --border:rgba(0,0,0,0.12);
+    --ink:#0A0A0B; --ink-soft:#585860; --accent:#B3304F; --accent-deep:#8F2540; --accent-ink:#FFFFFF;
+    --income:#17784F; --income-bg:rgba(23,120,79,0.12); --expense:#C2410C; --expense-bg:rgba(194,65,12,0.10);
+    --void:#6B6B73; --warn-bg:#FEF3C7; --warn-ink:#92400E;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -103,12 +127,12 @@
   .banner{
     position:fixed; top:0; left:50%; transform:translateX(-50%);
     width:100%; max-width:460px; z-index:9999;
-    background: var(--warn-bg); color: var(--warn-ink); border: 1px solid #6B5320;
+    background: color-mix(in srgb, var(--accent) 16%, var(--panel)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
     padding: 12px 40px 12px 14px; font-size: 12.5px; border-radius:0 0 12px 12px;
     display:none; box-shadow: 0 4px 14px rgba(0,0,0,0.3);
   }
   .banner.banner-inline{ position:static; transform:none; max-width:none; margin-bottom:16px; padding:12px 14px; border-radius:12px; box-shadow:none; }
-  .banner-close{ position:absolute; left:8px; top:6px; background:none; border:none; color:var(--warn-ink); font-size:15px; line-height:1; cursor:pointer; padding:4px 7px; }
+  .banner-close{ position:absolute; left:8px; top:6px; background:none; border:none; color:var(--ink); font-size:15px; line-height:1; cursor:pointer; padding:4px 7px; }
   .loading, .err{ font-size: 13px; color: var(--ink-soft); padding: 70px 0; text-align:center; }
 
   /* ---------- Splash screen: line-art draw-on animation ---------- */
@@ -267,7 +291,7 @@
   .add-cat-row button{ font-family:'Cairo',sans-serif; font-size:12.5px; padding:10px 16px; border:none; border-radius:10px; cursor:pointer; font-weight:700; }
   .add-cat-row button.income{ background:var(--income); color:#05130D; }
   .add-cat-row button.expense{ background:var(--expense); color:#2A0A10; }
-  :root[data-theme="light"] .add-cat-row button.income, :root[data-theme="light"] .add-cat-row button.expense{ color:#FFFFFF; }
+  :root[data-theme="light"] .add-cat-row button.income, :root[data-theme="light"] .add-cat-row button.expense, :root[data-theme="forest-light"] .add-cat-row button.income, :root[data-theme="forest-light"] .add-cat-row button.expense, :root[data-theme="crimson-light"] .add-cat-row button.income, :root[data-theme="crimson-light"] .add-cat-row button.expense{ color:#FFFFFF; }
 
   .audit-note{ font-size:12.5px; color:var(--ink-soft); margin: 0 0 14px; }
   .edit-received-btn{ margin-top:8px; font-family:'Cairo',sans-serif; font-size:11.5px; background:none; border:1px solid var(--border); color:var(--ink-soft); padding:5px 12px; border-radius:8px; cursor:pointer; }
@@ -329,10 +353,11 @@
     --glow: 0 10px 24px -10px color-mix(in srgb, var(--accent) 70%, transparent);
     --grad-accent: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent-deep));
   }
+  :root[data-theme="forest-light"], :root[data-theme="crimson-light"]{ --lift: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 22px -14px rgba(20,30,60,.35); }
   :root[data-theme="light"]{ --accent-ink:#FFFFFF; --lift: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 22px -14px rgba(20,30,60,.35); }
 
   .app-shell{ background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(255,255,255,.022) 31px, rgba(255,255,255,.022) 32px); }
-  :root[data-theme="light"] .app-shell{ background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(0,0,0,.035) 31px, rgba(0,0,0,.035) 32px); }
+  :root[data-theme="light"] .app-shell, :root[data-theme="forest-light"] .app-shell, :root[data-theme="crimson-light"] .app-shell{ background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, rgba(0,0,0,.035) 31px, rgba(0,0,0,.035) 32px); }
 
   /* Buttons: primary / secondary / gold / expense, plus small chips */
   button, .pill, .scope-chip, .chip-btn, .list-row, .nav-btn{ -webkit-tap-highlight-color:transparent; }
@@ -822,10 +847,14 @@
         </div>
 
         <h3 class="block-title" style="margin-top:20px;">المظهر</h3>
-        <div style="display:flex; gap:10px; margin-bottom:16px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
           <button type="button" class="theme-btn" data-theme-choice="dark" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌙 داكن</button>
           <button type="button" class="theme-btn" data-theme-choice="midnight" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌌 أزرق ليلي</button>
           <button type="button" class="theme-btn" data-theme-choice="light" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">☀ فاتح</button>
+          <button type="button" class="theme-btn" data-theme-choice="forest" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌲 غابة داكن</button>
+          <button type="button" class="theme-btn" data-theme-choice="forest-light" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🌿 غابة فاتح</button>
+          <button type="button" class="theme-btn" data-theme-choice="crimson" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🍷 عنابي داكن</button>
+          <button type="button" class="theme-btn" data-theme-choice="crimson-light" style="flex:1; padding:12px 6px; border-radius:12px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); font-family:'Cairo',sans-serif; font-size:12.5px; cursor:pointer;">🍷 عنابي فاتح</button>
         </div>
 
         <button type="button" class="submit" id="exportBackupBtn" style="margin-top:16px;">⬇ تنزيل نسخة احتياطية كاملة (JSON)</button>
