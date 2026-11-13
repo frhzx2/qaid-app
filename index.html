@@ -302,8 +302,6 @@
   .payroll-emp-detail{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
   .payroll-emp-detail:last-child{ margin-bottom:0; }
   .payroll-breakdown{ display:flex; gap:16px; margin-top:6px; font-size:12px; color:var(--ink-soft); flex-wrap:wrap; }
-  input[data-received-input]{ font-family:'Cairo',sans-serif; font-size:13.5px; padding:10px 11px; border-radius:10px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); direction:ltr; text-align:right; }
-  input[data-received-input]::placeholder{ color:var(--ink-soft); direction:rtl; }
   .audit-card{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:11px 13px; margin-bottom:8px; font-size:12.5px; }
   .audit-card .arow{ display:flex; justify-content:space-between; margin-top:4px; }
   .audit-card .arow .acc{ color:var(--ink-soft); }
@@ -478,6 +476,14 @@
   .theme-btn.swatch.active{ color:var(--ink); font-weight:700; }
   .theme-btn.swatch.active .dot{ box-shadow:0 0 0 3px var(--panel), 0 0 0 5px var(--accent); }
   @media (prefers-reduced-motion:reduce){ .sheet-box{ animation:none; } }
+  /* iPhone: any input under 16px makes Safari zoom the page on focus and the
+     home-screen app stays zoomed/shifted afterwards — keep fields at 16px. */
+  .filter-dates{ min-width:0; } .filter-dates input[type=date]{ min-width:0; width:0; }
+  @media (max-width:600px){ input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]), select, textarea{ font-size:16px !important; } }
+  /* Logo follows the active theme instead of a fixed gold/cream */
+  svg rect[fill="#C9A227"]{ fill:var(--accent); }
+  svg rect[fill="#D9D2BE"]{ fill:var(--ink-soft); }
+  svg path[stroke="#EDE6D3"]{ stroke:var(--ink); }
 </style>
 </head>
 <body>
