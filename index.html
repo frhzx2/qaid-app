@@ -893,6 +893,10 @@
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> سجل النشاط الكامل</span>
             <span class="chev">‹</span>
           </div>
+          <div class="list-row" data-goto="allentries">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg> كل القيود (إيرادات ومصروفات)</span>
+            <span class="chev">‹</span>
+          </div>
           <div class="list-row" data-goto="reports">
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M9.5 13h5M9.5 16.5h5"/></svg> التقارير</span>
             <span class="chev">‹</span>
@@ -1021,6 +1025,18 @@
         </div>
 
         <div id="repRowCount" class="audit-note"></div>
+      </section>
+
+      <!-- ============ ALL ENTRIES (income + expense together) ============ -->
+      <section id="page-allentries" hidden>
+        <div class="quick-search"><span class="qs-icon" aria-hidden="true">&#128269;</span><input type="search" id="allQuickSearch" placeholder="ابحث: مبلغ، وصف، فئة، تاريخ…" autocomplete="off" enterkeyhint="search"></div>
+        <div class="presets" id="allTypeChips" style="margin-bottom:14px;">
+          <button type="button" class="pill active" data-all-type="all">الكل</button>
+          <button type="button" class="pill" data-all-type="income">إيرادات</button>
+          <button type="button" class="pill" data-all-type="expense">مصروفات</button>
+        </div>
+        <div id="allEntriesList"></div>
+        <div id="allEntriesEmpty" class="empty" style="display:none;">لا توجد قيود.</div>
       </section>
 
       <!-- ============ FULL ACTIVITY LOG ============ -->
@@ -1418,6 +1434,7 @@
     vat: ['ضريبة القيمة المضافة', 'الضريبة لفترة وفئات محددة', 'more'],
     compare: ['مقارنة الأشهر', 'قارن أداء شهرين ببعض', 'more'],
     activitylog: ['سجل النشاط', 'كل إجراء، من ومتى', 'more'],
+    allentries: ['كل القيود', 'الإيرادات والمصروفات مع بعض', 'more'],
     reports: ['التقارير', 'تصدير Excel أو PDF لفترة', 'more'],
     payroll: ['سجل الرواتب', 'الرواتب والخصومات', 'more'],
     cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات', 'more'],
@@ -1986,7 +2003,7 @@
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
-    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','vat','compare','activitylog','reports','payroll','cash','more'].includes(name)){
+    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','vat','compare','activitylog','allentries','reports','payroll','cash','more'].includes(name)){
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
@@ -2023,6 +2040,7 @@
     else if(currentPage === 'compare') renderComparePage();
     else if(currentPage === 'activitylog') renderActivityLogPage();
     else if(currentPage === 'reports') renderReportsPage();
+    else if(currentPage === 'allentries') renderAllEntriesPage();
     else if(currentPage === 'payroll') renderPayrollPage();
     else if(currentPage === 'cash') renderCashPage();
   }
@@ -5503,6 +5521,139 @@
       overlay.classList.add('open');
     });
   }
+
+  // ---------------- All entries page (income + expense together) ----------------
+  let allEntriesView = { type: 'all', search: '' };
+  const allEntriesOpenMonths = new Set();
+
+  function allEntryRowHtml(t){
+    const isInc = t.type === 'income';
+    const c = isInc ? 'income' : 'expense';
+    const canVoid = !t.voided && !t.isReversal;
+    const thumb = t.receipt ? `<button type="button" class="txn-thumb" style="background-image:url('${t.receipt}')" data-view="${t.id}" title="عرض صورة الفاتورة"></button>` : '';
+    return `
+      <div class="txn-card${t.voided ? ' void-card' : ''}" style="border-right:5px solid var(--${c}); background:color-mix(in srgb, var(--${c}) 9%, var(--panel));">
+        ${thumb}
+        <div class="txn-main">
+          <div class="desc">${escapeHtml(rowCatLabel(t))}</div>
+          <div class="meta"><span style="color:var(--${c}); font-weight:700;">${isInc ? 'إيراد' : 'مصروف'}</span>${t.description ? ' · ' + escapeHtml(t.description) : ''}${t.isReversal ? ' · قيد عكسي' : ''}${t.voided ? ' · ملغى' : ''}${creatorName(t) ? ' · ' + escapeHtml(creatorName(t)) : ''}</div>
+        </div>
+        <div class="txn-side">
+          <div class="txn-amt ${c}">${isInc ? '+' : '\u2212'} ${fmt(t.amount)}</div>
+          <div style="display:flex; gap:8px; margin-top:4px; justify-content:flex-end; flex-wrap:wrap;">
+            ${canVoid ? `<button class="txn-void-btn" data-void="${t.id}">إلغاء</button>` : (t.voided ? `<span class="txn-tag">ملغى</span>` : `<span class="txn-tag">عكسي</span>`)}
+            <button class="txn-void-btn danger" data-hard-delete="${t.id}">حذف نهائي</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function sumLive(list, type){
+    return list.filter(t => t.type === type && !t.voided).reduce((a, t) => a + t.amount, 0);
+  }
+
+  function totalsStripHtml(list, big){
+    const inc = sumLive(list, 'income'), exp = sumLive(list, 'expense'), net = inc - exp;
+    const fs = big ? 15 : 13;
+    return `<div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:${fs}px; font-weight:800;">
+      <span style="color:var(--income);">+ ${fmt(inc)}</span>
+      <span style="color:var(--expense);">\u2212 ${fmt(exp)}</span>
+      <span style="color:var(--ink-soft); font-weight:600;">الصافي</span><span style="color:var(--ink);">${fmt(net)}</span>
+    </div>`;
+  }
+
+  function renderAllEntriesPage(){
+    const v = allEntriesView;
+    const q = v.search.toLowerCase();
+    const list = state.transactions.filter(t => {
+      if(v.type !== 'all' && t.type !== v.type) return false;
+      if(q){
+        const amt = Number(t.amount) || 0;
+        const hay = ((t.description||'') + ' ' + rowCatLabel(t) + ' ' + (t.date||'') + ' ' + amt + ' ' + amt.toFixed(2)).toLowerCase();
+        if(!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    document.querySelectorAll('#allTypeChips [data-all-type]').forEach(b => b.classList.toggle('active', b.getAttribute('data-all-type') === v.type));
+    const holder = $('allEntriesList');
+    if(!list.length){
+      holder.innerHTML = '';
+      $('allEntriesEmpty').style.display = 'block';
+      $('allEntriesEmpty').textContent = (q || v.type !== 'all') ? 'لا توجد قيود مطابقة.' : 'لا توجد قيود.';
+      return;
+    }
+    $('allEntriesEmpty').style.display = 'none';
+    const groups = groupByMonth(list);
+    const months = Object.keys(groups).sort().reverse();
+    holder.innerHTML = months.map(m => {
+      const entries = [...groups[m]].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
+      const isOpen = !!q || allEntriesOpenMonths.has(m);
+      let body = '';
+      if(isOpen){
+        const days = [];
+        entries.forEach(t => {
+          let g = days[days.length - 1];
+          if(!g || g.date !== t.date){ g = { date: t.date || '', items: [] }; days.push(g); }
+          g.items.push(t);
+        });
+        body = `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">` + days.map(g => {
+          let label = g.date;
+          const p = g.date.split('-').map(Number);
+          if(p.length === 3 && p[0]) label = new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('ar-SA', { weekday: 'long' }) + ' · ' + g.date;
+          return `
+            <div style="background:var(--panel-2); border:1px solid var(--border); border-radius:16px; padding:12px; margin-bottom:16px;">
+              <div style="padding-bottom:10px; margin-bottom:8px; border-bottom:2px solid var(--border);">
+                <div style="font-size:14px; font-weight:800; color:var(--ink); margin-bottom:6px;">${escapeHtml(label)} <span style="font-size:11.5px; font-weight:400; color:var(--ink-soft);">· ${g.items.length} قيد</span></div>
+                ${totalsStripHtml(g.items, false)}
+              </div>
+              ${g.items.map(allEntryRowHtml).join('')}
+            </div>`;
+        }).join('') + `</div>`;
+      }
+      return `
+        <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-all-toggle="${m}">
+            <span style="font-weight:700; font-size:15px;">${escapeHtml(monthLabel(m))} <span style="color:var(--ink-soft); font-weight:400;">${isOpen ? '▴' : '▾'}</span></span>
+            <span class="meta">${entries.length} قيد</span>
+          </div>
+          <div style="margin-top:6px; cursor:pointer;" data-all-toggle="${m}">${totalsStripHtml(entries, true)}</div>
+          ${body}
+        </div>`;
+    }).join('');
+  }
+
+  (function wireAllEntries(){
+    const holder = $('allEntriesList');
+    holder.addEventListener('click', (e) => {
+      const tg = e.target.closest('[data-all-toggle]');
+      const vd = e.target.closest('[data-void]');
+      const hd = e.target.closest('[data-hard-delete]');
+      const vw = e.target.closest('[data-view]');
+      if(vd){ voidTransaction(vd.getAttribute('data-void')); return; }
+      if(hd){ hardDeleteTransaction(hd.getAttribute('data-hard-delete')); return; }
+      if(vw){
+        const t = state.transactions.find(x => x.id === vw.getAttribute('data-view'));
+        if(t && t.receipt) openModal(t.receipt);
+        return;
+      }
+      if(tg){
+        const m = tg.getAttribute('data-all-toggle');
+        if(allEntriesOpenMonths.has(m)) allEntriesOpenMonths.delete(m); else allEntriesOpenMonths.add(m);
+        renderAllEntriesPage();
+      }
+    });
+    $('allTypeChips').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-all-type]');
+      if(!b) return;
+      allEntriesView.type = b.getAttribute('data-all-type');
+      renderAllEntriesPage();
+    });
+    let t;
+    $('allQuickSearch').addEventListener('input', (e) => {
+      clearTimeout(t);
+      t = setTimeout(() => { allEntriesView.search = e.target.value.trim(); renderAllEntriesPage(); }, 150);
+    });
+  })();
 
   // ---------------- Event wiring ----------------
 
