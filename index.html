@@ -328,6 +328,19 @@
   /* ---------- Modal ---------- */
   .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:60; padding:24px; }
   .modal-overlay.open{ display:flex; }
+  .dup-overlay{ z-index:80; }
+  .dup-box{ background:var(--panel); border:1px solid var(--border); border-radius:20px; width:100%; max-width:380px; padding:22px 20px 18px; text-align:center; }
+  .dup-icon{ width:52px; height:52px; margin:0 auto 12px; border-radius:50%; background:var(--panel-2); border:1px solid var(--expense); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; }
+  .dup-title{ margin:0 0 6px; font-size:17px; font-weight:800; color:var(--ink); }
+  .dup-sub{ margin:0 0 14px; font-size:13px; color:var(--ink-soft); }
+  .dup-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:36vh; overflow-y:auto; text-align:right; }
+  .dup-item{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .dup-item .dup-amt{ font-size:16px; font-weight:800; color:var(--ink); }
+  .dup-item .dup-meta{ font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.6; }
+  .dup-actions{ display:flex; gap:10px; }
+  .dup-actions button{ flex:1; font-family:'Cairo',sans-serif; font-size:14px; font-weight:700; padding:12px; border-radius:14px; cursor:pointer; }
+  .dup-actions .dup-cancel{ background:transparent; color:var(--ink); border:1px solid var(--border); }
+  .dup-actions .dup-ok{ background:var(--accent); color:#05130D; border:none; }
   .modal-box{ background:var(--panel); padding:10px; max-width:92vw; max-height:85vh; border-radius:14px; border:1px solid var(--border); }
   .modal-box img{ max-width:86vw; max-height:72vh; display:block; border-radius:8px; }
   .modal-close{ text-align:left; margin-bottom:8px; }
@@ -1322,6 +1335,19 @@
     <div class="modal-close"><button type="button" id="infoModalCloseBtn">إغلاق ✕</button></div>
     <h3 id="infoModalTitle" style="margin:0 0 14px; font-size:16px; font-weight:800; color:var(--ink);"></h3>
     <div id="infoModalBody" style="max-height:60vh; overflow-y:auto;"></div>
+  </div>
+</div>
+
+<div class="modal-overlay dup-overlay" id="dupOverlay">
+  <div class="dup-box" role="dialog" aria-modal="true" aria-labelledby="dupTitle">
+    <div class="dup-icon" aria-hidden="true">!</div>
+    <h3 class="dup-title" id="dupTitle">مبلغ مكرر</h3>
+    <p class="dup-sub" id="dupSub"></p>
+    <div class="dup-list" id="dupList"></div>
+    <div class="dup-actions">
+      <button type="button" class="dup-cancel" id="dupCancelBtn">إلغاء</button>
+      <button type="button" class="dup-ok" id="dupOkBtn">اعتماد</button>
+    </div>
   </div>
 </div>
 
@@ -5295,6 +5321,19 @@
         return;
       }
 
+      const dupItems = [];
+      const seenDup = new Set();
+      incomeRows.concat(expenseRows.map(r => Object.assign({ _t: 'expense' }, r))).forEach(r => {
+        const type = r._t === 'expense' ? 'expense' : 'income';
+        const key = type + ':' + r.amount;
+        if(seenDup.has(key)) return;
+        const dup = findDuplicateAmount(type, r.amount);
+        if(dup){ seenDup.add(key); dupItems.push({ type, amount: r.amount, dup }); }
+      });
+      if(dupItems.length && !(await confirmDuplicates(dupItems))){
+        return;
+      }
+
       let savedCount = 0;
 
       incomeRows.forEach(r => {
@@ -5374,6 +5413,49 @@
     }
   });
 
+  // ---------------- Duplicate amount alert ----------------
+  // Same type only: expense is compared with expense, income with income.
+  function findDuplicateAmount(type, amount){
+    const a = Math.round(amount * 100) / 100;
+    const matches = state.transactions.filter(t => t.type === type && !t.voided && !t.isReversal
+      && Math.abs((t.amount || 0) - a) < 0.005);
+    if(!matches.length) return null;
+    matches.sort((x, y) => String(y.date).localeCompare(String(x.date)));
+    return { count: matches.length, last: matches[0] };
+  }
+
+  function confirmDuplicates(items){
+    return new Promise(resolve => {
+      const overlay = $('dupOverlay'), list = $('dupList');
+      $('dupSub').textContent = items.length === 1
+        ? 'هذا المبلغ مسجل من قبل. هل تريد اعتماده؟'
+        : 'هذه المبالغ مسجلة من قبل. هل تريد اعتمادها؟';
+      list.textContent = '';
+      items.forEach(it => {
+        const row = document.createElement('div'); row.className = 'dup-item';
+        const amt = document.createElement('div'); amt.className = 'dup-amt';
+        amt.textContent = (it.type === 'income' ? 'إيراد ' : 'مصروف ') + fmt(it.amount);
+        const meta = document.createElement('div'); meta.className = 'dup-meta';
+        const l = it.dup.last;
+        const parts = ['آخر تسجيل: ' + l.date];
+        if(l.categoryName) parts.push(l.categoryName);
+        if(l.description) parts.push(l.description);
+        if(it.dup.count > 1) parts.push('مسجل ' + it.dup.count + ' مرات');
+        meta.textContent = parts.join(' • ');
+        row.appendChild(amt); row.appendChild(meta); list.appendChild(row);
+      });
+      const done = (v) => {
+        overlay.classList.remove('open');
+        $('dupOkBtn').onclick = null; $('dupCancelBtn').onclick = null; overlay.onclick = null;
+        resolve(v);
+      };
+      $('dupOkBtn').onclick = () => done(true);
+      $('dupCancelBtn').onclick = () => done(false);
+      overlay.onclick = (e) => { if(e.target === overlay) done(false); };
+      overlay.classList.add('open');
+    });
+  }
+
   // ---------------- Event wiring ----------------
 
   $('typeIncomeBtn').addEventListener('click', () => setType('income'));
@@ -5403,6 +5485,10 @@
       const neededPerm = state.currentType === 'income' ? 'add_income' : 'add_expense';
       if(!hasPermission(neededPerm)){
         showEntryError('ليست لديك صلاحية لإضافة ' + (state.currentType === 'income' ? 'إيراد' : 'مصروف') + '.');
+        return;
+      }
+      const dupHit = findDuplicateAmount(state.currentType, amount);
+      if(dupHit && !(await confirmDuplicates([{ type: state.currentType, amount, dup: dupHit }]))){
         return;
       }
       const catObj = state.categories.find(c => c.id === categoryId);
