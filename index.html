@@ -328,6 +328,10 @@
   /* ---------- Modal ---------- */
   .modal-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:60; padding:24px; }
   .modal-overlay.open{ display:flex; }
+  .quick-search{ position:relative; margin-bottom:12px; }
+  .quick-search input{ width:100%; font-family:'Cairo',sans-serif; font-size:14px; padding:12px 40px 12px 14px; border-radius:14px; border:1px solid var(--border); background:var(--panel-2); color:var(--ink); }
+  .quick-search input:focus{ outline:none; border-color:var(--accent); }
+  .quick-search .qs-icon{ position:absolute; top:50%; right:14px; transform:translateY(-50%); color:var(--ink-soft); font-size:15px; pointer-events:none; }
   .dup-overlay{ z-index:80; }
   .dup-box{ background:var(--panel); border:1px solid var(--border); border-radius:20px; width:100%; max-width:380px; padding:22px 20px 18px; text-align:center; }
   .dup-icon{ width:52px; height:52px; margin:0 auto 12px; border-radius:50%; background:var(--panel-2); border:1px solid var(--expense); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; }
@@ -657,6 +661,7 @@
 
       <!-- ============ INCOME ============ -->
       <section id="page-income" hidden>
+        <div class="quick-search"><span class="qs-icon" aria-hidden="true">&#128269;</span><input type="search" id="incomeQuickSearch" placeholder="ابحث في الإيرادات: مبلغ، وصف، فئة، تاريخ…" autocomplete="off" enterkeyhint="search"></div>
         <div style="display:flex; justify-content:flex-end; margin-bottom:12px;">
           <button type="button" id="incomeFilterToggleBtn" class="chip-btn">🔍 تصفية</button>
         </div>
@@ -699,6 +704,7 @@
 
       <!-- ============ EXPENSES ============ -->
       <section id="page-expenses" hidden>
+        <div class="quick-search"><span class="qs-icon" aria-hidden="true">&#128269;</span><input type="search" id="expenseQuickSearch" placeholder="ابحث في المصروفات: مبلغ، وصف، فئة، تاريخ…" autocomplete="off" enterkeyhint="search"></div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
           <button type="button" id="importExcelBtn" class="chip-btn">⬆ استيراد من Excel</button>
           <span style="display:flex; gap:8px;">
@@ -4272,7 +4278,8 @@
       if(f.min !== '' && f.min != null && t.amount < parseFloat(f.min)) return false;
       if(f.max !== '' && f.max != null && t.amount > parseFloat(f.max)) return false;
       if(f.search){
-        const hay = ((t.description||'') + ' ' + rowCatLabel(t)).toLowerCase();
+        const amt = Number(t.amount) || 0;
+        const hay = ((t.description||'') + ' ' + rowCatLabel(t) + ' ' + (t.date||'') + ' ' + amt + ' ' + amt.toFixed(2)).toLowerCase();
         if(!hay.includes(f.search.toLowerCase())) return false;
       }
       if(f.creator && t.createdBy !== f.creator) return false;
@@ -4297,7 +4304,7 @@
     const f = entryFilters[type];
     $(ids.from).value = f.from; $(ids.to).value = f.to;
     $(ids.min).value = f.min; $(ids.max).value = f.max;
-    $(ids.search).value = f.search; $(ids.voided).checked = f.hideVoided;
+    $(ids.search).value = f.search; $(type + 'QuickSearch').value = f.search; $(ids.voided).checked = f.hideVoided;
 
     const creatorSel = $(ids.creator);
     creatorSel.innerHTML = '<option value="">الكل</option>' + state.users.map(u => `<option value="${escapeHtml(u.email)}">${escapeHtml(u.name)}</option>`).join('');
@@ -4318,6 +4325,7 @@
     f.from = $(ids.from).value; f.to = $(ids.to).value;
     f.min = $(ids.min).value; f.max = $(ids.max).value;
     f.search = $(ids.search).value.trim();
+    $(type + 'QuickSearch').value = f.search;
     f.creator = $(ids.creator).value;
     f.hideVoided = $(ids.voided).checked;
     const checked = new Set();
@@ -4329,6 +4337,8 @@
 
   function clearEntryFilter(type){
     entryFilters[type] = defaultEntryFilter();
+    $(type + 'QuickSearch').value = '';
+    $(typeIds(type).search).value = '';
     renderTypePage(type);
   }
 
@@ -4386,6 +4396,16 @@
       const open = panel.style.display === 'none';
       panel.style.display = open ? 'block' : 'none';
       if(open) populateEntryFilterPanel(type);
+    });
+    let quickTimer;
+    $(type + 'QuickSearch').addEventListener('input', (e) => {
+      clearTimeout(quickTimer);
+      quickTimer = setTimeout(() => {
+        const v = e.target.value.trim();
+        entryFilters[type].search = v;
+        $(ids.search).value = v;
+        renderTypePage(type);
+      }, 150);
     });
     $(ids.apply).addEventListener('click', () => { readEntryFilterFromPanel(type); $(ids.panel).style.display = 'none'; });
     $(ids.reset).addEventListener('click', () => { clearEntryFilter(type); populateEntryFilterPanel(type); });
@@ -4548,7 +4568,7 @@
     holder.innerHTML = months.map(m => {
       const entries = [...groups[m]].sort((a,b) => (b.date + b.createdAt).localeCompare(a.date + a.createdAt));
       const monthTotal = entries.filter(t => !t.voided).reduce((s,t) => s + t.amount, 0);
-      const isOpen = entryOpenMonths[type].has(m); // collapsed by default until the user expands it
+      const isOpen = !!entryFilters[type].search || entryOpenMonths[type].has(m); // collapsed by default; open while searching
       return `
         <div class="txn-card" style="flex-direction:column; align-items:stretch; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" data-toggle-month="${m}">
