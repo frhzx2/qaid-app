@@ -4545,6 +4545,32 @@
       </div>`;
   }
 
+  // قيود الشهر مجمّعة حسب اليوم، وكل يوم له مجموعه (بدون القيود الملغاة).
+  function entriesByDayHtml(entries, colorClass){
+    const days = [];
+    entries.forEach(t => {
+      const d = t.date || '';
+      let g = days[days.length - 1];
+      if(!g || g.date !== d){ g = { date: d, items: [] }; days.push(g); }
+      g.items.push(t);
+    });
+    return days.map(g => {
+      const total = g.items.filter(t => !t.voided).reduce((sum, t) => sum + t.amount, 0);
+      let label = g.date;
+      const p = g.date.split('-').map(Number);
+      if(p.length === 3 && p[0]){
+        const wd = new Date(p[0], p[1] - 1, p[2]).toLocaleDateString('ar-SA', { weekday: 'long' });
+        label = wd + ' · ' + g.date;
+      }
+      return `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--panel-2); border:1px solid var(--border); border-radius:10px; padding:8px 12px; margin:10px 0 6px;">
+          <span style="font-size:13px; font-weight:700; color:var(--ink);">${escapeHtml(label)} <span style="font-weight:400; color:var(--ink-soft);">· ${g.items.length} قيد</span></span>
+          <span class="txn-amt ${colorClass}" style="font-size:14px;">${fmt(total)}</span>
+        </div>
+        ${g.items.map(entryRowHtml).join('')}`;
+    }).join('');
+  }
+
   function renderTypePage(type){
     const colorClass = type === 'income' ? 'income' : 'expense';
     const ids = typeIds(type);
@@ -4579,7 +4605,7 @@
             <span style="cursor:pointer;" data-toggle-month="${m}">${entries.length} قيد</span>
             <button type="button" class="txn-void-btn" data-print-month="${m}" data-print-type="${type}">🖨 تصدير PDF</button>
           </div>
-          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${entries.map(entryRowHtml).join('')}</div>` : ''}
+          ${isOpen ? `<div style="margin-top:12px; border-top:1px solid var(--border); padding-top:12px;">${entriesByDayHtml(entries, colorClass)}</div>` : ''}
         </div>`;
     }).join('');
 
