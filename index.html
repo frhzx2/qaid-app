@@ -337,7 +337,7 @@
   .dup-icon{ width:52px; height:52px; margin:0 auto 12px; border-radius:50%; background:var(--panel-2); border:1px solid var(--expense); color:var(--expense); display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:800; }
   .dup-title{ margin:0 0 6px; font-size:17px; font-weight:800; color:var(--ink); }
   .dup-sub{ margin:0 0 14px; font-size:13px; color:var(--ink-soft); }
-  .dup-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:36vh; overflow-y:auto; text-align:right; }
+  .dup-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; max-height:46vh; overflow-y:auto; text-align:right; }
   .dup-item{ background:var(--panel-2); border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
   .dup-item .dup-amt{ font-size:16px; font-weight:800; color:var(--ink); }
   .dup-item .dup-meta{ font-size:12px; color:var(--ink-soft); margin-top:3px; line-height:1.6; }
@@ -5487,7 +5487,7 @@
       && Math.abs((t.amount || 0) - a) < 0.005);
     if(!matches.length) return null;
     matches.sort((x, y) => String(y.date).localeCompare(String(x.date)));
-    return { count: matches.length, last: matches[0] };
+    return { count: matches.length, last: matches[0], all: matches };
   }
 
   function confirmDuplicates(items){
@@ -5500,15 +5500,28 @@
       items.forEach(it => {
         const row = document.createElement('div'); row.className = 'dup-item';
         const amt = document.createElement('div'); amt.className = 'dup-amt';
-        amt.textContent = (it.type === 'income' ? 'إيراد ' : 'مصروف ') + fmt(it.amount);
-        const meta = document.createElement('div'); meta.className = 'dup-meta';
-        const l = it.dup.last;
-        const parts = ['آخر تسجيل: ' + l.date];
-        if(l.categoryName) parts.push(l.categoryName);
-        if(l.description) parts.push(l.description);
-        if(it.dup.count > 1) parts.push('مسجل ' + it.dup.count + ' مرات');
-        meta.textContent = parts.join(' • ');
-        row.appendChild(amt); row.appendChild(meta); list.appendChild(row);
+        amt.textContent = (it.type === 'income' ? 'إيراد ' : 'مصروف ') + fmt(it.amount) + (it.dup.count > 1 ? ' — مسجل ' + it.dup.count + ' مرات' : ' — مسجل مرة وحدة');
+        row.appendChild(amt);
+        const shown = it.dup.all.slice(0, 8);
+        shown.forEach(l => {
+          const meta = document.createElement('div'); meta.className = 'dup-meta';
+          meta.style.borderTop = '1px solid var(--border)'; meta.style.paddingTop = '6px'; meta.style.marginTop = '6px';
+          const lines = [];
+          lines.push('التاريخ: ' + (l.date || '—'));
+          const cat = rowCatLabel(l); if(cat) lines.push('الفئة: ' + cat);
+          if(l.description) lines.push('الوصف: ' + l.description);
+          const who = creatorName(l); if(who) lines.push('أضافه: ' + who);
+          if(l.cashAmount) lines.push('نقد: ' + fmt(l.cashAmount));
+          if(l.bankAmount) lines.push('بنك: ' + fmt(l.bankAmount));
+          lines.forEach(txt => { const d = document.createElement('div'); d.textContent = txt; meta.appendChild(d); });
+          row.appendChild(meta);
+        });
+        if(it.dup.all.length > shown.length){
+          const more = document.createElement('div'); more.className = 'dup-meta';
+          more.textContent = 'و ' + (it.dup.all.length - shown.length) + ' قيود أخرى بنفس المبلغ';
+          row.appendChild(more);
+        }
+        list.appendChild(row);
       });
       const done = (v) => {
         overlay.classList.remove('open');
