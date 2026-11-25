@@ -909,6 +909,10 @@
             <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="2.4"/><path d="M3 10h18"/></svg> الخزينة النقدية</span>
             <span class="chev">‹</span>
           </div>
+          <div class="list-row" data-goto="bank">
+            <span class="lr-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="2.4"/><path d="M3 10h18"/></svg> سجل الحساب البنكي</span>
+            <span class="chev">‹</span>
+          </div>
         </div>
 
         <button type="button" class="submit secondary" id="openThemeSheetBtn" style="margin-top:20px;">🎨 المظهر: <span id="themeNameLabel"></span></button>
@@ -962,6 +966,20 @@
       </section>
 
       <!-- ============ PAYROLL ============ -->
+      <!-- ============ BANK LOG ============ -->
+      <section id="page-bank" hidden>
+        <div class="row2" style="margin-bottom:14px;">
+          <div class="stat-card" style="text-align:center;"><div class="label">الداخل للبنك</div><div class="value" id="bankInTotal" style="color:var(--income);">0.00</div></div>
+          <div class="stat-card" style="text-align:center;"><div class="label">الخارج من البنك</div><div class="value" id="bankOutTotal" style="color:var(--danger);">0.00</div></div>
+        </div>
+        <div class="row2" style="margin-bottom:14px;">
+          <div class="field" style="margin-bottom:0;"><label for="bankFrom">من تاريخ</label><input type="date" id="bankFrom"></div>
+          <div class="field" style="margin-bottom:0;"><label for="bankTo">إلى تاريخ</label><input type="date" id="bankTo"></div>
+        </div>
+        <div id="bankList"></div>
+        <div id="bankEmpty" class="empty" style="display:none;">لا توجد حركة بنكية.</div>
+      </section>
+
       <section id="page-payroll" hidden>
         <button type="button" class="submit" id="toggleAddEmployeeBtn" style="margin-bottom:14px;">+ إضافة موظف</button>
         <form id="employeeForm" style="display:none; margin-bottom:20px;">
@@ -1438,6 +1456,7 @@
     reports: ['التقارير', 'تصدير Excel أو PDF لفترة', 'more'],
     payroll: ['سجل الرواتب', 'الرواتب والخصومات', 'more'],
     cash: ['الخزينة النقدية', 'رصيد الكاش والإيداعات', 'more'],
+    bank: ['سجل الحساب البنكي', 'كل حركة دخلت أو خرجت من البنك', 'more'],
   };
 
   let state = { categories: [], transactions: [], settlements: [], suppliers: [], supplierInvoices: [], supplierReceipts: [], supplierReturns: [], reminders: [], users: [], activityLog: [], employees: [], payrollEntries: [], cashDeposits: [], bankTransfers: [], feeRateVersion: 'new', currentType: 'income', pendingReceipt: null };
@@ -2003,7 +2022,7 @@
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
-    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','vat','compare','activitylog','allentries','reports','payroll','cash','more'].includes(name)){
+    if(['categories','audit','suppliers','supplier-detail','search','reminders','users','vat','compare','activitylog','allentries','reports','payroll','cash','bank','more'].includes(name)){
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === 'more'));
     }
     window.scrollTo(0,0);
@@ -2043,6 +2062,7 @@
     else if(currentPage === 'allentries') renderAllEntriesPage();
     else if(currentPage === 'payroll') renderPayrollPage();
     else if(currentPage === 'cash') renderCashPage();
+    else if(currentPage === 'bank') renderBankPage();
   }
 
   // ---------------- Date range filter ----------------
@@ -3281,6 +3301,46 @@
       });
     });
   }
+
+  // ---------------- Bank log ----------------
+
+  function bankEvents(){
+    const ev = [];
+    state.transactions.forEach(t => {
+      if(t.voided || !t.bankAmount) return;
+      ev.push({ date: t.date, dir: t.type === 'income' ? 'in' : 'out', amount: t.bankAmount, tag: t.type === 'income' ? 'إيراد بنكي' : 'مصروف بنكي',
+        label: rowCatLabel(t) + (t.description ? ' — ' + t.description : ''), sortKey: t.date + '_' + (t.createdAt || '') });
+    });
+    (state.bankTransfers || []).forEach(b => {
+      ev.push({ date: b.date, dir: b.direction === 'in' ? 'in' : 'out', amount: b.amount, tag: b.direction === 'in' ? 'حوالة واردة' : 'حوالة صادرة',
+        label: [b.name, b.reason].filter(Boolean).join(' — ') || 'حوالة بنكية', sortKey: b.date + '_' + (b.createdAt || '') });
+    });
+    state.cashDeposits.forEach(d => {
+      if(d.kind === 'cash_in') return;
+      ev.push({ date: d.date, dir: 'in', amount: d.amount, tag: 'إيداع من الخزينة', label: d.note || 'إيداع بنكي', sortKey: d.date + '_' + (d.createdAt || '') });
+    });
+    return ev;
+  }
+
+  function renderBankPage(){
+    const from = $('bankFrom').value, to = $('bankTo').value;
+    const items = bankEvents().filter(e => (!from || e.date >= from) && (!to || e.date <= to))
+      .sort((a,b) => b.sortKey.localeCompare(a.sortKey));
+    const tin = items.filter(i => i.dir === 'in').reduce((s,i) => s + i.amount, 0);
+    const tout = items.filter(i => i.dir === 'out').reduce((s,i) => s + i.amount, 0);
+    $('bankInTotal').textContent = fmt(tin);
+    $('bankOutTotal').textContent = fmt(tout);
+    $('bankEmpty').style.display = items.length ? 'none' : 'block';
+    $('bankList').innerHTML = items.map(i => `
+      <div class="txn-card">
+        <div class="txn-main">
+          <div class="desc">${escapeHtml(i.label)}</div>
+          <div class="meta">${dateHtml(i.date)} · ${i.tag}</div>
+        </div>
+        <div class="txn-side"><div class="txn-amt ${i.dir === 'in' ? 'income' : 'expense'}">${i.dir === 'in' ? '+' : '\u2212'} ${fmt(i.amount)}</div></div>
+      </div>`).join('');
+  }
+  ['bankFrom','bankTo'].forEach(id => $(id).addEventListener('change', renderBankPage));
 
   function computeCashBalanceAsOf(dateExclusiveBefore){
     let bal = 0;
