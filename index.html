@@ -5804,6 +5804,33 @@
     });
   }
 })();
+
+  // ---------------- Pull to refresh ----------------
+  (function(){
+    const bar = document.createElement('div');
+    bar.style.cssText = 'position:fixed; top:0; left:0; right:0; z-index:9999; text-align:center; padding:calc(env(safe-area-inset-top,0px) + 8px) 0 8px; font-size:13px; font-weight:700; background:var(--panel); color:var(--ink-soft); border-bottom:1px solid var(--border); transform:translateY(-100%); transition:transform .2s;';
+    document.body.appendChild(bar);
+    let startY = null, dist = 0, busy = false;
+    const LIMIT = 90;
+    const blocked = (t) => t.closest && t.closest('input, textarea, select, [role="dialog"], .sheet, .modal, [data-no-ptr]');
+    window.addEventListener('touchstart', (e) => {
+      startY = (!busy && window.scrollY <= 0 && !blocked(e.target)) ? e.touches[0].clientY : null; dist = 0;
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if(startY === null) return;
+      dist = e.touches[0].clientY - startY;
+      if(dist <= 0 || window.scrollY > 0){ bar.style.transform = 'translateY(-100%)'; return; }
+      bar.textContent = dist >= LIMIT ? 'أفلت للتحديث' : 'اسحب للتحديث';
+      bar.style.transform = 'translateY(' + (Math.min(dist, LIMIT) - 100) + '%)';
+    }, { passive: true });
+    window.addEventListener('touchend', () => {
+      if(startY === null) return;
+      const go = dist >= LIMIT; startY = null; dist = 0;
+      if(!go){ bar.style.transform = 'translateY(-100%)'; return; }
+      busy = true; bar.textContent = 'جارٍ التحديث…'; bar.style.transform = 'translateY(0)';
+      setTimeout(() => location.reload(), 250);
+    }, { passive: true });
+  })();
 </script>
 </body>
 </html>
