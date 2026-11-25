@@ -3308,16 +3308,16 @@
     const ev = [];
     state.transactions.forEach(t => {
       if(t.voided || !t.bankAmount) return;
-      ev.push({ date: t.date, dir: t.type === 'income' ? 'in' : 'out', amount: t.bankAmount, tag: t.type === 'income' ? 'إيراد بنكي' : 'مصروف بنكي',
+      ev.push({ src: 'txn', id: t.id, date: t.date, dir: t.type === 'income' ? 'in' : 'out', amount: t.bankAmount, tag: t.type === 'income' ? 'إيراد بنكي' : 'مصروف بنكي',
         label: rowCatLabel(t) + (t.description ? ' — ' + t.description : ''), sortKey: t.date + '_' + (t.createdAt || '') });
     });
     (state.bankTransfers || []).forEach(b => {
-      ev.push({ date: b.date, dir: b.direction === 'in' ? 'in' : 'out', amount: b.amount, tag: b.direction === 'in' ? 'حوالة واردة' : 'حوالة صادرة',
+      ev.push({ src: 'transfer', id: b.id, date: b.date, dir: b.direction === 'in' ? 'in' : 'out', amount: b.amount, tag: b.direction === 'in' ? 'حوالة واردة' : 'حوالة صادرة',
         label: [b.name, b.reason].filter(Boolean).join(' — ') || 'حوالة بنكية', sortKey: b.date + '_' + (b.createdAt || '') });
     });
     state.cashDeposits.forEach(d => {
       if(d.kind === 'cash_in') return;
-      ev.push({ date: d.date, dir: 'in', amount: d.amount, tag: 'إيداع من الخزينة', label: d.note || 'إيداع بنكي', sortKey: d.date + '_' + (d.createdAt || '') });
+      ev.push({ src: 'deposit', id: d.id, date: d.date, dir: 'in', amount: d.amount, tag: 'إيداع من الخزينة', label: d.note || 'إيداع بنكي', sortKey: d.date + '_' + (d.createdAt || '') });
     });
     return ev;
   }
@@ -3337,8 +3337,25 @@
           <div class="desc">${escapeHtml(i.label)}</div>
           <div class="meta">${dateHtml(i.date)} · ${i.tag}</div>
         </div>
-        <div class="txn-side"><div class="txn-amt" style="color:${i.dir === 'in' ? 'var(--income)' : 'var(--danger)'};">${i.dir === 'in' ? '+' : '\u2212'} ${fmt(i.amount)}</div></div>
+        <div class="txn-side"><div class="txn-amt" style="color:${i.dir === 'in' ? 'var(--income)' : 'var(--danger)'};">${i.dir === 'in' ? '+' : '\u2212'} ${fmt(i.amount)}</div><button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-bank-del="${i.src}:${i.id}">حذف نهائي</button></div>
       </div>`).join('');
+    $('bankList').querySelectorAll('[data-bank-del]').forEach(btn => btn.addEventListener('click', () => {
+      const [src, id] = btn.getAttribute('data-bank-del').split(':');
+      if(src === 'txn') hardDeleteTransaction(id);
+      else if(src === 'deposit') hardDeleteCashDeposit(id);
+      else hardDeleteBankTransfer(id);
+    }));
+  }
+
+  async function hardDeleteBankTransfer(id){
+    if(!hasPermission('delete_entries')){ alert('ليست لديك صلاحية الحذف النهائي.'); return; }
+    const b = state.bankTransfers.find(x => x.id === id);
+    if(!b) return;
+    if(!confirm('ستُحذف هذه الحوالة نهائياً ولن تظهر في أي سجل، ولا يمكن التراجع عن هذا الإجراء. هل أنت متأكد؟')) return;
+    try{
+      await db.collection('bankTransfers').doc(id).delete();
+      logActivity('hard_delete_bank_transfer', `حذف نهائياً حوالة ${b.direction === 'in' ? 'واردة' : 'صادرة'} بمبلغ ${fmt(b.amount)}`);
+    }catch(e){ console.error(e); showBanner('تعذّر الحذف: ' + e.message); }
   }
   ['bankFrom','bankTo'].forEach(id => $(id).addEventListener('change', renderBankPage));
 
