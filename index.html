@@ -3332,7 +3332,7 @@
     $('bankOutTotal').textContent = fmt(tout);
     $('bankEmpty').style.display = items.length ? 'none' : 'block';
     $('bankList').innerHTML = items.map(i => `
-      <div class="txn-card">
+      <div class="txn-card" style="background:${i.dir === 'in' ? 'var(--income-bg)' : 'var(--danger-bg)'}; border-color:${i.dir === 'in' ? 'var(--income)' : 'var(--danger)'};">
         <div class="txn-main">
           <div class="desc">${escapeHtml(i.label)}</div>
           <div class="meta">${dateHtml(i.date)} · ${i.tag}</div>
