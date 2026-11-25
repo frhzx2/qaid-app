@@ -510,6 +510,18 @@
   .pick-item:active{ background:var(--panel-2); }
   .pick-item.new{ color:var(--accent); font-weight:700; }
   .pick-empty{ padding:18px 8px; text-align:center; color:var(--ink-soft); font-size:13px; }
+
+  /* ---- layout cleanup: no overlaps, clear entry type ---- */
+  .row2{ align-items:flex-start; }
+  .row2 > .field{ min-width:0; }
+  .row2 input[type=date], .field input[type=date]{ -webkit-appearance:none; appearance:none; display:block; width:100%; min-width:0; max-width:100%; height:46px; box-sizing:border-box; line-height:1.2; }
+  .field input, .field select{ box-sizing:border-box; min-height:46px; }
+  .field input[type=date]::-webkit-date-and-time-value{ text-align:right; }
+  .field{ margin-bottom:16px; }
+  .app-shell{ padding-bottom:calc(150px + env(safe-area-inset-bottom)); }
+  .entry-frame #submitBtn{ margin-top:8px; }
+  .entry-frame.income #submitBtn{ background:linear-gradient(180deg,color-mix(in srgb,var(--income) 82%,#fff),var(--income)); color:#04140C; box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 10px 24px -12px var(--income); }
+  .entry-frame.expense #submitBtn{ background:linear-gradient(180deg,color-mix(in srgb,var(--expense) 82%,#fff),var(--expense)); color:#2A1E05; box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 10px 24px -12px var(--expense); }
 </style>
 </head>
 <body>
@@ -2019,6 +2031,7 @@
     } else {
       $('topTitle').textContent = meta[0];
       $('topSub').textContent = meta[1];
+      if(name === 'new' && state.currentType) $('topTitle').textContent = state.currentType === 'income' ? 'إيراد جديد' : 'مصروف جديد';
     }
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab') === name));
     // highlight "more" tab when on any of its sub-pages
@@ -2121,6 +2134,8 @@
     $('f-cash-income-wrap').style.display = type === 'income' ? 'block' : 'none';
     $('f-cash-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
     $('f-bank-expense-wrap').style.display = type === 'expense' ? 'block' : 'none';
+    $('submitBtn').textContent = type === 'income' ? 'تسجيل الإيراد' : 'تسجيل المصروف';
+    if(currentPage === 'new') $('topTitle').textContent = type === 'income' ? 'إيراد جديد' : 'مصروف جديد';
     populateCategorySelect();
   }
   function usageCount(catId){ return state.transactions.filter(t => t.categoryId === catId && !t.voided).length; }
@@ -3295,8 +3310,9 @@
         const sign = isDeposit ? '\u2212' : '+';
         const tagLabel = isDeposit ? 'إيداع بنكي' : isCashIn ? 'إضافة نقد للخزينة' : (i.kind === 'in' ? 'نقد وارد' : 'نقد صادر');
         const deleteBtn = (isDeposit || isCashIn) ? `<button type="button" class="txn-void-btn danger" style="margin-top:4px;" data-hard-delete-deposit="${i.id}">حذف نهائي</button>` : '';
+        const tint = isDeposit ? 'cash' : (i.kind === 'in' || isCashIn ? 'income' : 'expense');
         return `
-          <div class="txn-card">
+          <div class="txn-card" style="border-right:5px solid var(--${tint}); background:color-mix(in srgb, var(--${tint}) 9%, var(--panel));">
             <div class="txn-main">
               <div class="desc">${escapeHtml(i.label)}</div>
               <div class="meta">${dateHtml(i.date)} · ${tagLabel}</div>
@@ -4650,7 +4666,7 @@
       ? `<input type="checkbox" class="bulk-select-cb" data-bulk-select="${t.id}" ${selectedForDelete[t.type].has(t.id) ? 'checked' : ''} style="width:19px; height:19px; align-self:center; flex-shrink:0; accent-color:var(--danger);">`
       : '';
     return `
-      <div class="txn-card${t.voided ? ' void-card' : ''}">
+      <div class="txn-card${t.voided ? ' void-card' : ''}" style="border-right:5px solid var(--${amtClass}); background:color-mix(in srgb, var(--${amtClass}) 9%, var(--panel));">
         ${checkbox}
         ${thumb}
         <div class="txn-main">
