@@ -2177,7 +2177,34 @@
     const u = state.users.find(u => u.email === email);
     return u ? u.name : email;
   }
+  // Small confirmation toast shown after any add / edit / delete. Several log
+  // calls from one save (e.g. the daily entry) collapse into a single toast.
+  let doneToastEl = null, doneToastTimer = null, doneToastHide = null;
+  function showDoneToast(action){
+    let msg = '';
+    if(/^(hard_delete|delete|bulk_hard_delete|cleanup)/.test(action)) msg = 'تم الحذف';
+    else if(/^void/.test(action)) msg = 'تم الإلغاء';
+    else if(/^(add|save|import|move|restore|clean)/.test(action)) msg = 'تم الحفظ';
+    else if(/^edit/.test(action)) msg = 'تم التعديل';
+    if(!msg) return;
+    clearTimeout(doneToastTimer);
+    doneToastTimer = setTimeout(() => {
+      if(!doneToastEl){
+        doneToastEl = document.createElement('div');
+        doneToastEl.style.cssText = 'position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom,0px) + 90px); transform:translate(-50%,20px); opacity:0; transition:opacity .2s, transform .2s; z-index:10000; background:var(--income); color:#fff; font-weight:700; font-size:14px; padding:11px 22px; border-radius:999px; box-shadow:0 6px 20px rgba(0,0,0,.28); pointer-events:none;';
+        document.body.appendChild(doneToastEl);
+      }
+      const bad = msg !== 'تم الحفظ' && msg !== 'تم التعديل';
+      doneToastEl.style.background = bad ? 'var(--danger)' : 'var(--income)';
+      doneToastEl.textContent = msg + ' \u2713';
+      doneToastEl.style.opacity = '1'; doneToastEl.style.transform = 'translate(-50%,0)';
+      clearTimeout(doneToastHide);
+      doneToastHide = setTimeout(() => { doneToastEl.style.opacity = '0'; doneToastEl.style.transform = 'translate(-50%,20px)'; }, 1800);
+    }, 150);
+  }
+
   async function logActivity(action, description){
+    showDoneToast(action);
     try{
       await db.collection('activityLog').add({
         action, description,
