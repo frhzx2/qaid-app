@@ -5864,9 +5864,10 @@
       if(startY === null) return;
       dist = e.touches[0].clientY - startY;
       if(dist <= 0 || window.scrollY > 0){ bar.style.transform = 'translateY(-100%)'; return; }
+      if(e.cancelable) e.preventDefault(); // stop the native rubber-band so the page itself doesn't drop
       bar.textContent = dist >= LIMIT ? 'أفلت للتحديث' : 'اسحب للتحديث';
       bar.style.transform = 'translateY(' + (Math.min(dist, LIMIT) - 100) + '%)';
-    }, { passive: true });
+    }, { passive: false });
     window.addEventListener('touchend', () => {
       if(startY === null) return;
       const go = dist >= LIMIT; startY = null; dist = 0;
