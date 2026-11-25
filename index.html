@@ -3337,7 +3337,7 @@
           <div class="desc">${escapeHtml(i.label)}</div>
           <div class="meta">${dateHtml(i.date)} · ${i.tag}</div>
         </div>
-        <div class="txn-side"><div class="txn-amt ${i.dir === 'in' ? 'income' : 'expense'}">${i.dir === 'in' ? '+' : '\u2212'} ${fmt(i.amount)}</div></div>
+        <div class="txn-side"><div class="txn-amt" style="color:${i.dir === 'in' ? 'var(--income)' : 'var(--danger)'};">${i.dir === 'in' ? '+' : '\u2212'} ${fmt(i.amount)}</div></div>
       </div>`).join('');
   }
   ['bankFrom','bankTo'].forEach(id => $(id).addEventListener('change', renderBankPage));
