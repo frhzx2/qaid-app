@@ -5890,7 +5890,11 @@
       const go = dist >= LIMIT; startY = null; dist = 0;
       if(!go){ bar.style.transform = 'translateY(-100%)'; return; }
       busy = true; bar.textContent = 'جارٍ التحديث…'; bar.style.transform = 'translateY(0)';
-      setTimeout(() => location.reload(), 250);
+      setTimeout(() => {
+        try{ renderCurrentPage(); }catch(e){ console.error(e); }
+        bar.textContent = 'تم التحديث';
+        setTimeout(() => { bar.style.transform = 'translateY(-100%)'; busy = false; }, 600);
+      }, 300);
     }, { passive: true });
   })();
 </script>
